@@ -5,6 +5,7 @@ import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import L from "leaflet";
 import { cafes } from "@/data/cafes";
 import { supabase } from "@/lib/supabaseClient";
+import { PIN_COLORS } from "@/lib/pinColors";
 import type { CafeStatus, NoiseLevel, Report } from "@/lib/types";
 
 const SHINJUKU_CENTER: [number, number] = [35.6905, 139.7005];
@@ -20,10 +21,11 @@ function createIcon(color: string) {
 }
 
 const ICONS = {
-  unknown: createIcon("#9ca3af"),
-  good: createIcon("#22c55e"),
-  loud: createIcon("#f59e0b"),
-  full: createIcon("#ef4444"),
+  unknown: createIcon(PIN_COLORS.unknown),
+  quiet: createIcon(PIN_COLORS.quiet),
+  normal: createIcon(PIN_COLORS.normal),
+  loud: createIcon(PIN_COLORS.loud),
+  full: createIcon(PIN_COLORS.full),
 };
 
 const NOISE_LABEL: Record<NoiseLevel, string> = {
@@ -46,8 +48,7 @@ function statusFromReport(report: Report | undefined): CafeStatus | null {
 function iconForStatus(status: CafeStatus | null) {
   if (!status || status.isStale) return ICONS.unknown;
   if (!status.outlet_available) return ICONS.full;
-  if (status.noise_level === "loud") return ICONS.loud;
-  return ICONS.good;
+  return ICONS[status.noise_level];
 }
 
 export default function CafeMap() {
@@ -141,7 +142,7 @@ export default function CafeMap() {
     <MapContainer
       center={SHINJUKU_CENTER}
       zoom={16}
-      style={{ height: "100%", width: "100%" }}
+      style={{ position: "absolute", inset: 0 }}
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
