@@ -5,6 +5,7 @@ create table if not exists reports (
   cafe_id text not null,
   outlet_available boolean not null,
   noise_level text not null check (noise_level in ('quiet', 'normal', 'loud')),
+  note text,
   created_at timestamptz not null default now()
 );
 

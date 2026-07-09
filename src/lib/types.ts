@@ -5,12 +5,14 @@ export type Report = {
   cafe_id: string;
   outlet_available: boolean;
   noise_level: NoiseLevel;
+  note: string | null;
   created_at: string;
 };
 
-export type CafeStatus = {
-  outlet_available: boolean;
-  noise_level: NoiseLevel;
-  created_at: string;
-  isStale: boolean;
+export type CafeStats = {
+  totalReports: number;
+  availableCount: number;
+  noiseCounts: Record<NoiseLevel, number>;
+  latestNote: string | null;
+  latestAt: string;
 };
