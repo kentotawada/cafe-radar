@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { PIN_COLORS } from "@/lib/pinColors";
 import { getReporterId } from "@/lib/reporterId";
 import { getFavorites, toggleFavorite } from "@/lib/favorites";
-import type { CafeStats, NoiseLevel, Report } from "@/lib/types";
+import type { CafeStats, NoiseLevel, OccupancyLevel, Report } from "@/lib/types";
 
 const SHINJUKU_CENTER: [number, number] = [35.6905, 139.7005];
 const STALE_MINUTES = 30;
@@ -16,29 +16,47 @@ const STALE_MINUTES = 30;
 type NoiseFilter = "any" | "quietOnly" | "excludeLoud";
 type AvailabilityFilter = "any" | "available";
 
-function createIcon(color: string, size = 18) {
+// 円だけだと地図タイルの色(緑の公園、青の水面など)と紛れて見えにくいため、
+// ピン(涙型)＋白フチ＋影で背景色に関係なく視認できる形にする
+function createPinIcon(color: string) {
+  const html = `<svg width="28" height="36" viewBox="0 0 28 36" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 1px 3px rgba(0,0,0,0.6));">
+    <path d="M14 0C6.3 0 0 6.3 0 14c0 10 14 22 14 22s14-12 14-22C28 6.3 21.7 0 14 0z" fill="${color}" stroke="white" stroke-width="2"/>
+    <circle cx="14" cy="14" r="5.5" fill="white"/>
+  </svg>`;
   return L.divIcon({
     className: "",
-    html: `<div style="background:${color};width:${size}px;height:${size}px;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.5)"></div>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
+    html,
+    iconSize: [28, 36],
+    iconAnchor: [14, 36],
+    popupAnchor: [0, -32],
   });
 }
 
 const ICONS = {
-  unknown: createIcon(PIN_COLORS.unknown),
-  quiet: createIcon(PIN_COLORS.quiet),
-  normal: createIcon(PIN_COLORS.normal),
-  loud: createIcon(PIN_COLORS.loud),
-  full: createIcon(PIN_COLORS.full),
+  unknown: createPinIcon(PIN_COLORS.unknown),
+  quiet: createPinIcon(PIN_COLORS.quiet),
+  normal: createPinIcon(PIN_COLORS.normal),
+  loud: createPinIcon(PIN_COLORS.loud),
+  full: createPinIcon(PIN_COLORS.full),
 };
 
-const USER_LOCATION_ICON = createIcon("#3b82f6", 16);
+const USER_LOCATION_ICON = L.divIcon({
+  className: "",
+  html: `<div style="background:#3b82f6;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px rgba(59,130,246,0.4), 0 1px 4px rgba(0,0,0,0.5)"></div>`,
+  iconSize: [16, 16],
+  iconAnchor: [8, 8],
+});
 
 const NOISE_LABEL: Record<NoiseLevel, string> = {
   quiet: "静か",
   normal: "普通",
   loud: "うるさい",
+};
+
+const OCCUPANCY_LABEL: Record<OccupancyLevel, string> = {
+  empty: "空いている",
+  moderate: "やや混雑",
+  full: "満席",
 };
 
 // 同じ人が何度もボタンを押しても、集計にはその人の最新の1票だけを使う
@@ -55,6 +73,12 @@ function dedupeByReporter(reports: Report[]): Report[] {
   return result;
 }
 
+function pickMajority<T extends string>(counts: Record<T, number>): T {
+  return (Object.keys(counts) as T[]).reduce((a, b) =>
+    counts[b] > counts[a] ? b : a
+  );
+}
+
 function computeStats(reports: Report[]): CafeStats | null {
   const deduped = dedupeByReporter(reports);
   if (deduped.length === 0) return null;
@@ -64,38 +88,39 @@ function computeStats(reports: Report[]): CafeStats | null {
     normal: 0,
     loud: 0,
   };
-  let availableCount = 0;
-  let seatingAvailableCount = 0;
+  const outletOccupancyCounts: Record<OccupancyLevel, number> = {
+    empty: 0,
+    moderate: 0,
+    full: 0,
+  };
+  const seatingOccupancyCounts: Record<OccupancyLevel, number> = {
+    empty: 0,
+    moderate: 0,
+    full: 0,
+  };
   let latestNote: string | null = null;
 
   for (const report of deduped) {
     noiseCounts[report.noise_level] += 1;
-    if (report.outlet_available) availableCount += 1;
-    if (report.seating_available) seatingAvailableCount += 1;
+    outletOccupancyCounts[report.outlet_occupancy] += 1;
+    seatingOccupancyCounts[report.seating_occupancy] += 1;
     if (latestNote === null && report.note) latestNote = report.note;
   }
 
   return {
     totalReporters: deduped.length,
-    availableCount,
-    seatingAvailableCount,
+    outletOccupancyCounts,
+    seatingOccupancyCounts,
     noiseCounts,
     latestNote,
     latestAt: deduped[0].created_at,
   };
 }
 
-function majorityNoise(noiseCounts: Record<NoiseLevel, number>): NoiseLevel {
-  return (Object.keys(noiseCounts) as NoiseLevel[]).reduce((a, b) =>
-    noiseCounts[b] > noiseCounts[a] ? b : a
-  );
-}
-
 function iconForStats(stats: CafeStats | null) {
   if (!stats) return ICONS.unknown;
-  const availableRatio = stats.availableCount / stats.totalReporters;
-  if (availableRatio < 0.5) return ICONS.full;
-  return ICONS[majorityNoise(stats.noiseCounts)];
+  if (pickMajority(stats.outletOccupancyCounts) === "full") return ICONS.full;
+  return ICONS[pickMajority(stats.noiseCounts)];
 }
 
 function directionsUrl(lat: number, lng: number) {
@@ -205,8 +230,8 @@ export default function CafeMap() {
 
   const submitReport = async (
     cafeId: string,
-    outletAvailable: boolean,
-    seatingAvailable: boolean,
+    outletOccupancy: OccupancyLevel,
+    seatingOccupancy: OccupancyLevel,
     noiseLevel: NoiseLevel
   ) => {
     if (!supabase) {
@@ -222,8 +247,8 @@ export default function CafeMap() {
     const { error } = await supabase.from("reports").insert({
       cafe_id: cafeId,
       reporter_id: reporterId,
-      outlet_available: outletAvailable,
-      seating_available: seatingAvailable,
+      outlet_occupancy: outletOccupancy,
+      seating_occupancy: seatingOccupancy,
       noise_level: noiseLevel,
       note,
     });
@@ -260,28 +285,27 @@ export default function CafeMap() {
     const stats = statsByCafe[cafe.id];
     if (!isFiltering) return true;
     if (
-      outletFilter !== "any" ||
-      seatingFilter !== "any" ||
-      noiseFilter !== "any"
+      (outletFilter !== "any" || seatingFilter !== "any" || noiseFilter !== "any") &&
+      !stats
     ) {
-      if (!stats) return false;
+      return false;
     }
     if (
       outletFilter === "available" &&
       stats &&
-      stats.availableCount / stats.totalReporters < 0.5
+      pickMajority(stats.outletOccupancyCounts) === "full"
     ) {
       return false;
     }
     if (
       seatingFilter === "available" &&
       stats &&
-      stats.seatingAvailableCount / stats.totalReporters < 0.5
+      pickMajority(stats.seatingOccupancyCounts) === "full"
     ) {
       return false;
     }
     if (noiseFilter !== "any" && stats) {
-      const majority = majorityNoise(stats.noiseCounts);
+      const majority = pickMajority(stats.noiseCounts);
       if (noiseFilter === "quietOnly" && majority !== "quiet") return false;
       if (noiseFilter === "excludeLoud" && majority === "loud") return false;
     }
@@ -301,52 +325,53 @@ export default function CafeMap() {
       />
 
       <div className="leaflet-top leaflet-right" style={{ zIndex: 1000 }}>
-        <div className="leaflet-control bg-white rounded shadow p-2 m-2 flex flex-col gap-1 text-xs w-44">
-          <label className="flex items-center justify-between gap-1">
-            電源席
+        <div className="leaflet-control bg-white text-gray-900 rounded-lg shadow-lg border border-gray-300 p-3 m-2 flex flex-col gap-2 text-sm w-60">
+          <label className="flex items-center justify-between gap-2">
+            <span>電源席</span>
             <select
               value={outletFilter}
               onChange={(e) =>
                 setOutletFilter(e.target.value as AvailabilityFilter)
               }
-              className="border rounded text-xs"
+              className="border border-gray-400 rounded px-1 py-1 text-sm text-gray-900 bg-white"
             >
               <option value="any">すべて</option>
               <option value="available">空きありのみ</option>
             </select>
           </label>
-          <label className="flex items-center justify-between gap-1">
-            一般席
+          <label className="flex items-center justify-between gap-2">
+            <span>一般席</span>
             <select
               value={seatingFilter}
               onChange={(e) =>
                 setSeatingFilter(e.target.value as AvailabilityFilter)
               }
-              className="border rounded text-xs"
+              className="border border-gray-400 rounded px-1 py-1 text-sm text-gray-900 bg-white"
             >
               <option value="any">すべて</option>
               <option value="available">空きありのみ</option>
             </select>
           </label>
-          <label className="flex items-center justify-between gap-1">
-            静かさ
+          <label className="flex items-center justify-between gap-2">
+            <span>静かさ</span>
             <select
               value={noiseFilter}
               onChange={(e) => setNoiseFilter(e.target.value as NoiseFilter)}
-              className="border rounded text-xs"
+              className="border border-gray-400 rounded px-1 py-1 text-sm text-gray-900 bg-white"
             >
               <option value="any">こだわらない</option>
               <option value="quietOnly">静かな店のみ</option>
               <option value="excludeLoud">うるさい店を除く</option>
             </select>
           </label>
-          <label className="flex items-center gap-1">
+          <label className="flex items-center gap-2">
             <input
               type="checkbox"
               checked={favoritesOnly}
               onChange={(e) => setFavoritesOnly(e.target.checked)}
+              className="w-4 h-4"
             />
-            お気に入りのみ
+            <span>お気に入りのみ</span>
           </label>
         </div>
       </div>
@@ -367,7 +392,7 @@ export default function CafeMap() {
             icon={iconForStats(stats)}
           >
             <Popup minWidth={230}>
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 text-gray-900">
                 <div className="flex items-start justify-between gap-2">
                   <div className="font-bold">{cafe.name}</div>
                   <button
@@ -402,11 +427,14 @@ export default function CafeMap() {
 
                 {stats ? (
                   <div className="text-sm">
-                    電源: 直近{stats.totalReporters}人中{stats.availableCount}
-                    人が空きあり
+                    電源席混雑度: 空いている{stats.outletOccupancyCounts.empty}{" "}
+                    やや混雑{stats.outletOccupancyCounts.moderate} 満席
+                    {stats.outletOccupancyCounts.full}
                     <br />
-                    一般席: 直近{stats.totalReporters}人中
-                    {stats.seatingAvailableCount}人が空きあり
+                    一般席混雑度: 空いている
+                    {stats.seatingOccupancyCounts.empty} やや混雑
+                    {stats.seatingOccupancyCounts.moderate} 満席
+                    {stats.seatingOccupancyCounts.full}
                     <br />
                     騒音: 静か{stats.noiseCounts.quiet} 普通
                     {stats.noiseCounts.normal} うるさい{stats.noiseCounts.loud}
@@ -418,40 +446,29 @@ export default function CafeMap() {
                 )}
 
                 <div className="border-t pt-2">
-                  <div className="text-xs font-semibold mb-1">電源席</div>
-                  <div className="flex gap-1">
-                    <button
-                      disabled={submitting === cafe.id}
-                      onClick={() =>
-                        submitReport(
-                          cafe.id,
-                          true,
-                          myReport?.seating_available ?? true,
-                          myReport?.noise_level ?? "normal"
-                        )
-                      }
-                      className={`px-2 py-1 text-xs rounded bg-green-100 hover:bg-green-200 disabled:opacity-50 ${selectedClass(
-                        myReport?.outlet_available === true
-                      )}`}
-                    >
-                      空きあり
-                    </button>
-                    <button
-                      disabled={submitting === cafe.id}
-                      onClick={() =>
-                        submitReport(
-                          cafe.id,
-                          false,
-                          myReport?.seating_available ?? true,
-                          myReport?.noise_level ?? "normal"
-                        )
-                      }
-                      className={`px-2 py-1 text-xs rounded bg-red-100 hover:bg-red-200 disabled:opacity-50 ${selectedClass(
-                        myReport?.outlet_available === false
-                      )}`}
-                    >
-                      満席
-                    </button>
+                  <div className="text-xs font-semibold mb-1">電源席の混雑度</div>
+                  <div className="flex gap-1 flex-wrap">
+                    {(Object.keys(OCCUPANCY_LABEL) as OccupancyLevel[]).map(
+                      (level) => (
+                        <button
+                          key={level}
+                          disabled={submitting === cafe.id}
+                          onClick={() =>
+                            submitReport(
+                              cafe.id,
+                              level,
+                              myReport?.seating_occupancy ?? "empty",
+                              myReport?.noise_level ?? "normal"
+                            )
+                          }
+                          className={`px-2 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50 ${selectedClass(
+                            myReport?.outlet_occupancy === level
+                          )}`}
+                        >
+                          {OCCUPANCY_LABEL[level]}
+                        </button>
+                      )
+                    )}
                   </div>
                   <div className="mt-1">
                     <div className="text-xs text-gray-500 mb-1">
@@ -474,40 +491,29 @@ export default function CafeMap() {
                 </div>
 
                 <div>
-                  <div className="text-xs font-semibold mb-1">一般席</div>
-                  <div className="flex gap-1">
-                    <button
-                      disabled={submitting === cafe.id}
-                      onClick={() =>
-                        submitReport(
-                          cafe.id,
-                          myReport?.outlet_available ?? true,
-                          true,
-                          myReport?.noise_level ?? "normal"
-                        )
-                      }
-                      className={`px-2 py-1 text-xs rounded bg-green-100 hover:bg-green-200 disabled:opacity-50 ${selectedClass(
-                        myReport?.seating_available === true
-                      )}`}
-                    >
-                      空きあり
-                    </button>
-                    <button
-                      disabled={submitting === cafe.id}
-                      onClick={() =>
-                        submitReport(
-                          cafe.id,
-                          myReport?.outlet_available ?? true,
-                          false,
-                          myReport?.noise_level ?? "normal"
-                        )
-                      }
-                      className={`px-2 py-1 text-xs rounded bg-red-100 hover:bg-red-200 disabled:opacity-50 ${selectedClass(
-                        myReport?.seating_available === false
-                      )}`}
-                    >
-                      満席
-                    </button>
+                  <div className="text-xs font-semibold mb-1">一般席の混雑度</div>
+                  <div className="flex gap-1 flex-wrap">
+                    {(Object.keys(OCCUPANCY_LABEL) as OccupancyLevel[]).map(
+                      (level) => (
+                        <button
+                          key={level}
+                          disabled={submitting === cafe.id}
+                          onClick={() =>
+                            submitReport(
+                              cafe.id,
+                              myReport?.outlet_occupancy ?? "empty",
+                              level,
+                              myReport?.noise_level ?? "normal"
+                            )
+                          }
+                          className={`px-2 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50 ${selectedClass(
+                            myReport?.seating_occupancy === level
+                          )}`}
+                        >
+                          {OCCUPANCY_LABEL[level]}
+                        </button>
+                      )
+                    )}
                   </div>
                 </div>
 
@@ -521,8 +527,8 @@ export default function CafeMap() {
                         onClick={() =>
                           submitReport(
                             cafe.id,
-                            myReport?.outlet_available ?? true,
-                            myReport?.seating_available ?? true,
+                            myReport?.outlet_occupancy ?? "empty",
+                            myReport?.seating_occupancy ?? "empty",
                             level
                           )
                         }
