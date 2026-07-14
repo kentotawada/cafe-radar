@@ -60,6 +60,36 @@ const OCCUPANCY_LABEL: Record<OccupancyLevel, string> = {
   full: "満席",
 };
 
+const OCCUPANCY_SCORE: Record<OccupancyLevel, number> = {
+  empty: 0,
+  moderate: 50,
+  full: 100,
+};
+
+const NOISE_SCORE: Record<NoiseLevel, number> = {
+  quiet: 0,
+  normal: 50,
+  loud: 100,
+};
+
+function weightedPercent<T extends string>(
+  counts: Record<T, number>,
+  scores: Record<T, number>,
+  total: number
+): number {
+  let sum = 0;
+  for (const key in counts) {
+    sum += counts[key] * scores[key];
+  }
+  return Math.round(sum / total);
+}
+
+function formatRelativeTime(iso: string): string {
+  const minutes = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
+  if (minutes < 1) return "たった今";
+  return `${minutes}分前`;
+}
+
 // 同じ人が何度もボタンを押しても、集計にはその人の最新の1票だけを使う
 function dedupeByReporter(reports: Report[]): Report[] {
   const seen = new Set<string>();
@@ -341,7 +371,7 @@ export default function CafeMap() {
       />
 
       <div className="leaflet-top leaflet-right" style={{ zIndex: 1000 }}>
-        <div className="leaflet-control bg-white text-gray-900 rounded-lg shadow-lg border border-gray-300 p-3 m-2 flex flex-col gap-2 text-sm w-60">
+        <div className="leaflet-control bg-white text-gray-900 rounded-lg shadow-lg border border-gray-300 p-2 sm:p-3 m-2 flex flex-col gap-1 sm:gap-2 text-xs sm:text-sm w-36 sm:w-60">
           <label className="flex flex-col gap-1">
             <span>エリア検索</span>
             <input
@@ -350,7 +380,7 @@ export default function CafeMap() {
               value={areaQuery}
               onChange={(e) => handleAreaSearch(e.target.value)}
               placeholder="例: 新宿駅"
-              className="border border-gray-400 rounded px-2 py-1 text-sm text-gray-900 bg-white"
+              className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-xs sm:text-sm text-gray-900 bg-white w-full"
             />
             <datalist id="area-options">
               {areas.map((area) => (
@@ -365,7 +395,7 @@ export default function CafeMap() {
               onChange={(e) =>
                 setOutletFilter(e.target.value as AvailabilityFilter)
               }
-              className="border border-gray-400 rounded px-1 py-1 text-sm text-gray-900 bg-white"
+              className="border border-gray-400 rounded px-1 py-0.5 sm:py-1 text-xs sm:text-sm text-gray-900 bg-white"
             >
               <option value="any">すべて</option>
               <option value="available">空きありのみ</option>
@@ -378,7 +408,7 @@ export default function CafeMap() {
               onChange={(e) =>
                 setSeatingFilter(e.target.value as AvailabilityFilter)
               }
-              className="border border-gray-400 rounded px-1 py-1 text-sm text-gray-900 bg-white"
+              className="border border-gray-400 rounded px-1 py-0.5 sm:py-1 text-xs sm:text-sm text-gray-900 bg-white"
             >
               <option value="any">すべて</option>
               <option value="available">空きありのみ</option>
@@ -389,7 +419,7 @@ export default function CafeMap() {
             <select
               value={noiseFilter}
               onChange={(e) => setNoiseFilter(e.target.value as NoiseFilter)}
-              className="border border-gray-400 rounded px-1 py-1 text-sm text-gray-900 bg-white"
+              className="border border-gray-400 rounded px-1 py-0.5 sm:py-1 text-xs sm:text-sm text-gray-900 bg-white"
             >
               <option value="any">こだわらない</option>
               <option value="quietOnly">静かな店のみ</option>
@@ -403,7 +433,7 @@ export default function CafeMap() {
               onChange={(e) => setFavoritesOnly(e.target.checked)}
               className="w-4 h-4"
             />
-            <span>お気に入りのみ</span>
+            <span>お気に入りのお店のみ</span>
           </label>
         </div>
       </div>
@@ -426,7 +456,7 @@ export default function CafeMap() {
             <Popup minWidth={230}>
               <div className="flex flex-col gap-2 text-gray-900">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="font-bold">{cafe.name}</div>
+                  <div className="font-bold text-base">{cafe.name}</div>
                   <button
                     onClick={() => handleToggleFavorite(cafe.id)}
                     className="text-3xl leading-none px-1 text-yellow-500"
@@ -458,19 +488,38 @@ export default function CafeMap() {
                 </div>
 
                 {stats ? (
-                  <div className="text-sm">
-                    電源席混雑度: 空いている{stats.outletOccupancyCounts.empty}{" "}
-                    やや混雑{stats.outletOccupancyCounts.moderate} 満席
-                    {stats.outletOccupancyCounts.full}
-                    <br />
-                    一般席混雑度: 空いている
-                    {stats.seatingOccupancyCounts.empty} やや混雑
-                    {stats.seatingOccupancyCounts.moderate} 満席
-                    {stats.seatingOccupancyCounts.full}
-                    <br />
-                    騒音: 静か{stats.noiseCounts.quiet} 普通
-                    {stats.noiseCounts.normal} うるさい{stats.noiseCounts.loud}
-                  </div>
+                  (() => {
+                    const outletPct = weightedPercent(
+                      stats.outletOccupancyCounts,
+                      OCCUPANCY_SCORE,
+                      stats.totalReporters
+                    );
+                    const seatingPct = weightedPercent(
+                      stats.seatingOccupancyCounts,
+                      OCCUPANCY_SCORE,
+                      stats.totalReporters
+                    );
+                    const overallPct = Math.round((outletPct + seatingPct) / 2);
+                    const noisePct = weightedPercent(
+                      stats.noiseCounts,
+                      NOISE_SCORE,
+                      stats.totalReporters
+                    );
+                    return (
+                      <div className="text-sm">
+                        <div className="font-semibold">
+                          総合混雑度: {overallPct}%
+                        </div>
+                        電源席混雑度: {outletPct}%　一般席混雑度: {seatingPct}%
+                        <br />
+                        騒音度: {noisePct}%
+                        <div className="text-xs text-gray-500 mt-1">
+                          最終更新: {formatRelativeTime(stats.latestAt)}（
+                          {stats.totalReporters}人の報告）
+                        </div>
+                      </div>
+                    );
+                  })()
                 ) : (
                   <div className="text-sm text-gray-400">
                     まだ報告がありません
