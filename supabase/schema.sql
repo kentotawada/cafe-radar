@@ -3,7 +3,9 @@
 create table if not exists reports (
   id uuid primary key default gen_random_uuid(),
   cafe_id text not null,
+  reporter_id text,
   outlet_available boolean not null,
+  seating_available boolean not null default true,
   noise_level text not null check (noise_level in ('quiet', 'normal', 'loud')),
   note text,
   created_at timestamptz not null default now()
