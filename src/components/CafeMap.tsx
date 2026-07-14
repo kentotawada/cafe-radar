@@ -154,8 +154,10 @@ function iconForStats(stats: CafeStats | null) {
   return ICONS[pickMajority(stats.noiseCounts)];
 }
 
-function directionsUrl(lat: number, lng: number) {
-  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+function directionsUrl(name: string, address: string) {
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+    `${name} ${address}`
+  )}`;
 }
 
 function searchUrl(name: string, address: string) {
@@ -192,6 +194,7 @@ export default function CafeMap() {
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [mapFocus, setMapFocus] = useState<[number, number] | null>(null);
   const [areaQuery, setAreaQuery] = useState("");
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(true);
 
   useEffect(() => {
     if (!("geolocation" in navigator)) return;
@@ -371,25 +374,34 @@ export default function CafeMap() {
       />
 
       <div className="leaflet-top leaflet-right" style={{ zIndex: 1000 }}>
-        <div className="leaflet-control bg-white text-gray-900 rounded-lg shadow-lg border border-gray-300 p-2 sm:p-3 m-2 flex flex-col gap-1 sm:gap-2 text-xs sm:text-sm w-36 sm:w-60">
-          <label className="flex flex-col gap-1">
-            <span>エリア検索</span>
-            <input
-              type="text"
-              list="area-options"
-              value={areaQuery}
-              onChange={(e) => handleAreaSearch(e.target.value)}
-              placeholder="例: 新宿駅"
-              className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-xs sm:text-sm text-gray-900 bg-white w-full"
-            />
-            <datalist id="area-options">
-              {areas.map((area) => (
-                <option key={area.id} value={area.name} />
-              ))}
-            </datalist>
-          </label>
-          <label className="flex items-center justify-between gap-2">
-            <span>電源席</span>
+        <div className="leaflet-control bg-white text-gray-900 rounded-lg shadow-lg border border-gray-300 m-2 text-xs sm:text-sm w-36 sm:w-60">
+          <button
+            onClick={() => setIsFilterPanelOpen((prev) => !prev)}
+            className="w-full flex items-center justify-between px-2 sm:px-3 py-1.5 sm:py-2 font-semibold"
+          >
+            <span>絞り込み</span>
+            <span>{isFilterPanelOpen ? "▲" : "▼"}</span>
+          </button>
+          {isFilterPanelOpen && (
+            <div className="flex flex-col gap-1 sm:gap-2 px-2 sm:px-3 pb-2 sm:pb-3">
+              <label className="flex flex-col gap-1">
+                <span>エリア検索</span>
+                <input
+                  type="text"
+                  list="area-options"
+                  value={areaQuery}
+                  onChange={(e) => handleAreaSearch(e.target.value)}
+                  placeholder="例: 新宿駅"
+                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-xs sm:text-sm text-gray-900 bg-white w-full"
+                />
+                <datalist id="area-options">
+                  {areas.map((area) => (
+                    <option key={area.id} value={area.name} />
+                  ))}
+                </datalist>
+              </label>
+              <label className="flex items-center justify-between gap-2">
+                <span>電源席</span>
             <select
               value={outletFilter}
               onChange={(e) =>
@@ -426,15 +438,17 @@ export default function CafeMap() {
               <option value="excludeLoud">うるさい店を除く</option>
             </select>
           </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={favoritesOnly}
-              onChange={(e) => setFavoritesOnly(e.target.checked)}
-              className="w-4 h-4"
-            />
-            <span>お気に入りのお店のみ</span>
-          </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={favoritesOnly}
+                  onChange={(e) => setFavoritesOnly(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <span>お気に入りのお店のみ</span>
+              </label>
+            </div>
+          )}
         </div>
       </div>
 
@@ -470,7 +484,7 @@ export default function CafeMap() {
 
                 <div className="flex gap-2 text-xs">
                   <a
-                    href={directionsUrl(cafe.lat, cafe.lng)}
+                    href={directionsUrl(cafe.name, cafe.address)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 underline"
@@ -507,12 +521,15 @@ export default function CafeMap() {
                     );
                     return (
                       <div className="text-sm">
-                        <div className="font-semibold">
-                          総合混雑度: {overallPct}%
+                        <div className="font-semibold text-orange-700">
+                          🪑 総合混雑度: {overallPct}%
                         </div>
-                        電源席混雑度: {outletPct}%　一般席混雑度: {seatingPct}%
-                        <br />
-                        騒音度: {noisePct}%
+                        <div className="text-orange-700">
+                          🔌 電源席: {outletPct}%　💺 一般席: {seatingPct}%
+                        </div>
+                        <div className="text-purple-700">
+                          🔊 騒音度: {noisePct}%
+                        </div>
                         <div className="text-xs text-gray-500 mt-1">
                           最終更新: {formatRelativeTime(stats.latestAt)}（
                           {stats.totalReporters}人の報告）
