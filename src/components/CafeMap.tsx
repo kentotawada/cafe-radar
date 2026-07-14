@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import { cafes } from "@/data/cafes";
+import { areas } from "@/data/areas";
 import { supabase } from "@/lib/supabaseClient";
 import { PIN_COLORS } from "@/lib/pinColors";
 import { getReporterId } from "@/lib/reporterId";
@@ -159,16 +160,31 @@ export default function CafeMap() {
   const [seatingFilter, setSeatingFilter] = useState<AvailabilityFilter>("any");
   const [noiseFilter, setNoiseFilter] = useState<NoiseFilter>("any");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [mapFocus, setMapFocus] = useState<[number, number] | null>(null);
+  const [areaQuery, setAreaQuery] = useState("");
 
   useEffect(() => {
     if (!("geolocation" in navigator)) return;
     navigator.geolocation.getCurrentPosition(
-      (pos) => setUserPosition([pos.coords.latitude, pos.coords.longitude]),
+      (pos) => {
+        const position: [number, number] = [
+          pos.coords.latitude,
+          pos.coords.longitude,
+        ];
+        setUserPosition(position);
+        setMapFocus(position);
+      },
       () => {
         // 取得できなくても地図はデフォルト位置のまま表示する
       }
     );
   }, []);
+
+  const handleAreaSearch = (query: string) => {
+    setAreaQuery(query);
+    const match = areas.find((area) => area.name === query);
+    if (match) setMapFocus([match.lat, match.lng]);
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -314,11 +330,11 @@ export default function CafeMap() {
 
   return (
     <MapContainer
-      center={userPosition ?? SHINJUKU_CENTER}
+      center={mapFocus ?? SHINJUKU_CENTER}
       zoom={16}
       style={{ position: "absolute", inset: 0 }}
     >
-      <RecenterOnLocate position={userPosition} />
+      <RecenterOnLocate position={mapFocus} />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -326,6 +342,22 @@ export default function CafeMap() {
 
       <div className="leaflet-top leaflet-right" style={{ zIndex: 1000 }}>
         <div className="leaflet-control bg-white text-gray-900 rounded-lg shadow-lg border border-gray-300 p-3 m-2 flex flex-col gap-2 text-sm w-60">
+          <label className="flex flex-col gap-1">
+            <span>エリア検索</span>
+            <input
+              type="text"
+              list="area-options"
+              value={areaQuery}
+              onChange={(e) => handleAreaSearch(e.target.value)}
+              placeholder="例: 新宿駅"
+              className="border border-gray-400 rounded px-2 py-1 text-sm text-gray-900 bg-white"
+            />
+            <datalist id="area-options">
+              {areas.map((area) => (
+                <option key={area.id} value={area.name} />
+              ))}
+            </datalist>
+          </label>
           <label className="flex items-center justify-between gap-2">
             <span>電源席</span>
             <select
@@ -397,7 +429,7 @@ export default function CafeMap() {
                   <div className="font-bold">{cafe.name}</div>
                   <button
                     onClick={() => handleToggleFavorite(cafe.id)}
-                    className="text-lg leading-none"
+                    className="text-3xl leading-none px-1 text-yellow-500"
                     aria-label="お気に入り"
                     title="お気に入り"
                   >
