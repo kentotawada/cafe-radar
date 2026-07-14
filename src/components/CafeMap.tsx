@@ -196,7 +196,7 @@ export default function CafeMap() {
   const [areaQuery, setAreaQuery] = useState("");
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(true);
 
-  useEffect(() => {
+  const locateMe = () => {
     if (!("geolocation" in navigator)) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -211,6 +211,10 @@ export default function CafeMap() {
         // 取得できなくても地図はデフォルト位置のまま表示する
       }
     );
+  };
+
+  useEffect(() => {
+    locateMe();
   }, []);
 
   const handleAreaSearch = (query: string) => {
@@ -231,7 +235,7 @@ export default function CafeMap() {
       return grouped;
     }
 
-    async function loadInitialReports() {
+    async function loadReports() {
       if (!client) return;
       const since = new Date(Date.now() - STALE_MINUTES * 60000).toISOString();
       const { data, error } = await client
@@ -248,7 +252,7 @@ export default function CafeMap() {
       if (isMounted) setReportsByCafe(groupByCafe((data as Report[]) ?? []));
     }
 
-    loadInitialReports();
+    loadReports();
 
     if (!client) {
       return () => {
@@ -271,9 +275,29 @@ export default function CafeMap() {
       )
       .subscribe();
 
+    // リアルタイム通知を取りこぼしても自己修復できるよう、定期的に取り直す
+    const refetchInterval = setInterval(loadReports, 2 * 60000);
+
+    // ページを開きっぱなしでも、30分を過ぎた古い報告を集計から除外して
+    // 最終更新表示なども含めて画面を新鮮に保つ
+    const pruneInterval = setInterval(() => {
+      const cutoff = Date.now() - STALE_MINUTES * 60000;
+      setReportsByCafe((prev) => {
+        const next: Record<string, Report[]> = {};
+        for (const [cafeId, reports] of Object.entries(prev)) {
+          next[cafeId] = reports.filter(
+            (r) => new Date(r.created_at).getTime() >= cutoff
+          );
+        }
+        return next;
+      });
+    }, 60000);
+
     return () => {
       isMounted = false;
       client.removeChannel(channel);
+      clearInterval(refetchInterval);
+      clearInterval(pruneInterval);
     };
   }, []);
 
@@ -449,6 +473,19 @@ export default function CafeMap() {
               </label>
             </div>
           )}
+        </div>
+      </div>
+
+      <div className="leaflet-bottom leaflet-right" style={{ zIndex: 1000 }}>
+        <div className="leaflet-control m-2">
+          <button
+            onClick={locateMe}
+            aria-label="現在地に戻る"
+            title="現在地に戻る"
+            className="bg-white rounded-full shadow-lg border border-gray-300 w-10 h-10 flex items-center justify-center text-lg"
+          >
+            🎯
+          </button>
         </div>
       </div>
 
