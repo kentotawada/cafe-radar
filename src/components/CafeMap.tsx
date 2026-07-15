@@ -194,14 +194,21 @@ export default function CafeMap() {
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [mapFocus, setMapFocus] = useState<[number, number] | null>(null);
   const [areaQuery, setAreaQuery] = useState("");
-  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(true);
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(
+    () => typeof window !== "undefined" && window.innerWidth >= 640
+  );
+  const [locateError, setLocateError] = useState<string | null>(null);
 
   // エリア検索など、ユーザーが自分で地図の表示先を選んだ後に、
   // 遅れて返ってきた位置情報がそれを上書きしてしまわないようにする
   const hasManualFocusRef = useRef(false);
 
   const locateMe = () => {
-    if (!("geolocation" in navigator)) return;
+    if (!("geolocation" in navigator)) {
+      setLocateError("この端末・ブラウザでは現在地を取得できません");
+      return;
+    }
+    setLocateError(null);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const position: [number, number] = [
@@ -212,8 +219,12 @@ export default function CafeMap() {
         setMapFocus(position);
         hasManualFocusRef.current = true;
       },
-      () => {
-        // 取得できなくても地図はデフォルト位置のまま表示する
+      (err) => {
+        setLocateError(
+          err.code === err.PERMISSION_DENIED
+            ? "位置情報の利用が許可されていません。ブラウザの設定を確認してください"
+            : "現在地を取得できませんでした"
+        );
       }
     );
   };
@@ -432,19 +443,18 @@ export default function CafeMap() {
             <div className="flex flex-col gap-1 sm:gap-2 px-2 sm:px-3 pb-2 sm:pb-3">
               <label className="flex flex-col gap-1">
                 <span>エリア検索</span>
-                <input
-                  type="text"
-                  list="area-options"
+                <select
                   value={areaQuery}
                   onChange={(e) => handleAreaSearch(e.target.value)}
-                  placeholder="例: 新宿駅"
                   className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-base text-gray-900 bg-white w-full"
-                />
-                <datalist id="area-options">
+                >
+                  <option value="">選択してください</option>
                   {areas.map((area) => (
-                    <option key={area.id} value={area.name} />
+                    <option key={area.id} value={area.name}>
+                      {area.name}
+                    </option>
                   ))}
-                </datalist>
+                </select>
               </label>
               <label className="flex items-center justify-between gap-2">
                 <span>電源席</span>
@@ -499,7 +509,12 @@ export default function CafeMap() {
       </div>
 
       <div className="leaflet-bottom leaflet-right" style={{ zIndex: 1000 }}>
-        <div className="leaflet-control m-2">
+        <div className="leaflet-control m-2 flex flex-col items-end gap-1">
+          {locateError && (
+            <div className="bg-white text-xs text-red-600 rounded shadow-lg border border-gray-300 px-2 py-1 max-w-[200px]">
+              {locateError}
+            </div>
+          )}
           <button
             onClick={locateMe}
             aria-label="現在地に戻る"
@@ -676,6 +691,22 @@ export default function CafeMap() {
                       placeholder="例: レジ横の窓側の席"
                       className="w-full text-base border rounded px-2 py-1"
                     />
+                    <button
+                      disabled={
+                        submitting === cafe.id || !noteByCafe[cafe.id]?.trim()
+                      }
+                      onClick={() =>
+                        submitReport(
+                          cafe.id,
+                          myReport?.outlet_occupancy ?? "empty",
+                          myReport?.seating_occupancy ?? "empty",
+                          myReport?.noise_level ?? "normal"
+                        )
+                      }
+                      className="mt-1 px-2 py-1 text-xs rounded bg-blue-100 hover:bg-blue-200 disabled:opacity-50"
+                    >
+                      この場所情報を共有
+                    </button>
                   </div>
                 </div>
 
