@@ -12,11 +12,16 @@ export type Report = {
   created_at: string;
 };
 
+export type NoteEntry = {
+  text: string;
+  at: string;
+};
+
 export type CafeStats = {
   totalReporters: number;
   outletOccupancyCounts: Record<OccupancyLevel, number>;
   seatingOccupancyCounts: Record<OccupancyLevel, number>;
   noiseCounts: Record<NoiseLevel, number>;
-  latestNote: string | null;
+  notes: NoteEntry[];
   latestAt: string;
 };

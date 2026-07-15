@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import { cafes } from "@/data/cafes";
@@ -129,13 +129,13 @@ function computeStats(reports: Report[]): CafeStats | null {
     moderate: 0,
     full: 0,
   };
-  let latestNote: string | null = null;
+  const notes: { text: string; at: string }[] = [];
 
   for (const report of deduped) {
     noiseCounts[report.noise_level] += 1;
     outletOccupancyCounts[report.outlet_occupancy] += 1;
     seatingOccupancyCounts[report.seating_occupancy] += 1;
-    if (latestNote === null && report.note) latestNote = report.note;
+    if (report.note) notes.push({ text: report.note, at: report.created_at });
   }
 
   return {
@@ -143,7 +143,7 @@ function computeStats(reports: Report[]): CafeStats | null {
     outletOccupancyCounts,
     seatingOccupancyCounts,
     noiseCounts,
-    latestNote,
+    notes,
     latestAt: deduped[0].created_at,
   };
 }
@@ -196,10 +196,33 @@ export default function CafeMap() {
   const [areaQuery, setAreaQuery] = useState("");
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(true);
 
+  // エリア検索など、ユーザーが自分で地図の表示先を選んだ後に、
+  // 遅れて返ってきた位置情報がそれを上書きしてしまわないようにする
+  const hasManualFocusRef = useRef(false);
+
   const locateMe = () => {
     if (!("geolocation" in navigator)) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
+        const position: [number, number] = [
+          pos.coords.latitude,
+          pos.coords.longitude,
+        ];
+        setUserPosition(position);
+        setMapFocus(position);
+        hasManualFocusRef.current = true;
+      },
+      () => {
+        // 取得できなくても地図はデフォルト位置のまま表示する
+      }
+    );
+  };
+
+  useEffect(() => {
+    if (!("geolocation" in navigator)) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (hasManualFocusRef.current) return;
         const position: [number, number] = [
           pos.coords.latitude,
           pos.coords.longitude,
@@ -211,16 +234,15 @@ export default function CafeMap() {
         // 取得できなくても地図はデフォルト位置のまま表示する
       }
     );
-  };
-
-  useEffect(() => {
-    locateMe();
   }, []);
 
   const handleAreaSearch = (query: string) => {
     setAreaQuery(query);
     const match = areas.find((area) => area.name === query);
-    if (match) setMapFocus([match.lat, match.lng]);
+    if (match) {
+      setMapFocus([match.lat, match.lng]);
+      hasManualFocusRef.current = true;
+    }
   };
 
   useEffect(() => {
@@ -416,7 +438,7 @@ export default function CafeMap() {
                   value={areaQuery}
                   onChange={(e) => handleAreaSearch(e.target.value)}
                   placeholder="例: 新宿駅"
-                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-xs sm:text-sm text-gray-900 bg-white w-full"
+                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-base text-gray-900 bg-white w-full"
                 />
                 <datalist id="area-options">
                   {areas.map((area) => (
@@ -431,7 +453,7 @@ export default function CafeMap() {
               onChange={(e) =>
                 setOutletFilter(e.target.value as AvailabilityFilter)
               }
-              className="border border-gray-400 rounded px-1 py-0.5 sm:py-1 text-xs sm:text-sm text-gray-900 bg-white"
+              className="border border-gray-400 rounded px-1 py-0.5 sm:py-1 text-base text-gray-900 bg-white"
             >
               <option value="any">すべて</option>
               <option value="available">空きありのみ</option>
@@ -444,7 +466,7 @@ export default function CafeMap() {
               onChange={(e) =>
                 setSeatingFilter(e.target.value as AvailabilityFilter)
               }
-              className="border border-gray-400 rounded px-1 py-0.5 sm:py-1 text-xs sm:text-sm text-gray-900 bg-white"
+              className="border border-gray-400 rounded px-1 py-0.5 sm:py-1 text-base text-gray-900 bg-white"
             >
               <option value="any">すべて</option>
               <option value="available">空きありのみ</option>
@@ -455,7 +477,7 @@ export default function CafeMap() {
             <select
               value={noiseFilter}
               onChange={(e) => setNoiseFilter(e.target.value as NoiseFilter)}
-              className="border border-gray-400 rounded px-1 py-0.5 sm:py-1 text-xs sm:text-sm text-gray-900 bg-white"
+              className="border border-gray-400 rounded px-1 py-0.5 sm:py-1 text-base text-gray-900 bg-white"
             >
               <option value="any">こだわらない</option>
               <option value="quietOnly">静かな店のみ</option>
@@ -482,9 +504,23 @@ export default function CafeMap() {
             onClick={locateMe}
             aria-label="現在地に戻る"
             title="現在地に戻る"
-            className="bg-white rounded-full shadow-lg border border-gray-300 w-10 h-10 flex items-center justify-center text-lg"
+            className="bg-white rounded-full shadow-lg border border-gray-300 w-10 h-10 flex items-center justify-center"
           >
-            🎯
+            <svg width="20" height="20" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="3" fill="#3b82f6" />
+              <circle
+                cx="12"
+                cy="12"
+                r="7"
+                fill="none"
+                stroke="#3b82f6"
+                strokeWidth="2"
+              />
+              <line x1="12" y1="1" x2="12" y2="4" stroke="#3b82f6" strokeWidth="2" />
+              <line x1="12" y1="20" x2="12" y2="23" stroke="#3b82f6" strokeWidth="2" />
+              <line x1="1" y1="12" x2="4" y2="12" stroke="#3b82f6" strokeWidth="2" />
+              <line x1="20" y1="12" x2="23" y2="12" stroke="#3b82f6" strokeWidth="2" />
+            </svg>
           </button>
         </div>
       </div>
@@ -580,6 +616,24 @@ export default function CafeMap() {
                   </div>
                 )}
 
+                {stats && stats.notes.length > 0 && (
+                  <div className="text-xs bg-gray-50 rounded p-2">
+                    <div className="font-semibold mb-1">
+                      みんなが書いた電源席の場所
+                    </div>
+                    <ul className="flex flex-col gap-0.5">
+                      {stats.notes.map((entry, i) => (
+                        <li key={i} className="text-gray-700">
+                          ・{entry.text}
+                          <span className="text-gray-400">
+                            （{formatRelativeTime(entry.at)}）
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 <div className="border-t pt-2">
                   <div className="text-xs font-semibold mb-1">電源席の混雑度</div>
                   <div className="flex gap-1 flex-wrap">
@@ -620,7 +674,7 @@ export default function CafeMap() {
                         }))
                       }
                       placeholder="例: レジ横の窓側の席"
-                      className="w-full text-xs border rounded px-2 py-1"
+                      className="w-full text-base border rounded px-2 py-1"
                     />
                   </div>
                 </div>
