@@ -9,7 +9,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { PIN_COLORS } from "@/lib/pinColors";
 import { getReporterId } from "@/lib/reporterId";
 import { getFavorites, toggleFavorite } from "@/lib/favorites";
-import type { CafeStats, NoiseLevel, OccupancyLevel, Report } from "@/lib/types";
+import type { CafeFact, CafeStats, NoiseLevel, OccupancyLevel, Report } from "@/lib/types";
 
 const SHINJUKU_CENTER: [number, number] = [35.6905, 139.7005];
 const STALE_MINUTES = 30;
@@ -129,13 +129,11 @@ function computeStats(reports: Report[]): CafeStats | null {
     moderate: 0,
     full: 0,
   };
-  const notes: { text: string; at: string }[] = [];
 
   for (const report of deduped) {
     noiseCounts[report.noise_level] += 1;
     outletOccupancyCounts[report.outlet_occupancy] += 1;
     seatingOccupancyCounts[report.seating_occupancy] += 1;
-    if (report.note) notes.push({ text: report.note, at: report.created_at });
   }
 
   return {
@@ -143,9 +141,41 @@ function computeStats(reports: Report[]): CafeStats | null {
     outletOccupancyCounts,
     seatingOccupancyCounts,
     noiseCounts,
-    notes,
     latestAt: deduped[0].created_at,
   };
+}
+
+type NoteGroup = {
+  text: string;
+  count: number;
+  latestAt: string;
+};
+
+// 同じ場所を指すメモは1つにまとめ、「何人が確認したか」がわかるようにする
+function groupNotes(facts: CafeFact[]): NoteGroup[] {
+  const groups = new Map<string, NoteGroup>();
+  for (const fact of facts) {
+    if (!fact.note) continue;
+    const key = fact.note.trim();
+    if (!key) continue;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.count += 1;
+      if (fact.created_at > existing.latestAt) existing.latestAt = fact.created_at;
+    } else {
+      groups.set(key, { text: key, count: 1, latestAt: fact.created_at });
+    }
+  }
+  return [...groups.values()].sort((a, b) => (a.latestAt < b.latestAt ? 1 : -1));
+}
+
+function median(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? Math.round((sorted[mid - 1] + sorted[mid]) / 2)
+    : sorted[mid];
 }
 
 function iconForStats(stats: CafeStats | null) {
@@ -182,9 +212,11 @@ function selectedClass(isSelected: boolean) {
 
 export default function CafeMap() {
   const [reportsByCafe, setReportsByCafe] = useState<Record<string, Report[]>>({});
+  const [factsByCafe, setFactsByCafe] = useState<Record<string, CafeFact[]>>({});
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [errorByCafe, setErrorByCafe] = useState<Record<string, string>>({});
   const [noteByCafe, setNoteByCafe] = useState<Record<string, string>>({});
+  const [seatCountByCafe, setSeatCountByCafe] = useState<Record<string, string>>({});
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
   const [reporterId] = useState<string>(() => getReporterId());
   const [favorites, setFavorites] = useState<Set<string>>(() => getFavorites());
@@ -334,6 +366,59 @@ export default function CafeMap() {
     };
   }, []);
 
+  // 電源席の場所やだいたいの座席数は、混雑度と違って時間が経っても
+  // 変わらない情報なので、時間の窓を設けずにずっと保持する
+  useEffect(() => {
+    let isMounted = true;
+    const client = supabase;
+    if (!client) return;
+
+    function groupByCafe(facts: CafeFact[]) {
+      const grouped: Record<string, CafeFact[]> = {};
+      for (const fact of facts) {
+        (grouped[fact.cafe_id] ??= []).push(fact);
+      }
+      return grouped;
+    }
+
+    async function loadFacts() {
+      if (!client) return;
+      const { data, error } = await client
+        .from("cafe_facts")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      if (isMounted) setFactsByCafe(groupByCafe((data as CafeFact[]) ?? []));
+    }
+
+    loadFacts();
+
+    const channel = client
+      .channel("cafe-facts-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "cafe_facts" },
+        (payload) => {
+          const fact = payload.new as CafeFact;
+          setFactsByCafe((prev) => ({
+            ...prev,
+            [fact.cafe_id]: [fact, ...(prev[fact.cafe_id] ?? [])],
+          }));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      client.removeChannel(channel);
+    };
+  }, []);
+
   const submitReport = async (
     cafeId: string,
     outletOccupancy: OccupancyLevel,
@@ -349,14 +434,12 @@ export default function CafeMap() {
     }
     setSubmitting(cafeId);
     setErrorByCafe((prev) => ({ ...prev, [cafeId]: "" }));
-    const note = noteByCafe[cafeId]?.trim() || null;
     const { error } = await supabase.from("reports").insert({
       cafe_id: cafeId,
       reporter_id: reporterId,
       outlet_occupancy: outletOccupancy,
       seating_occupancy: seatingOccupancy,
       noise_level: noiseLevel,
-      note,
     });
     setSubmitting(null);
     if (error) {
@@ -365,6 +448,61 @@ export default function CafeMap() {
         ...prev,
         [cafeId]: "報告の送信に失敗しました",
       }));
+    }
+  };
+
+  const submitNote = async (cafeId: string) => {
+    const note = noteByCafe[cafeId]?.trim();
+    if (!note) return;
+    if (!supabase) {
+      setErrorByCafe((prev) => ({
+        ...prev,
+        [cafeId]: "Supabase未設定のため保存できません",
+      }));
+      return;
+    }
+    setSubmitting(cafeId);
+    setErrorByCafe((prev) => ({ ...prev, [cafeId]: "" }));
+    const { error } = await supabase
+      .from("cafe_facts")
+      .insert({ cafe_id: cafeId, reporter_id: reporterId, note });
+    setSubmitting(null);
+    if (error) {
+      console.error(error);
+      setErrorByCafe((prev) => ({
+        ...prev,
+        [cafeId]: "共有に失敗しました",
+      }));
+    } else {
+      setNoteByCafe((prev) => ({ ...prev, [cafeId]: "" }));
+    }
+  };
+
+  const submitSeatCount = async (cafeId: string) => {
+    const raw = seatCountByCafe[cafeId]?.trim();
+    const seatCount = raw ? Number(raw) : NaN;
+    if (!raw || !Number.isInteger(seatCount) || seatCount <= 0) return;
+    if (!supabase) {
+      setErrorByCafe((prev) => ({
+        ...prev,
+        [cafeId]: "Supabase未設定のため保存できません",
+      }));
+      return;
+    }
+    setSubmitting(cafeId);
+    setErrorByCafe((prev) => ({ ...prev, [cafeId]: "" }));
+    const { error } = await supabase
+      .from("cafe_facts")
+      .insert({ cafe_id: cafeId, reporter_id: reporterId, seat_count: seatCount });
+    setSubmitting(null);
+    if (error) {
+      console.error(error);
+      setErrorByCafe((prev) => ({
+        ...prev,
+        [cafeId]: "共有に失敗しました",
+      }));
+    } else {
+      setSeatCountByCafe((prev) => ({ ...prev, [cafeId]: "" }));
     }
   };
 
@@ -549,6 +687,12 @@ export default function CafeMap() {
         const stats = statsByCafe[cafe.id];
         const myReport = myReportByCafe[cafe.id];
         const isFavorite = favorites.has(cafe.id);
+        const facts = factsByCafe[cafe.id] ?? [];
+        const noteGroups = groupNotes(facts);
+        const seatCounts = facts
+          .map((f) => f.seat_count)
+          .filter((n): n is number => n != null);
+        const seatCountMedian = median(seatCounts);
         return (
           <Marker
             key={cafe.id}
@@ -631,21 +775,32 @@ export default function CafeMap() {
                   </div>
                 )}
 
-                {stats && stats.notes.length > 0 && (
-                  <div className="text-xs bg-gray-50 rounded p-2">
-                    <div className="font-semibold mb-1">
-                      みんなが書いた電源席の場所
-                    </div>
-                    <ul className="flex flex-col gap-0.5">
-                      {stats.notes.map((entry, i) => (
-                        <li key={i} className="text-gray-700">
-                          ・{entry.text}
-                          <span className="text-gray-400">
-                            （{formatRelativeTime(entry.at)}）
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
+                {(noteGroups.length > 0 || seatCountMedian !== null) && (
+                  <div className="text-xs bg-gray-50 rounded p-2 flex flex-col gap-1">
+                    {seatCountMedian !== null && (
+                      <div className="text-gray-700">
+                        📊 座席数の目安: 約{seatCountMedian}席（
+                        {seatCounts.length}人の報告）
+                      </div>
+                    )}
+                    {noteGroups.length > 0 && (
+                      <div>
+                        <div className="font-semibold mb-1">
+                          みんなが書いた電源席の場所
+                        </div>
+                        <ul className="flex flex-col gap-0.5">
+                          {noteGroups.map((group) => (
+                            <li key={group.text} className="text-gray-700">
+                              ・{group.text}
+                              <span className="text-gray-400">
+                                （{group.count}人が確認・
+                                {formatRelativeTime(group.latestAt)}）
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -695,18 +850,41 @@ export default function CafeMap() {
                       disabled={
                         submitting === cafe.id || !noteByCafe[cafe.id]?.trim()
                       }
-                      onClick={() =>
-                        submitReport(
-                          cafe.id,
-                          myReport?.outlet_occupancy ?? "empty",
-                          myReport?.seating_occupancy ?? "empty",
-                          myReport?.noise_level ?? "normal"
-                        )
-                      }
+                      onClick={() => submitNote(cafe.id)}
                       className="mt-1 px-2 py-1 text-xs rounded bg-blue-100 hover:bg-blue-200 disabled:opacity-50"
                     >
                       この場所情報を共有
                     </button>
+                  </div>
+                  <div className="mt-2">
+                    <div className="text-xs text-gray-500 mb-1">
+                      だいたいの座席数（任意）
+                    </div>
+                    <div className="flex gap-1">
+                      <input
+                        type="number"
+                        min={1}
+                        value={seatCountByCafe[cafe.id] ?? ""}
+                        onChange={(e) =>
+                          setSeatCountByCafe((prev) => ({
+                            ...prev,
+                            [cafe.id]: e.target.value,
+                          }))
+                        }
+                        placeholder="例: 20"
+                        className="w-full text-base border rounded px-2 py-1"
+                      />
+                      <button
+                        disabled={
+                          submitting === cafe.id ||
+                          !seatCountByCafe[cafe.id]?.trim()
+                        }
+                        onClick={() => submitSeatCount(cafe.id)}
+                        className="px-2 py-1 text-xs rounded bg-blue-100 hover:bg-blue-200 disabled:opacity-50 whitespace-nowrap"
+                      >
+                        共有
+                      </button>
+                    </div>
                   </div>
                 </div>
 

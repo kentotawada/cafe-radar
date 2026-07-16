@@ -9,7 +9,6 @@ create table if not exists reports (
   seating_occupancy text not null default 'empty'
     check (seating_occupancy in ('empty', 'moderate', 'full')),
   noise_level text not null check (noise_level in ('quiet', 'normal', 'loud')),
-  note text,
   created_at timestamptz not null default now()
 );
 
@@ -29,3 +28,30 @@ create policy "Anyone can insert reports"
 
 -- リアルタイム更新（INSERTをフロントに即時反映）を有効化
 alter publication supabase_realtime add table reports;
+
+-- 電源席の場所やだいたいの座席数など、時間が経っても変わらない情報。
+-- reports（30分だけ有効な混雑度の報告）とは違い、ずっと残す。
+create table if not exists cafe_facts (
+  id uuid primary key default gen_random_uuid(),
+  cafe_id text not null,
+  reporter_id text,
+  note text,
+  seat_count integer,
+  created_at timestamptz not null default now(),
+  constraint cafe_facts_has_content check (note is not null or seat_count is not null)
+);
+
+create index if not exists cafe_facts_cafe_id_idx
+  on cafe_facts (cafe_id, created_at desc);
+
+alter table cafe_facts enable row level security;
+
+create policy "Anyone can read cafe_facts"
+  on cafe_facts for select
+  using (true);
+
+create policy "Anyone can insert cafe_facts"
+  on cafe_facts for insert
+  with check (true);
+
+alter publication supabase_realtime add table cafe_facts;
