@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { isSupabaseConfigured } from "@/lib/supabaseClient";
 import { PIN_COLORS, PIN_LEGEND } from "@/lib/pinColors";
 
@@ -33,6 +34,12 @@ export default function Home() {
       </header>
       <div className="flex-1 relative">
         <CafeMap />
+        <Link
+          href="/privacy"
+          className="absolute bottom-1 left-1 z-[1000] text-[10px] text-gray-500 bg-white/80 px-1.5 py-0.5 rounded"
+        >
+          プライバシーポリシー
+        </Link>
       </div>
     </div>
   );
