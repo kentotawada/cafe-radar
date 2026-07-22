@@ -1,9 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
+import {
+  MapContainer,
+  Marker,
+  Popup,
+  TileLayer,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 import L from "leaflet";
-import { cafes } from "@/data/cafes";
+import { cafes as staticCafes, type Cafe } from "@/data/cafes";
 import { areas } from "@/data/areas";
 import { supabase } from "@/lib/supabaseClient";
 import { PIN_COLORS } from "@/lib/pinColors";
@@ -184,16 +191,14 @@ function iconForStats(stats: CafeStats | null) {
   return ICONS[pickMajority(stats.noiseCounts)];
 }
 
-function directionsUrl(name: string, address: string) {
-  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-    `${name} ${address}`
-  )}`;
+function directionsUrl(cafe: Cafe) {
+  const query = cafe.address ? `${cafe.name} ${cafe.address}` : `${cafe.lat},${cafe.lng}`;
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(query)}`;
 }
 
-function searchUrl(name: string, address: string) {
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    `${name} ${address}`
-  )}`;
+function searchUrl(cafe: Cafe) {
+  const query = cafe.address ? `${cafe.name} ${cafe.address}` : cafe.name;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
 function RecenterOnLocate({ position }: { position: [number, number] | null }) {
@@ -210,6 +215,21 @@ function selectedClass(isSelected: boolean) {
   return isSelected ? "ring-2 ring-offset-1 ring-black" : "";
 }
 
+function AddCafeClickHandler({
+  active,
+  onPick,
+}: {
+  active: boolean;
+  onPick: (lat: number, lng: number) => void;
+}) {
+  useMapEvents({
+    click(e) {
+      if (active) onPick(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+}
+
 export default function CafeMap() {
   const [reportsByCafe, setReportsByCafe] = useState<Record<string, Report[]>>({});
   const [factsByCafe, setFactsByCafe] = useState<Record<string, CafeFact[]>>({});
@@ -217,6 +237,15 @@ export default function CafeMap() {
   const [errorByCafe, setErrorByCafe] = useState<Record<string, string>>({});
   const [noteByCafe, setNoteByCafe] = useState<Record<string, string>>({});
   const [seatCountByCafe, setSeatCountByCafe] = useState<Record<string, string>>({});
+  const [dynamicCafes, setDynamicCafes] = useState<Cafe[]>([]);
+  const [isAddingCafe, setIsAddingCafe] = useState(false);
+  const [pendingCafeLocation, setPendingCafeLocation] = useState<
+    { lat: number; lng: number } | null
+  >(null);
+  const [newCafeName, setNewCafeName] = useState("");
+  const [newCafeAddress, setNewCafeAddress] = useState("");
+  const [addCafeError, setAddCafeError] = useState<string | null>(null);
+  const [isSubmittingCafe, setIsSubmittingCafe] = useState(false);
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
   const [reporterId] = useState<string>(() => getReporterId());
   const [favorites, setFavorites] = useState<Set<string>>(() => getFavorites());
@@ -419,6 +448,48 @@ export default function CafeMap() {
     };
   }, []);
 
+  // ユーザーが「お店を追加」で登録した店舗。最初からある15店舗とは別に、
+  // ずっと保持して地図に重ねて表示する
+  useEffect(() => {
+    let isMounted = true;
+    const client = supabase;
+    if (!client) return;
+
+    async function loadCafes() {
+      if (!client) return;
+      const { data, error } = await client
+        .from("cafes")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      if (isMounted) setDynamicCafes((data as Cafe[]) ?? []);
+    }
+
+    loadCafes();
+
+    const channel = client
+      .channel("cafes-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "cafes" },
+        (payload) => {
+          const cafe = payload.new as Cafe;
+          setDynamicCafes((prev) => [cafe, ...prev]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      client.removeChannel(channel);
+    };
+  }, []);
+
   const submitReport = async (
     cafeId: string,
     outletOccupancy: OccupancyLevel,
@@ -510,9 +581,54 @@ export default function CafeMap() {
     setFavorites(toggleFavorite(cafeId));
   };
 
+  const startAddingCafe = () => {
+    setIsAddingCafe(true);
+    setPendingCafeLocation(null);
+    setAddCafeError(null);
+  };
+
+  const cancelAddingCafe = () => {
+    setIsAddingCafe(false);
+    setPendingCafeLocation(null);
+    setNewCafeName("");
+    setNewCafeAddress("");
+    setAddCafeError(null);
+  };
+
+  const submitNewCafe = async () => {
+    if (!pendingCafeLocation) return;
+    const name = newCafeName.trim();
+    if (!name) {
+      setAddCafeError("店名を入力してください");
+      return;
+    }
+    if (!supabase) {
+      setAddCafeError("Supabase未設定のため保存できません");
+      return;
+    }
+    setIsSubmittingCafe(true);
+    setAddCafeError(null);
+    const { error } = await supabase.from("cafes").insert({
+      name,
+      address: newCafeAddress.trim() || null,
+      lat: pendingCafeLocation.lat,
+      lng: pendingCafeLocation.lng,
+      reporter_id: reporterId,
+    });
+    setIsSubmittingCafe(false);
+    if (error) {
+      console.error(error);
+      setAddCafeError("追加に失敗しました");
+      return;
+    }
+    cancelAddingCafe();
+  };
+
+  const allCafes = [...staticCafes, ...dynamicCafes];
+
   const statsByCafe: Record<string, CafeStats | null> = {};
   const myReportByCafe: Record<string, Report | undefined> = {};
-  for (const cafe of cafes) {
+  for (const cafe of allCafes) {
     const raw = reportsByCafe[cafe.id] ?? [];
     statsByCafe[cafe.id] = computeStats(raw);
     myReportByCafe[cafe.id] = raw.find((r) => r.reporter_id === reporterId);
@@ -524,7 +640,7 @@ export default function CafeMap() {
     noiseFilter !== "any" ||
     favoritesOnly;
 
-  const visibleCafes = cafes.filter((cafe) => {
+  const visibleCafes = allCafes.filter((cafe) => {
     if (favoritesOnly && !favorites.has(cafe.id)) return false;
     const stats = statsByCafe[cafe.id];
     if (!isFiltering) return true;
@@ -563,6 +679,10 @@ export default function CafeMap() {
       style={{ position: "absolute", inset: 0 }}
     >
       <RecenterOnLocate position={mapFocus} />
+      <AddCafeClickHandler
+        active={isAddingCafe}
+        onPick={(lat, lng) => setPendingCafeLocation({ lat, lng })}
+      />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -678,6 +798,84 @@ export default function CafeMap() {
         </div>
       </div>
 
+      <div className="leaflet-bottom leaflet-left" style={{ zIndex: 1000 }}>
+        <div className="leaflet-control m-2">
+          {isAddingCafe ? (
+            <div className="bg-white text-xs rounded shadow-lg border border-gray-300 px-3 py-2 max-w-[220px] flex flex-col gap-1">
+              <div className="text-gray-800">
+                地図をタップしてお店の場所を選んでください
+              </div>
+              <button
+                onClick={cancelAddingCafe}
+                className="self-start px-2 py-1 rounded bg-gray-100 hover:bg-gray-200"
+              >
+                キャンセル
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={startAddingCafe}
+              className="bg-white rounded-full shadow-lg border border-gray-300 px-3 h-10 flex items-center gap-1 text-sm font-semibold text-gray-900"
+            >
+              ＋ お店を追加
+            </button>
+          )}
+        </div>
+      </div>
+
+      {pendingCafeLocation && (
+        <Marker
+          position={[pendingCafeLocation.lat, pendingCafeLocation.lng]}
+          icon={ICONS.unknown}
+        >
+          <Popup minWidth={220} autoClose={false} closeOnClick={false}>
+            <div className="flex flex-col gap-2 text-gray-900">
+              <div className="font-bold text-base">この場所にお店を追加</div>
+              <div>
+                <div className="text-xs text-gray-500 mb-1">店名（必須）</div>
+                <input
+                  type="text"
+                  maxLength={60}
+                  value={newCafeName}
+                  onChange={(e) => setNewCafeName(e.target.value)}
+                  placeholder="例: ○○珈琲店 △△店"
+                  className="w-full text-base border rounded px-2 py-1"
+                />
+              </div>
+              <div>
+                <div className="text-xs text-gray-500 mb-1">住所（任意）</div>
+                <input
+                  type="text"
+                  maxLength={100}
+                  value={newCafeAddress}
+                  onChange={(e) => setNewCafeAddress(e.target.value)}
+                  placeholder="わかれば入力（経路案内の精度が上がります）"
+                  className="w-full text-base border rounded px-2 py-1"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  disabled={isSubmittingCafe || !newCafeName.trim()}
+                  onClick={submitNewCafe}
+                  className="px-2 py-1 text-xs rounded bg-blue-100 hover:bg-blue-200 disabled:opacity-50"
+                >
+                  この場所に登録する
+                </button>
+                <button
+                  onClick={cancelAddingCafe}
+                  className="px-2 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200"
+                >
+                  キャンセル
+                </button>
+              </div>
+              {addCafeError && (
+                <div className="text-xs text-red-500">{addCafeError}</div>
+              )}
+            </div>
+          </Popup>
+        </Marker>
+      )}
+
       {userPosition && (
         <Marker position={userPosition} icon={USER_LOCATION_ICON}>
           <Popup>現在地</Popup>
@@ -716,7 +914,7 @@ export default function CafeMap() {
 
                 <div className="flex gap-2 text-xs">
                   <a
-                    href={directionsUrl(cafe.name, cafe.address)}
+                    href={directionsUrl(cafe)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 underline"
@@ -724,7 +922,7 @@ export default function CafeMap() {
                     経路を見る
                   </a>
                   <a
-                    href={searchUrl(cafe.name, cafe.address)}
+                    href={searchUrl(cafe)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 underline"

@@ -1,7 +1,7 @@
 export type Cafe = {
   id: string;
   name: string;
-  address: string;
+  address: string | null;
   lat: number;
   lng: number;
 };
