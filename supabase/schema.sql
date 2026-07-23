@@ -101,3 +101,21 @@ create policy "Anyone can insert cafe_flags"
   with check (true);
 
 alter publication supabase_realtime add table cafe_flags;
+
+-- 管理ページからの削除は、Supabase Authでログインした人だけができるようにする。
+-- このアプリには他にログイン機能がないため、事実上「ログインできる=あなただけ」になる。
+create policy "Authenticated users can delete cafes"
+  on cafes for delete
+  using (auth.role() = 'authenticated');
+
+create policy "Authenticated users can delete cafe_flags"
+  on cafe_flags for delete
+  using (auth.role() = 'authenticated');
+
+create policy "Authenticated users can delete reports"
+  on reports for delete
+  using (auth.role() = 'authenticated');
+
+create policy "Authenticated users can delete cafe_facts"
+  on cafe_facts for delete
+  using (auth.role() = 'authenticated');

@@ -120,15 +120,17 @@ function formatRelativeTime(iso: string): string {
   return `${minutes}分前`;
 }
 
-// 同じ人が何度もボタンを押しても、集計にはその人の最新の1票だけを使う
-function dedupeByReporter(reports: Report[]): Report[] {
+// 同じ人が何度も投稿しても、集計にはその人の最新の1件だけを使う
+function dedupeByReporter<T extends { reporter_id: string | null; id: string }>(
+  items: T[]
+): T[] {
   const seen = new Set<string>();
-  const result: Report[] = [];
-  for (const report of reports) {
-    const key = report.reporter_id ?? report.id;
+  const result: T[] = [];
+  for (const item of items) {
+    const key = item.reporter_id ?? item.id;
     if (!seen.has(key)) {
       seen.add(key);
-      result.push(report);
+      result.push(item);
     }
   }
   return result;
@@ -182,11 +184,12 @@ type NoteGroup = {
 };
 
 // 同じ場所を指すメモは1つにまとめ、「何人が確認したか」がわかるようにする
+// 同じ人が同じメモを何度も送っても「1人が確認」の1件として数える
 function groupNotes(facts: CafeFact[]): NoteGroup[] {
+  const notesOnly = dedupeByReporter(facts.filter((f) => f.note));
   const groups = new Map<string, NoteGroup>();
-  for (const fact of facts) {
-    if (!fact.note) continue;
-    const key = fact.note.trim();
+  for (const fact of notesOnly) {
+    const key = fact.note!.trim();
     if (!key) continue;
     const existing = groups.get(key);
     if (existing) {
@@ -505,6 +508,14 @@ export default function CafeMap() {
         (payload) => {
           const cafe = payload.new as Cafe;
           setDynamicCafes((prev) => [cafe, ...prev]);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "cafes" },
+        (payload) => {
+          const deletedId = (payload.old as { id: string }).id;
+          setDynamicCafes((prev) => prev.filter((c) => c.id !== deletedId));
         }
       )
       .subscribe();
@@ -1000,9 +1011,9 @@ export default function CafeMap() {
         const isFavorite = favorites.has(cafe.id);
         const facts = factsByCafe[cafe.id] ?? [];
         const noteGroups = groupNotes(facts);
-        const seatCounts = facts
-          .map((f) => f.seat_count)
-          .filter((n): n is number => n != null);
+        const seatCounts = dedupeByReporter(
+          facts.filter((f) => f.seat_count != null)
+        ).map((f) => f.seat_count as number);
         const seatCountMedian = median(seatCounts);
         const isDynamicCafe = dynamicCafeIds.has(cafe.id);
         const isUnconfirmed = isDynamicCafe && !hasIndependentActivity(cafe);
