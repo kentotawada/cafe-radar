@@ -10,8 +10,20 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import L from "leaflet";
-import { cafes as staticCafes, type Cafe } from "@/data/cafes";
+import { cafes as shinjukuCafes, type Cafe } from "@/data/cafes";
+import { cafes as shibuyaCafes } from "@/data/cafes-shibuya";
+import { cafes as ikebukuroCafes } from "@/data/cafes-ikebukuro";
+import { cafes as tokyoCafes } from "@/data/cafes-tokyo";
+import { cafes as uenoCafes } from "@/data/cafes-ueno";
 import { areas } from "@/data/areas";
+
+const seedCafes: Cafe[] = [
+  ...shinjukuCafes,
+  ...shibuyaCafes,
+  ...ikebukuroCafes,
+  ...tokyoCafes,
+  ...uenoCafes,
+];
 import { supabase } from "@/lib/supabaseClient";
 import { PIN_COLORS } from "@/lib/pinColors";
 import { getReporterId } from "@/lib/reporterId";
@@ -710,7 +722,7 @@ export default function CafeMap() {
     );
   }
 
-  const allCafes = [...staticCafes, ...dynamicCafes].filter(
+  const allCafes = [...seedCafes, ...dynamicCafes].filter(
     (cafe) => !dynamicCafeIds.has(cafe.id) || distinctFlagCount(cafe.id) < FLAG_HIDE_THRESHOLD
   );
 
