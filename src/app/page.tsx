@@ -20,7 +20,7 @@ export default function Home() {
             Supabase未接続のため、報告は保存されません（.env.localを設定してください）
           </p>
         )}
-        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2">
           {PIN_LEGEND.map((item) => (
             <span key={item.key} className="flex items-center gap-1 text-xs text-gray-600">
               <span
@@ -30,16 +30,16 @@ export default function Home() {
               {item.label}
             </span>
           ))}
+          <Link
+            href="/privacy"
+            className="text-xs text-gray-400 underline ml-auto"
+          >
+            プライバシーポリシー
+          </Link>
         </div>
       </header>
       <div className="flex-1 relative">
         <CafeMap />
-        <Link
-          href="/privacy"
-          className="absolute bottom-1 left-1 z-[1000] text-[10px] text-gray-500 bg-white/80 px-1.5 py-0.5 rounded"
-        >
-          プライバシーポリシー
-        </Link>
       </div>
     </div>
   );

@@ -22,6 +22,14 @@ export type CafeFact = {
   created_at: string;
 };
 
+// ユーザーが追加した店舗に対する「存在しない・間違っている」という報告
+export type CafeFlag = {
+  id: string;
+  cafe_id: string;
+  reporter_id: string | null;
+  created_at: string;
+};
+
 export type CafeStats = {
   totalReporters: number;
   outletOccupancyCounts: Record<OccupancyLevel, number>;

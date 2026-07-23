@@ -16,7 +16,16 @@ import { supabase } from "@/lib/supabaseClient";
 import { PIN_COLORS } from "@/lib/pinColors";
 import { getReporterId } from "@/lib/reporterId";
 import { getFavorites, toggleFavorite } from "@/lib/favorites";
-import type { CafeFact, CafeStats, NoiseLevel, OccupancyLevel, Report } from "@/lib/types";
+import type {
+  CafeFact,
+  CafeFlag,
+  CafeStats,
+  NoiseLevel,
+  OccupancyLevel,
+  Report,
+} from "@/lib/types";
+
+const FLAG_HIDE_THRESHOLD = 3;
 
 const SHINJUKU_CENTER: [number, number] = [35.6905, 139.7005];
 const STALE_MINUTES = 30;
@@ -246,6 +255,8 @@ export default function CafeMap() {
   const [newCafeAddress, setNewCafeAddress] = useState("");
   const [addCafeError, setAddCafeError] = useState<string | null>(null);
   const [isSubmittingCafe, setIsSubmittingCafe] = useState(false);
+  const [flagsByCafe, setFlagsByCafe] = useState<Record<string, CafeFlag[]>>({});
+  const [flaggedByMe, setFlaggedByMe] = useState<Set<string>>(new Set());
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
   const [reporterId] = useState<string>(() => getReporterId());
   const [favorites, setFavorites] = useState<Set<string>>(() => getFavorites());
@@ -490,6 +501,55 @@ export default function CafeMap() {
     };
   }, []);
 
+  // ユーザー追加店舗への「存在しない／間違っている」報告。ずっと保持する
+  useEffect(() => {
+    let isMounted = true;
+    const client = supabase;
+    if (!client) return;
+
+    function groupByCafe(flags: CafeFlag[]) {
+      const grouped: Record<string, CafeFlag[]> = {};
+      for (const flag of flags) {
+        (grouped[flag.cafe_id] ??= []).push(flag);
+      }
+      return grouped;
+    }
+
+    async function loadFlags() {
+      if (!client) return;
+      const { data, error } = await client.from("cafe_flags").select("*");
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      if (isMounted) setFlagsByCafe(groupByCafe((data as CafeFlag[]) ?? []));
+    }
+
+    loadFlags();
+
+    const channel = client
+      .channel("cafe-flags-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "cafe_flags" },
+        (payload) => {
+          const flag = payload.new as CafeFlag;
+          setFlagsByCafe((prev) => ({
+            ...prev,
+            [flag.cafe_id]: [flag, ...(prev[flag.cafe_id] ?? [])],
+          }));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      client.removeChannel(channel);
+    };
+  }, []);
+
   const submitReport = async (
     cafeId: string,
     outletOccupancy: OccupancyLevel,
@@ -624,7 +684,35 @@ export default function CafeMap() {
     cancelAddingCafe();
   };
 
-  const allCafes = [...staticCafes, ...dynamicCafes];
+  const flagCafe = async (cafeId: string) => {
+    if (!supabase || flaggedByMe.has(cafeId)) return;
+    setFlaggedByMe((prev) => new Set(prev).add(cafeId));
+    const { error } = await supabase
+      .from("cafe_flags")
+      .insert({ cafe_id: cafeId, reporter_id: reporterId });
+    if (error) console.error(error);
+  };
+
+  const dynamicCafeIds = new Set(dynamicCafes.map((c) => c.id));
+
+  function distinctFlagCount(cafeId: string): number {
+    const flags = flagsByCafe[cafeId] ?? [];
+    return new Set(flags.map((f) => f.reporter_id ?? f.id)).size;
+  }
+
+  function hasIndependentActivity(cafe: Cafe): boolean {
+    const addedBy = cafe.reporter_id;
+    const reports = reportsByCafe[cafe.id] ?? [];
+    const facts = factsByCafe[cafe.id] ?? [];
+    return (
+      reports.some((r) => r.reporter_id !== addedBy) ||
+      facts.some((f) => f.reporter_id !== addedBy)
+    );
+  }
+
+  const allCafes = [...staticCafes, ...dynamicCafes].filter(
+    (cafe) => !dynamicCafeIds.has(cafe.id) || distinctFlagCount(cafe.id) < FLAG_HIDE_THRESHOLD
+  );
 
   const statsByCafe: Record<string, CafeStats | null> = {};
   const myReportByCafe: Record<string, Report | undefined> = {};
@@ -853,6 +941,17 @@ export default function CafeMap() {
                   className="w-full text-base border rounded px-2 py-1"
                 />
               </div>
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                  newCafeName.trim() ||
+                    `${pendingCafeLocation.lat},${pendingCafeLocation.lng}`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-blue-600 underline"
+              >
+                登録前にGoogleマップで実在確認する
+              </a>
               <div className="flex gap-2">
                 <button
                   disabled={isSubmittingCafe || !newCafeName.trim()}
@@ -891,6 +990,8 @@ export default function CafeMap() {
           .map((f) => f.seat_count)
           .filter((n): n is number => n != null);
         const seatCountMedian = median(seatCounts);
+        const isDynamicCafe = dynamicCafeIds.has(cafe.id);
+        const isUnconfirmed = isDynamicCafe && !hasIndependentActivity(cafe);
         return (
           <Marker
             key={cafe.id}
@@ -911,6 +1012,29 @@ export default function CafeMap() {
                   </button>
                 </div>
                 <div className="text-xs text-gray-500">{cafe.address}</div>
+
+                {isDynamicCafe && (
+                  <div className="text-xs bg-yellow-50 border border-yellow-200 rounded p-2 flex flex-col gap-1">
+                    {isUnconfirmed ? (
+                      <div className="text-yellow-800">
+                        ⚠️ ユーザーが追加した店舗です。まだ他の人による確認がありません
+                      </div>
+                    ) : (
+                      <div className="text-yellow-800">
+                        ユーザーが追加した店舗です
+                      </div>
+                    )}
+                    <button
+                      disabled={flaggedByMe.has(cafe.id)}
+                      onClick={() => flagCafe(cafe.id)}
+                      className="self-start px-2 py-1 rounded bg-white border border-yellow-300 hover:bg-yellow-100 disabled:opacity-50"
+                    >
+                      {flaggedByMe.has(cafe.id)
+                        ? "報告しました"
+                        : "存在しない・場所が違うと報告"}
+                    </button>
+                  </div>
+                )}
 
                 <div className="flex gap-2 text-xs">
                   <a
