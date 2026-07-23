@@ -14,4 +14,5 @@ export const areas: Area[] = [
   { id: "ikebukuro", name: "池袋駅", lat: 35.7295, lng: 139.7109 },
   { id: "tokyo", name: "東京駅", lat: 35.6812, lng: 139.7671 },
   { id: "ueno", name: "上野駅", lat: 35.7141, lng: 139.7774 },
+  { id: "shinagawa", name: "品川駅", lat: 35.6285, lng: 139.7387 },
 ];

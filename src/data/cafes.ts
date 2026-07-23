@@ -6,6 +6,7 @@ export type Cafe = {
   lng: number;
   // ユーザーが「お店を追加」機能で登録した店舗にだけ入る（最初からある店舗はnull/undefined）
   reporter_id?: string | null;
+  created_at?: string;
 };
 
 // 店名・住所はウェブ検索で実在店舗を確認済み（2026年7月時点、各公式サイト等）。
