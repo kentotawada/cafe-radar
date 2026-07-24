@@ -16,6 +16,8 @@ import { cafes as ikebukuroCafes } from "@/data/cafes-ikebukuro";
 import { cafes as tokyoCafes } from "@/data/cafes-tokyo";
 import { cafes as uenoCafes } from "@/data/cafes-ueno";
 import { cafes as shinagawaCafes } from "@/data/cafes-shinagawa";
+import { cafes as shimbashiCafes } from "@/data/cafes-shimbashi";
+import { cafes as akihabaraCafes } from "@/data/cafes-akihabara";
 import { areas } from "@/data/areas";
 
 const seedCafes: Cafe[] = [
@@ -25,6 +27,8 @@ const seedCafes: Cafe[] = [
   ...tokyoCafes,
   ...uenoCafes,
   ...shinagawaCafes,
+  ...shimbashiCafes,
+  ...akihabaraCafes,
 ];
 import { supabase } from "@/lib/supabaseClient";
 import { PIN_COLORS } from "@/lib/pinColors";
