@@ -11,7 +11,7 @@ export default function Home() {
   return (
     <div className="flex flex-col flex-1 h-screen">
       <header className="border-b px-4 py-3">
-        <h1 className="text-lg font-bold">新宿カフェレーダー</h1>
+        <h1 className="text-lg font-bold">ノマドカフェレーダー</h1>
         <p className="text-xs text-gray-500">
           電源席とうるささを、その場にいる人同士でリアルタイムに共有
         </p>

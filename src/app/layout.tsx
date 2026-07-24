@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "新宿カフェレーダー",
+  title: "ノマドカフェレーダー",
   description: "電源とうるささをその場にいる人同士でリアルタイムに共有",
 };
 

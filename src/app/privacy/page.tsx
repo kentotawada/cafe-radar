@@ -4,7 +4,7 @@ export default function PrivacyPage() {
       <h1 className="text-lg font-bold mb-4">プライバシーポリシー</h1>
 
       <p className="mb-4">
-        新宿カフェレーダー（以下「本サービス」）における情報の取り扱いについて説明します。
+        ノマドカフェレーダー（以下「本サービス」）における情報の取り扱いについて説明します。
       </p>
 
       <h2 className="font-semibold mt-4 mb-1">アカウント登録について</h2>
