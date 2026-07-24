@@ -1,11 +1,11 @@
 import type { NoiseLevel } from "@/lib/types";
 
 export const PIN_COLORS: Record<NoiseLevel | "full" | "unknown", string> = {
-  unknown: "#9ca3af",
-  quiet: "#22c55e",
-  normal: "#3b82f6",
-  loud: "#f59e0b",
-  full: "#ef4444",
+  unknown: "#4b5563",
+  quiet: "#16a34a",
+  normal: "#2563eb",
+  loud: "#d97706",
+  full: "#dc2626",
 };
 
 export const PIN_LEGEND: { key: keyof typeof PIN_COLORS; label: string }[] = [

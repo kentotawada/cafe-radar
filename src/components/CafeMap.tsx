@@ -50,16 +50,18 @@ type AvailabilityFilter = "any" | "available";
 // 円だけだと地図タイルの色(緑の公園、青の水面など)と紛れて見えにくいため、
 // ピン(涙型)＋白フチ＋影で背景色に関係なく視認できる形にする
 function createPinIcon(color: string) {
-  const html = `<svg width="28" height="36" viewBox="0 0 28 36" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 1px 3px rgba(0,0,0,0.6));">
-    <path d="M14 0C6.3 0 0 6.3 0 14c0 10 14 22 14 22s14-12 14-22C28 6.3 21.7 0 14 0z" fill="${color}" stroke="white" stroke-width="2"/>
-    <circle cx="14" cy="14" r="5.5" fill="white"/>
+  // 白フチだと地図の白っぽい道路・建物と紛れるため、濃い色のフチ＋影で
+  // どんな背景色の上でもピンだと判別できるようにする
+  const html = `<svg width="30" height="40" viewBox="0 0 28 36" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 1px 4px rgba(0,0,0,0.8));">
+    <path d="M14 0C6.3 0 0 6.3 0 14c0 10 14 22 14 22s14-12 14-22C28 6.3 21.7 0 14 0z" fill="${color}" stroke="#1f2937" stroke-width="2"/>
+    <circle cx="14" cy="14" r="5.5" fill="white" stroke="#1f2937" stroke-width="1"/>
   </svg>`;
   return L.divIcon({
     className: "",
     html,
-    iconSize: [28, 36],
-    iconAnchor: [14, 36],
-    popupAnchor: [0, -32],
+    iconSize: [30, 40],
+    iconAnchor: [15, 40],
+    popupAnchor: [0, -36],
   });
 }
 
