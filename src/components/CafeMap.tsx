@@ -22,6 +22,7 @@ import { cafes as yurakuchoCafes } from "@/data/cafes-yurakucho";
 import { cafes as kandaCafes } from "@/data/cafes-kanda";
 import { cafes as takadanobabaCafes } from "@/data/cafes-takadanobaba";
 import { cafes as kichijojiCafes } from "@/data/cafes-kichijoji";
+import { cafes as ebisuCafes } from "@/data/cafes-ebisu";
 import { areas } from "@/data/areas";
 
 const seedCafes: Cafe[] = [
@@ -37,6 +38,7 @@ const seedCafes: Cafe[] = [
   ...kandaCafes,
   ...takadanobabaCafes,
   ...kichijojiCafes,
+  ...ebisuCafes,
 ];
 import { supabase } from "@/lib/supabaseClient";
 import { PIN_COLORS } from "@/lib/pinColors";
