@@ -1068,6 +1068,18 @@ export default function CafeMap() {
                 </div>
                 <div className="text-xs text-gray-500">{cafe.address}</div>
 
+                {cafe.outletInfo && (
+                  <div className="text-xs bg-blue-50 border border-blue-200 rounded p-2 text-blue-900">
+                    <div className="font-semibold mb-0.5">
+                      🔌 電源情報（ネット調べ）
+                    </div>
+                    <div>{cafe.outletInfo}</div>
+                    <div className="text-blue-400 mt-0.5">
+                      ※最新でない場合があります
+                    </div>
+                  </div>
+                )}
+
                 {isDynamicCafe && (
                   <div className="text-xs bg-yellow-50 border border-yellow-200 rounded p-2 flex flex-col gap-1">
                     {isUnconfirmed ? (
