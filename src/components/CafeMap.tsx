@@ -341,7 +341,7 @@ export default function CafeMap() {
       (err) => {
         setLocateError(
           err.code === err.PERMISSION_DENIED
-            ? "位置情報の利用が許可されていません。ブラウザの設定を確認してください"
+            ? "位置情報がブロックされています。アドレスバー左側のアイコン(鍵マークなど)をタップ→「位置情報」を「許可」に変更→もう一度このボタンを押してください"
             : "現在地を取得できませんでした"
         );
       }
@@ -912,7 +912,7 @@ export default function CafeMap() {
       <div className="leaflet-bottom leaflet-right" style={{ zIndex: 1000 }}>
         <div className="leaflet-control m-2 flex flex-col items-end gap-1">
           {locateError && (
-            <div className="bg-white text-xs text-red-600 rounded shadow-lg border border-gray-300 px-2 py-1 max-w-[200px]">
+            <div className="bg-white text-xs text-red-600 rounded shadow-lg border border-gray-300 px-2 py-1.5 max-w-[260px] leading-relaxed">
               {locateError}
             </div>
           )}
