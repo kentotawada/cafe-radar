@@ -1379,24 +1379,24 @@ export default function CafeMap() {
             <Popup minWidth={230}>
               <div className="flex flex-col gap-2 text-gray-900">
                 <div className="flex items-start justify-between gap-2">
-                  <div className="font-bold text-base">{cafe.name}</div>
+                  <div className="font-bold text-sm sm:text-lg">{cafe.name}</div>
                   <button
                     onClick={() => handleToggleFavorite(cafe.id)}
-                    className="text-3xl leading-none px-1 text-yellow-500"
+                    className="text-2xl sm:text-3xl leading-none px-1 text-yellow-500"
                     aria-label="お気に入り"
                     title="お気に入り"
                   >
                     {isFavorite ? "★" : "☆"}
                   </button>
                 </div>
-                <div className="text-xs text-gray-500">{cafe.address}</div>
+                <div className="text-[11px] sm:text-sm text-gray-500">{cafe.address}</div>
 
                 {quickBadges.length > 0 && (
                   <div className="flex gap-1 flex-wrap">
                     {quickBadges.map((badge) => (
                       <span
                         key={badge.key}
-                        className={`text-xs px-1.5 py-0.5 rounded-full whitespace-nowrap ${badge.className}`}
+                        className={`text-[11px] sm:text-sm px-1.5 py-0.5 rounded-full whitespace-nowrap ${badge.className}`}
                       >
                         {badge.emoji} {badge.label}
                       </span>
@@ -1405,7 +1405,7 @@ export default function CafeMap() {
                 )}
 
                 {isDynamicCafe && (
-                  <div className="text-xs bg-yellow-50 border border-yellow-200 rounded p-2 flex flex-col gap-1">
+                  <div className="text-[11px] sm:text-sm bg-yellow-50 border border-yellow-200 rounded p-2 flex flex-col gap-1">
                     {isUnconfirmed ? (
                       <div className="text-yellow-800">
                         ⚠️ ユーザーが追加した店舗です。まだ他の人による確認がありません
@@ -1427,7 +1427,7 @@ export default function CafeMap() {
                   </div>
                 )}
 
-                <div className="flex items-center gap-2 text-xs flex-wrap">
+                <div className="flex items-center gap-2 text-[11px] sm:text-sm flex-wrap">
                   <CafeDirectionsLink cafe={cafe} />
                   <a
                     href={searchUrl(cafe)}
@@ -1458,7 +1458,7 @@ export default function CafeMap() {
                       stats.totalReporters
                     );
                     return (
-                      <div className="text-sm">
+                      <div className="text-xs sm:text-base">
                         <div className="font-semibold text-orange-700">
                           🪑 総合混雑度: {overallPct}%
                         </div>
@@ -1468,7 +1468,7 @@ export default function CafeMap() {
                         <div className="text-purple-700">
                           🔊 騒音度: {noisePct}%
                         </div>
-                        <div className="text-xs text-gray-500 mt-1">
+                        <div className="text-[11px] sm:text-sm text-gray-500 mt-1">
                           最終更新: {formatRelativeTime(stats.latestAt)}（
                           {stats.totalReporters}人の報告）
                         </div>
@@ -1476,13 +1476,13 @@ export default function CafeMap() {
                     );
                   })()
                 ) : (
-                  <div className="text-sm text-gray-400">
+                  <div className="text-xs sm:text-base text-gray-400">
                     まだ報告がありません
                   </div>
                 )}
 
                 {(noteGroups.length > 0 || seatCountMedian !== null) && (
-                  <div className="text-xs bg-gray-50 rounded p-2 flex flex-col gap-1">
+                  <div className="text-[11px] sm:text-sm bg-gray-50 rounded p-2 flex flex-col gap-1">
                     {seatCountMedian !== null && (
                       <div className="text-gray-700">
                         📊 座席数の目安: 約{seatCountMedian}席（
@@ -1511,11 +1511,11 @@ export default function CafeMap() {
                 )}
 
                 <div className="border-t pt-2">
-                  <div className="text-xs text-gray-500 mb-2">
+                  <div className="text-[11px] sm:text-sm text-gray-500 mb-2">
                     📢 今の店内の様子を教えてください（リアルタイムの報告にご協力ください）
                   </div>
                   {cafe.outletInfo && (
-                    <div className="text-xs bg-blue-50 border border-blue-200 rounded p-2 text-blue-900 mb-2">
+                    <div className="text-[11px] sm:text-sm bg-blue-50 border border-blue-200 rounded p-2 text-blue-900 mb-2">
                       <div className="font-semibold mb-0.5">
                         🔌 電源情報（ネット調べ）
                       </div>
@@ -1525,7 +1525,7 @@ export default function CafeMap() {
                       </div>
                     </div>
                   )}
-                  <div className="text-xs font-semibold mb-1">電源席の混雑度</div>
+                  <div className="text-xs sm:text-sm font-semibold mb-1">電源席の混雑度</div>
                   <select
                     value={myReport?.outlet_occupancy ?? ""}
                     disabled={submitting === cafe.id}
@@ -1539,7 +1539,7 @@ export default function CafeMap() {
                         myReport?.noise_level ?? "normal"
                       );
                     }}
-                    className="w-full text-base border rounded px-2 py-1 bg-white disabled:opacity-50"
+                    className="w-full text-sm sm:text-base border rounded px-2 py-0.5 sm:py-1 bg-white disabled:opacity-50"
                   >
                     <option value="" disabled>
                       選択してください
@@ -1553,7 +1553,7 @@ export default function CafeMap() {
                     )}
                   </select>
                   <div className="mt-1">
-                    <div className="text-xs text-gray-500 mb-1">
+                    <div className="text-[11px] sm:text-sm text-gray-500 mb-1">
                       電源席はどこですか？（任意）
                     </div>
                     <input
@@ -1574,13 +1574,13 @@ export default function CafeMap() {
                         submitting === cafe.id || !noteByCafe[cafe.id]?.trim()
                       }
                       onClick={() => submitNote(cafe.id)}
-                      className="mt-1 px-2 py-1 text-xs rounded bg-blue-100 hover:bg-blue-200 disabled:opacity-50"
+                      className="mt-1 px-2 py-1 text-xs sm:text-sm rounded bg-blue-100 hover:bg-blue-200 disabled:opacity-50"
                     >
                       この場所情報を共有
                     </button>
                   </div>
                   <div className="mt-2">
-                    <div className="text-xs text-gray-500 mb-1">
+                    <div className="text-[11px] sm:text-sm text-gray-500 mb-1">
                       だいたいの座席数（任意）
                     </div>
                     <div className="flex gap-1">
@@ -1603,7 +1603,7 @@ export default function CafeMap() {
                           !seatCountByCafe[cafe.id]?.trim()
                         }
                         onClick={() => submitSeatCount(cafe.id)}
-                        className="px-2 py-1 text-xs rounded bg-blue-100 hover:bg-blue-200 disabled:opacity-50 whitespace-nowrap"
+                        className="px-2 py-1 text-xs sm:text-sm rounded bg-blue-100 hover:bg-blue-200 disabled:opacity-50 whitespace-nowrap"
                       >
                         共有
                       </button>
@@ -1612,7 +1612,7 @@ export default function CafeMap() {
                 </div>
 
                 <div>
-                  <div className="text-xs font-semibold mb-1">一般席の混雑度</div>
+                  <div className="text-xs sm:text-sm font-semibold mb-1">一般席の混雑度</div>
                   <select
                     value={myReport?.seating_occupancy ?? ""}
                     disabled={submitting === cafe.id}
@@ -1626,7 +1626,7 @@ export default function CafeMap() {
                         myReport?.noise_level ?? "normal"
                       );
                     }}
-                    className="w-full text-base border rounded px-2 py-1 bg-white disabled:opacity-50"
+                    className="w-full text-sm sm:text-base border rounded px-2 py-0.5 sm:py-1 bg-white disabled:opacity-50"
                   >
                     <option value="" disabled>
                       選択してください
@@ -1642,7 +1642,7 @@ export default function CafeMap() {
                 </div>
 
                 <div>
-                  <div className="text-xs font-semibold mb-1">騒がしさ</div>
+                  <div className="text-xs sm:text-sm font-semibold mb-1">騒がしさ</div>
                   <select
                     value={myReport?.noise_level ?? ""}
                     disabled={submitting === cafe.id}
@@ -1656,7 +1656,7 @@ export default function CafeMap() {
                         level
                       );
                     }}
-                    className="w-full text-base border rounded px-2 py-1 bg-white disabled:opacity-50"
+                    className="w-full text-sm sm:text-base border rounded px-2 py-0.5 sm:py-1 bg-white disabled:opacity-50"
                   >
                     <option value="" disabled>
                       選択してください
@@ -1670,19 +1670,19 @@ export default function CafeMap() {
                 </div>
 
                 {myReport && (
-                  <div className="text-xs text-gray-400">
+                  <div className="text-[11px] sm:text-sm text-gray-400">
                     ✓ あなたの回答が反映されています
                   </div>
                 )}
 
                 {errorByCafe[cafe.id] && (
-                  <div className="text-xs text-red-500">
+                  <div className="text-[11px] sm:text-sm text-red-500">
                     {errorByCafe[cafe.id]}
                   </div>
                 )}
 
                 {cafe.smokingInfo && (
-                  <div className="text-[10px] text-gray-400 text-right border-t pt-1">
+                  <div className="text-[10px] sm:text-xs text-gray-400 text-right border-t pt-1">
                     🚬 {cafe.smokingInfo}（ネット調べ）
                   </div>
                 )}
