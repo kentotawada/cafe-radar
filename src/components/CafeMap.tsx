@@ -117,7 +117,7 @@ const COWORKING_NAME_PATTERNS = /コワーキング|co-?working/i;
 
 function getCafeUsageStyle(cafe: Cafe): CafeUsageStyle {
   if (CHAIN_NAME_PATTERNS.some((pattern) => pattern.test(cafe.name))) return "chain";
-  if (NIGHT_NAME_PATTERNS.test(cafe.name)) return "night";
+  if (isLateNight(cafe)) return "night";
   if (
     COWORKING_NAME_PATTERNS.test(cafe.name) ||
     (cafe.outletInfo && COWORKING_NAME_PATTERNS.test(cafe.outletInfo))
@@ -404,6 +404,13 @@ function hasWifi(cafe: Cafe): boolean {
   return !/Wi-?Fi.*(なし|不可)/i.test(cafe.wifiInfo);
 }
 
+function isLateNight(cafe: Cafe): boolean {
+  return Boolean(
+    NIGHT_NAME_PATTERNS.test(cafe.name) ||
+      (cafe.hoursInfo && NIGHT_NAME_PATTERNS.test(cafe.hoursInfo))
+  );
+}
+
 type QuickBadge = { key: string; emoji: string; label: string; className: string };
 
 // ポップアップを開いてすぐ、電源・喫煙・騒がしさ・混雑度がひと目でわかるように
@@ -453,6 +460,15 @@ function getQuickBadges(cafe: Cafe, stats: CafeStats | null): QuickBadge[] {
       emoji: "🪑",
       label: cafe.seatCountInfo,
       className: "bg-amber-100 text-amber-800",
+    });
+  }
+
+  if (isLateNight(cafe)) {
+    badges.push({
+      key: "latenight",
+      emoji: "🌙",
+      label: "24時間/深夜営業",
+      className: "bg-indigo-100 text-indigo-800",
     });
   }
 
