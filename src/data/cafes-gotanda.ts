@@ -14,7 +14,6 @@ export const cafes: Cafe[] = [
   { id: "gotanda-08", name: "エクセルシオール カフェ 五反田TOC店", address: "東京都品川区西五反田7-22-17 TOCビル 1F", lat: 35.6206, lng: 139.7179, outletInfo: "コンセントあり、Wi-Fiも利用可" },
   { id: "gotanda-09", name: "エクセルシオール カフェ 大崎シンクパーク店", address: "東京都品川区大崎2-1-1 ThinkPark Tower 2F", lat: 35.6185, lng: 139.7276, outletInfo: "大テーブル席とカウンター席に電源あり" },
   { id: "gotanda-10", name: "カフェ・ベローチェ 西五反田七丁目店", address: "東京都品川区西五反田7-9-2 KDX五反田ビル 1F", lat: 35.6222, lng: 139.7192, outletInfo: "コンセントありだが見当たらないとの口コミも" },
-  { id: "gotanda-11", name: "タリーズコーヒー 五反田東店", address: "東京都品川区東五反田2-3-2", lat: 35.6252, lng: 139.7255 },
   { id: "gotanda-12", name: "タリーズコーヒー 五反田西店", address: "東京都品川区西五反田7-9-4", lat: 35.6221, lng: 139.7191, outletInfo: "禁煙席の端の席ならコンセントありとの口コミ" },
   { id: "gotanda-13", name: "タリーズコーヒー 五反田JPビルディング店", address: "東京都品川区西五反田8-4-13", lat: 35.6193, lng: 139.7158, outletInfo: "窓側の席に電源コンセントあり" },
   { id: "gotanda-14", name: "PRONTO 五反田西口店", address: "東京都品川区西五反田1-7-1 五反田プラグマGタワー 1F", lat: 35.6252, lng: 139.7218 },

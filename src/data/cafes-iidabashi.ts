@@ -15,7 +15,6 @@ export const cafes: Cafe[] = [
   { id: "iidabashi-09", name: "ドトールコーヒーショップ 飯田橋神楽坂店", address: "東京都新宿区神楽坂1-12", lat: 35.7022, lng: 139.7442, outletInfo: "全席でWi-Fi・電源完備" },
   { id: "iidabashi-10", name: "タリーズコーヒー 飯田橋ガーデンエアタワー店", address: "東京都千代田区飯田橋3-10-10 飯田橋ガーデンエアタワー1F", lat: 35.7006, lng: 139.747, outletInfo: "電源なし、店内にChargeSPOTあり" },
   { id: "iidabashi-11", name: "タリーズコーヒー 神楽坂店", address: "東京都新宿区箪笥町22", lat: 35.7012, lng: 139.7392, outletInfo: "コンセント8口程度、タリーズ本社1F" },
-  { id: "iidabashi-12", name: "エクセルシオールカフェ 飯田橋東口店", address: "東京都新宿区揚場町1-14", lat: 35.7026, lng: 139.745 },
   { id: "iidabashi-13", name: "カフェ・ベローチェ 飯田橋駅東口店", address: "東京都新宿区揚場町1-21 飯田橋升本ビル1F", lat: 35.7024, lng: 139.7452, outletInfo: "コンセント8口程度、カウンター席中心" },
   { id: "iidabashi-14", name: "カフェ・ベローチェ 神楽坂店", address: "東京都新宿区神楽坂4-1-1 オザワビル1F", lat: 35.7034, lng: 139.741, outletInfo: "お客様専用コンセントあり" },
   { id: "iidabashi-15", name: "プロント 飯田橋店", address: "東京都千代田区富士見2-6-12 飯田橋AMビル1F", lat: 35.7014, lng: 139.7458, outletInfo: "コンセントは3ヶ所程度、地下連絡通路沿い" },
