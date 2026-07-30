@@ -1376,8 +1376,8 @@ export default function CafeMap() {
             position={[cafe.lat, cafe.lng]}
             icon={iconForStats(stats)}
           >
-            <Popup minWidth={230}>
-              <div className="flex flex-col gap-2 text-gray-900">
+            <Popup minWidth={210} maxHeight={340}>
+              <div className="flex flex-col gap-1 sm:gap-2 text-gray-900">
                 <div className="flex items-start justify-between gap-2">
                   <div className="font-bold text-sm sm:text-lg">{cafe.name}</div>
                   <button
@@ -1405,7 +1405,7 @@ export default function CafeMap() {
                 )}
 
                 {isDynamicCafe && (
-                  <div className="text-[11px] sm:text-sm bg-yellow-50 border border-yellow-200 rounded p-2 flex flex-col gap-1">
+                  <div className="text-[11px] sm:text-sm bg-yellow-50 border border-yellow-200 rounded p-1.5 sm:p-2 flex flex-col gap-1">
                     {isUnconfirmed ? (
                       <div className="text-yellow-800">
                         ⚠️ ユーザーが追加した店舗です。まだ他の人による確認がありません
@@ -1482,7 +1482,7 @@ export default function CafeMap() {
                 )}
 
                 {(noteGroups.length > 0 || seatCountMedian !== null) && (
-                  <div className="text-[11px] sm:text-sm bg-gray-50 rounded p-2 flex flex-col gap-1">
+                  <div className="text-[11px] sm:text-sm bg-gray-50 rounded p-1.5 sm:p-2 flex flex-col gap-1">
                     {seatCountMedian !== null && (
                       <div className="text-gray-700">
                         📊 座席数の目安: 約{seatCountMedian}席（
@@ -1510,12 +1510,12 @@ export default function CafeMap() {
                   </div>
                 )}
 
-                <div className="border-t pt-2">
-                  <div className="text-[11px] sm:text-sm text-gray-500 mb-2">
+                <div className="border-t pt-1.5 sm:pt-2">
+                  <div className="text-[11px] sm:text-sm text-gray-500 mb-1 sm:mb-2">
                     📢 今の店内の様子を教えてください（リアルタイムの報告にご協力ください）
                   </div>
                   {cafe.outletInfo && (
-                    <div className="text-[11px] sm:text-sm bg-blue-50 border border-blue-200 rounded p-2 text-blue-900 mb-2">
+                    <div className="text-[11px] sm:text-sm bg-blue-50 border border-blue-200 rounded p-1.5 sm:p-2 text-blue-900 mb-1 sm:mb-2">
                       <div className="font-semibold mb-0.5">
                         🔌 電源情報（ネット調べ）
                       </div>
@@ -1567,7 +1567,7 @@ export default function CafeMap() {
                         }))
                       }
                       placeholder="例: レジ横の窓側の席"
-                      className="w-full text-base border rounded px-2 py-1"
+                      className="w-full text-sm border rounded px-2 py-0.5 sm:py-1"
                     />
                     <button
                       disabled={
@@ -1579,7 +1579,7 @@ export default function CafeMap() {
                       この場所情報を共有
                     </button>
                   </div>
-                  <div className="mt-2">
+                  <div className="mt-1.5 sm:mt-2">
                     <div className="text-[11px] sm:text-sm text-gray-500 mb-1">
                       だいたいの座席数（任意）
                     </div>
@@ -1595,7 +1595,7 @@ export default function CafeMap() {
                           }))
                         }
                         placeholder="例: 20"
-                        className="w-full text-base border rounded px-2 py-1"
+                        className="w-full text-sm border rounded px-2 py-0.5 sm:py-1"
                       />
                       <button
                         disabled={
