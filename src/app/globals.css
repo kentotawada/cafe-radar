@@ -37,3 +37,26 @@ body {
     display: none;
   }
 }
+
+/* ポップアップの内容がmaxHeightを超えるとLeafletが.leaflet-popup-scrolled
+   を付与しスクロール可能にするが、スクロールバーが目立たない端末(特に
+   iOS Safari)では下に続きがあることに気づきにくい。フェードとテキストで
+   「まだ続きがある」ことを常に視覚的にわかるようにする */
+.leaflet-popup-content-wrapper:has(.leaflet-popup-content.leaflet-popup-scrolled) {
+  position: relative;
+}
+.leaflet-popup-content-wrapper:has(.leaflet-popup-content.leaflet-popup-scrolled)::after {
+  content: "▼ 下にスクロールすると続きがあります";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 1px;
+  padding: 16px 8px 4px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: #2563eb;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.95) 45%);
+  pointer-events: none;
+  border-radius: 0 0 12px 12px;
+}
