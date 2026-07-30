@@ -127,45 +127,51 @@ function getCafeUsageStyle(cafe: Cafe): CafeUsageStyle {
   return "independent";
 }
 
+// フチ・持ち手・プラグの線色。黒に近い色だと不気味に見えるため、
+// 珈琲を連想させる温かみのある焦茶色にする(視認性は保ったまま)
+const CUP_LINE_COLOR = "#6b4226";
+
 // 利用スタイルごとの内側アイコン(白1色)。チェーン店は外側のカップ型
 // そのもので「気軽な1杯」を表せるため、あえて内側は無地のままにする
 function usageStyleIconHtml(usageStyle: CafeUsageStyle, statusColor: string): string {
   if (usageStyle === "coworking") {
     // ノートPC(画面＋台形のキーボード部分)
-    return `<path d="M8 12h14v9H8z" fill="white"/><path d="M5 22h20l-1.8 3a1 1 0 0 1-.9.5H7.7a1 1 0 0 1-.9-.5L5 22z" fill="white"/>`;
+    return `<path d="M10 7h16v8H10z" fill="white"/><path d="M7 16h22l-1.6 2.6a1 1 0 0 1-.9.4H9.5a1 1 0 0 1-.9-.4L7 16z" fill="white"/>`;
   }
   if (usageStyle === "independent") {
     // コーヒー豆(白い楕円＋中央の筋、筋はカップの色で切り抜いたように見せる)
-    return `<ellipse cx="15" cy="16" rx="6.5" ry="9.5" fill="white" transform="rotate(18 15 16)"/><path d="M15 8 Q11.5 16 15 24" stroke="${statusColor}" stroke-width="1.6" fill="none" transform="rotate(18 15 16)"/>`;
+    return `<ellipse cx="18" cy="11" rx="7.5" ry="5.5" fill="white" transform="rotate(-8 18 11)"/><path d="M11.5 11 Q18 8 24.5 11" stroke="${statusColor}" stroke-width="1.4" fill="none" transform="rotate(-8 18 11)"/>`;
   }
   if (usageStyle === "night") {
     // 三日月(白い円から少しずらした円をカップの色でくり抜く)
-    return `<circle cx="15" cy="16" r="6.5" fill="white"/><circle cx="18.5" cy="12.5" r="5.5" fill="${statusColor}"/>`;
+    return `<circle cx="18" cy="11" r="6" fill="white"/><circle cx="21.5" cy="8" r="5" fill="${statusColor}"/>`;
   }
   return "";
 }
 
 // 円だけだと地図タイルの色(緑の公園、青の水面など)と紛れて見えにくいため、
-// カップ型のピン＋濃色フチ＋影で背景色に関係なく視認できる形にする。
-// カップ全体の色は混雑度・騒がしさの色(最優先で一目でわかるようにする)、
-// 内側の白いアイコンで利用スタイル(チェーン/コワーキング/個人経営/深夜)を
-// 表す。ピンの先端は電源プラグの形にして「電源が使えるカフェ探し」という
-// アプリのテーマを表現する
+// カップ型のピン＋焦茶色のフチ＋影で背景色に関係なく視認できる形にする。
+// カプチーノカップのように「低め・横広がり」な形にし、カップ全体の色は
+// 混雑度の色(最優先で一目でわかるようにする)、内側の白いアイコンで
+// 利用スタイル(チェーン/コワーキング/個人経営/深夜)を表す。ピンの先端は
+// 電源プラグの形にして「電源が使えるカフェ探し」というアプリのテーマを
+// 表現する
 function createCupPinIcon(statusColor: string, usageStyle: CafeUsageStyle) {
-  const html = `<svg width="30" height="46" viewBox="0 0 30 46" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 1px 4px rgba(0,0,0,0.8));">
-    <path d="M5,4 Q5,2 7,2 L23,2 Q25,2 25,4 L25,7 L21,26 Q15,29 9,26 L5,7 Z" fill="${statusColor}" stroke="#1f2937" stroke-width="2"/>
-    <path d="M24,10 Q30,10.5 30,15 Q30,19.5 24,20" fill="none" stroke="#1f2937" stroke-width="2"/>
+  const html = `<svg width="42" height="42" viewBox="0 0 42 42" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 1px 4px rgba(0,0,0,0.6));">
+    <path d="M4,5 Q4,3 6,3 L30,3 Q32,3 32,5 L32,9 L28,19 Q18,23 8,19 L4,9 Z" fill="${statusColor}" stroke="${CUP_LINE_COLOR}" stroke-width="1.5"/>
+    <ellipse cx="18" cy="19.5" rx="6" ry="1.6" fill="${CUP_LINE_COLOR}"/>
+    <path d="M31,8 Q39,8.5 39,13.5 Q39,18.5 31,19" fill="none" stroke="${CUP_LINE_COLOR}" stroke-width="1.5"/>
     ${usageStyleIconHtml(usageStyle, statusColor)}
-    <rect x="11" y="27" width="2.4" height="7" fill="#1f2937"/>
-    <rect x="16.6" y="27" width="2.4" height="7" fill="#1f2937"/>
-    <path d="M9,33 L21,33 L15,43 Z" fill="#1f2937"/>
+    <rect x="15.6" y="20" width="1.8" height="6" fill="${CUP_LINE_COLOR}"/>
+    <rect x="18.6" y="20" width="1.8" height="6" fill="${CUP_LINE_COLOR}"/>
+    <rect x="13" y="25" width="10" height="9" rx="2.5" fill="${CUP_LINE_COLOR}"/>
   </svg>`;
   return L.divIcon({
     className: "",
     html,
-    iconSize: [30, 46],
-    iconAnchor: [15, 44],
-    popupAnchor: [0, -40],
+    iconSize: [42, 42],
+    iconAnchor: [18, 34],
+    popupAnchor: [0, -30],
   });
 }
 
@@ -202,6 +208,18 @@ function createLandmarkIcon(color: string, innerHtml: string) {
     iconSize: [24, 30],
     iconAnchor: [12, 30],
   });
+}
+
+// 「サンドラッグ 新宿中央東口店」のように店名+支店名がスペース区切りに
+// なっている場合、1行目=店名・2行目=支店名ときれいに分けて表示する。
+// スペースが無い名前(建物名など)はそのまま1行として扱う
+function splitLandmarkLabel(name: string): { primary: string; secondary: string | null } {
+  const spaceIndex = name.indexOf(" ");
+  if (spaceIndex === -1) return { primary: name, secondary: null };
+  return {
+    primary: name.slice(0, spaceIndex),
+    secondary: name.slice(spaceIndex + 1),
+  };
 }
 
 function svgIcon(path: string) {
@@ -340,6 +358,28 @@ function pickMajority<T extends string>(counts: Record<T, number>): T {
   return (Object.keys(counts) as T[]).reduce((a, b) =>
     counts[b] > counts[a] ? b : a
   );
+}
+
+// react-leafletはPopupの中身(props.children)が変わるたびにLeafletの
+// popup.update()を呼ぶが、これが内部で一瞬「高さを外して再計測→
+// 付け直す」処理をするため、ポップアップ内のスクロール位置(scrollTop)が
+// 0に戻ってしまう。入力欄の数値を変える(スピンボタンクリック含む)たびに
+// 店舗情報が一番上にスクロールし直されるのはこれが原因。
+// popup.update()はReactのuseEffect(コミット後の次のタスク)で走るため、
+// setTimeoutで1タスク遅らせてからscrollTopを元に戻せば間に合う
+// (requestAnimationFrameは画面を描画していないタブだと発火しないことが
+// あるため、より確実なsetTimeoutを使う)
+function withPopupScrollPreserved(target: EventTarget | null, applyChange: () => void) {
+  const scrollEl = (target as HTMLElement | null)?.closest(
+    ".leaflet-popup-content"
+  ) as HTMLElement | null;
+  const scrollTop = scrollEl?.scrollTop;
+  applyChange();
+  if (scrollEl && scrollTop !== undefined) {
+    setTimeout(() => {
+      scrollEl.scrollTop = scrollTop;
+    }, 0);
+  }
 }
 
 // 編集部調べのテキストから簡易判定するヘルパー。バッジ表示と
@@ -1649,7 +1689,18 @@ export default function CafeMap() {
         >
           {mapZoom >= 17 && (
             <Tooltip permanent direction="top" offset={[0, -28]} className="landmark-tooltip">
-              {landmark.name}
+              {(() => {
+                const { primary, secondary } = splitLandmarkLabel(landmark.name);
+                return secondary ? (
+                  <>
+                    {primary}
+                    <br />
+                    {secondary}
+                  </>
+                ) : (
+                  primary
+                );
+              })()}
             </Tooltip>
           )}
         </Marker>
@@ -1861,12 +1912,15 @@ export default function CafeMap() {
                       type="text"
                       maxLength={60}
                       value={noteByCafe[cafe.id] ?? ""}
-                      onChange={(e) =>
-                        setNoteByCafe((prev) => ({
-                          ...prev,
-                          [cafe.id]: e.target.value,
-                        }))
-                      }
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        withPopupScrollPreserved(e.target, () =>
+                          setNoteByCafe((prev) => ({
+                            ...prev,
+                            [cafe.id]: value,
+                          }))
+                        );
+                      }}
                       placeholder="例: レジ横の窓側の席"
                       className="w-full text-sm border rounded px-2 py-0.5 sm:py-1"
                     />
@@ -1889,12 +1943,15 @@ export default function CafeMap() {
                         type="number"
                         min={1}
                         value={outletSeatCountByCafe[cafe.id] ?? ""}
-                        onChange={(e) =>
-                          setOutletSeatCountByCafe((prev) => ({
-                            ...prev,
-                            [cafe.id]: e.target.value,
-                          }))
-                        }
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          withPopupScrollPreserved(e.target, () =>
+                            setOutletSeatCountByCafe((prev) => ({
+                              ...prev,
+                              [cafe.id]: value,
+                            }))
+                          );
+                        }}
                         placeholder="例: 4"
                         className="w-full text-sm border rounded px-2 py-0.5 sm:py-1"
                       />
@@ -1949,12 +2006,15 @@ export default function CafeMap() {
                       type="number"
                       min={1}
                       value={seatCountByCafe[cafe.id] ?? ""}
-                      onChange={(e) =>
-                        setSeatCountByCafe((prev) => ({
-                          ...prev,
-                          [cafe.id]: e.target.value,
-                        }))
-                      }
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        withPopupScrollPreserved(e.target, () =>
+                          setSeatCountByCafe((prev) => ({
+                            ...prev,
+                            [cafe.id]: value,
+                          }))
+                        );
+                      }}
                       placeholder="例: 20"
                       className="w-full text-sm border rounded px-2 py-0.5 sm:py-1"
                     />
