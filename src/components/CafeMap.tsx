@@ -453,6 +453,30 @@ function AddCafeClickHandler({
   return null;
 }
 
+// 1000件超のピンを常にすべてDOMに描画すると、パン・ズーム操作のたびに
+// 全ピンのtransformを再計算することになり動作がカクつく原因になる。
+// そのため、現在表示中の範囲(+余白)にあるピンだけをDOMに描画するように絞り込む
+function MapBoundsTracker({
+  onChange,
+}: {
+  onChange: (bounds: L.LatLngBounds) => void;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    const handleChange = () => {
+      onChange(map.getBounds());
+    };
+    map.on("moveend", handleChange);
+    map.on("zoomend", handleChange);
+    handleChange();
+    return () => {
+      map.off("moveend", handleChange);
+      map.off("zoomend", handleChange);
+    };
+  }, [map, onChange]);
+  return null;
+}
+
 export default function CafeMap() {
   const [reportsByCafe, setReportsByCafe] = useState<Record<string, Report[]>>({});
   const [factsByCafe, setFactsByCafe] = useState<Record<string, CafeFact[]>>({});
@@ -485,6 +509,7 @@ export default function CafeMap() {
   );
   const [locateError, setLocateError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
 
   // エリア検索など、ユーザーが自分で地図の表示先を選んだ後に、
   // 遅れて返ってきた位置情報がそれを上書きしてしまわないようにする
@@ -512,10 +537,13 @@ export default function CafeMap() {
         setLocateError(
           err.code === err.PERMISSION_DENIED
             ? "位置情報がブロックされています。アドレスバー左側のアイコン(鍵マークなど)をタップ→「位置情報」を「許可」に変更→もう一度このボタンを押してください"
-            : "現在地を取得できませんでした"
+            : err.code === err.TIMEOUT
+              ? "現在地の取得に時間がかかっています。電波の良い場所でもう一度お試しください"
+              : "現在地を取得できませんでした"
         );
         setIsLocating(false);
-      }
+      },
+      { timeout: 8000, maximumAge: 60000 }
     );
   };
 
@@ -956,6 +984,9 @@ export default function CafeMap() {
 
   const visibleCafes = allCafes.filter((cafe) => {
     if (favoritesOnly && !favorites.has(cafe.id)) return false;
+    if (mapBounds && !mapBounds.pad(0.5).contains([cafe.lat, cafe.lng])) {
+      return false;
+    }
     const stats = statsByCafe[cafe.id];
     if (!isFiltering) return true;
     if (
@@ -994,6 +1025,7 @@ export default function CafeMap() {
       attributionControl={false}
     >
       <RecenterOnLocate position={mapFocus} />
+      <MapBoundsTracker onChange={setMapBounds} />
       <AddCafeClickHandler
         active={isAddingCafe}
         onPick={(lat, lng) => setPendingCafeLocation({ lat, lng })}
@@ -1163,9 +1195,6 @@ export default function CafeMap() {
             </button>
           )}
         </div>
-      </div>
-
-      <div className="leaflet-bottom leaflet-left" style={{ zIndex: 1000 }}>
         <div className="leaflet-control m-2">
           <AttributionInfoButton />
         </div>
