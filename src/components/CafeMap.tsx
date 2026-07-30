@@ -179,6 +179,73 @@ function pickMajority<T extends string>(counts: Record<T, number>): T {
   );
 }
 
+type QuickBadge = { key: string; emoji: string; label: string; className: string };
+
+// ポップアップを開いてすぐ、電源・喫煙・騒がしさ・混雑度がひと目でわかるように
+// バッジを横一列で表示する。編集部調べのテキストからは正規表現で簡易判定し、
+// 騒がしさ・混雑度はユーザー報告の集計(stats)から判定する
+function getQuickBadges(cafe: Cafe, stats: CafeStats | null): QuickBadge[] {
+  const badges: QuickBadge[] = [];
+
+  if (cafe.outletInfo) {
+    const noOutlet = /電源.*(なし|不可)|コンセント.*(なし|不可)/.test(cafe.outletInfo);
+    if (!noOutlet) {
+      badges.push({
+        key: "outlet",
+        emoji: "🔌",
+        label: "電源あり",
+        className: "bg-blue-100 text-blue-800",
+      });
+    }
+  }
+
+  if (cafe.smokingInfo) {
+    const nonSmoking =
+      /全席禁煙|全店舗?禁煙|敷地内.*禁煙|喫煙(所|ブース)なし/.test(cafe.smokingInfo);
+    const smokingOk =
+      /喫煙(ブース|室|目的室|席)|喫煙可|分煙/.test(cafe.smokingInfo);
+    if (nonSmoking) {
+      badges.push({
+        key: "nonsmoking",
+        emoji: "🚭",
+        label: "禁煙",
+        className: "bg-green-100 text-green-800",
+      });
+    }
+    if (smokingOk) {
+      badges.push({
+        key: "smoking",
+        emoji: "🚬",
+        label: "喫煙可",
+        className: "bg-gray-200 text-gray-700",
+      });
+    }
+  }
+
+  if (stats) {
+    if (pickMajority(stats.noiseCounts) === "loud") {
+      badges.push({
+        key: "noisy",
+        emoji: "🔊",
+        label: "うるさめ",
+        className: "bg-purple-100 text-purple-800",
+      });
+    }
+    const outletFull = pickMajority(stats.outletOccupancyCounts) === "full";
+    const seatingFull = pickMajority(stats.seatingOccupancyCounts) === "full";
+    if (outletFull || seatingFull) {
+      badges.push({
+        key: "crowded",
+        emoji: "🈵",
+        label: "混雑気味",
+        className: "bg-red-100 text-red-800",
+      });
+    }
+  }
+
+  return badges;
+}
+
 function computeStats(reports: Report[]): CafeStats | null {
   const deduped = dedupeByReporter(reports);
   if (deduped.length === 0) return null;
@@ -1297,6 +1364,7 @@ export default function CafeMap() {
         const seatCountMedian = median(seatCounts);
         const isDynamicCafe = dynamicCafeIds.has(cafe.id);
         const isUnconfirmed = isDynamicCafe && !hasIndependentActivity(cafe);
+        const quickBadges = getQuickBadges(cafe, stats);
         return (
           <Marker
             key={cafe.id}
@@ -1317,6 +1385,19 @@ export default function CafeMap() {
                   </button>
                 </div>
                 <div className="text-xs text-gray-500">{cafe.address}</div>
+
+                {quickBadges.length > 0 && (
+                  <div className="flex gap-1 flex-wrap">
+                    {quickBadges.map((badge) => (
+                      <span
+                        key={badge.key}
+                        className={`text-xs px-1.5 py-0.5 rounded-full whitespace-nowrap ${badge.className}`}
+                      >
+                        {badge.emoji} {badge.label}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 {isDynamicCafe && (
                   <div className="text-xs bg-yellow-50 border border-yellow-200 rounded p-2 flex flex-col gap-1">
