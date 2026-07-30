@@ -26,8 +26,14 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* 絞り込みパネル・ズームボタン等のコントロール(z-index:1000)より
-   開いているポップアップを前面に出し、内容が隠れて見えなくなるのを防ぐ */
-.leaflet-popup-pane {
-  z-index: 1001;
+/* leaflet-map-paneはtransformでスタッキングコンテキストを作るため、
+   内側のpopup-paneのz-indexをどれだけ上げてもコントロール類(leaflet-top/
+   leaflet-bottom、外側の兄弟要素)より前面には出せない。そのため、狭い
+   画面ではポップアップ表示中はズーム・絞り込み・お店を追加のコントロール
+   自体を非表示にして、店舗情報と重ならないようにする */
+@media (max-width: 639px) {
+  .leaflet-container:has(.leaflet-popup) .leaflet-top,
+  .leaflet-container:has(.leaflet-popup) .leaflet-bottom {
+    display: none;
+  }
 }

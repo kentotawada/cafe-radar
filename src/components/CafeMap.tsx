@@ -261,6 +261,86 @@ function searchUrl(cafe: Cafe) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
+// ポップアップごとに独立したstateとして持たせることで、経路案内の
+// 選択操作が他の全ての店舗ピンの再描画を引き起こさないようにする
+// (1000件以上のピンがあるため、親コンポーネントのstateにすると
+// タップのたびに全ピンが再描画されモバイルで反応が悪くなる)
+function CafeDirectionsLink({ cafe }: { cafe: Cafe }) {
+  const [showPicker, setShowPicker] = useState(false);
+  const [savedProvider, setSavedProvider] = useState<MapProvider | null>(
+    () => getMapProvider()
+  );
+
+  const choose = (provider: MapProvider) => {
+    setMapProvider(provider);
+    setSavedProvider(provider);
+    setShowPicker(false);
+  };
+
+  if (showPicker) {
+    return (
+      <div className="flex items-center gap-2 text-xs bg-gray-50 border rounded p-1.5 flex-wrap">
+        <span className="text-gray-500">マップを選択:</span>
+        <a
+          href={directionsUrl(cafe, "google")}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => choose("google")}
+          className="text-blue-600 underline"
+        >
+          Googleマップ
+        </a>
+        <a
+          href={directionsUrl(cafe, "apple")}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => choose("apple")}
+          className="text-blue-600 underline"
+        >
+          Apple Maps
+        </a>
+        <button
+          onClick={() => setShowPicker(false)}
+          className="text-gray-400 ml-auto"
+          aria-label="キャンセル"
+        >
+          ×
+        </button>
+      </div>
+    );
+  }
+
+  if (savedProvider) {
+    return (
+      <>
+        <a
+          href={directionsUrl(cafe, savedProvider)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 underline"
+        >
+          経路を見る
+        </a>
+        <button
+          onClick={() => setShowPicker(true)}
+          className="text-gray-400 underline"
+        >
+          別のマップアプリを使う
+        </button>
+      </>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => setShowPicker(true)}
+      className="text-blue-600 underline"
+    >
+      経路を見る
+    </button>
+  );
+}
+
 function RecenterOnLocate({ position }: { position: [number, number] | null }) {
   const map = useMap();
   useEffect(() => {
@@ -322,12 +402,6 @@ export default function CafeMap() {
   );
   const [locateError, setLocateError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
-  const [directionsPickerCafeId, setDirectionsPickerCafeId] = useState<
-    string | null
-  >(null);
-  const [savedMapProvider, setSavedMapProvider] = useState<MapProvider | null>(
-    () => getMapProvider()
-  );
 
   // エリア検索など、ユーザーが自分で地図の表示先を選んだ後に、
   // 遅れて返ってきた位置情報がそれを上書きしてしまわないようにする
@@ -710,12 +784,6 @@ export default function CafeMap() {
     setFavorites(toggleFavorite(cafeId));
   };
 
-  const handleDirectionsProviderChoice = (provider: MapProvider) => {
-    setMapProvider(provider);
-    setSavedMapProvider(provider);
-    setDirectionsPickerCafeId(null);
-  };
-
   const startAddingCafe = () => {
     setIsAddingCafe(true);
     setPendingCafeLocation(null);
@@ -877,44 +945,44 @@ export default function CafeMap() {
                   ))}
                 </select>
               </label>
-              <label className="flex items-center justify-between gap-2">
-                <span className="whitespace-nowrap shrink-0">電源席</span>
-            <select
-              value={outletFilter}
-              onChange={(e) =>
-                setOutletFilter(e.target.value as AvailabilityFilter)
-              }
-              className="border border-gray-400 rounded px-1 py-0.5 sm:py-1 text-base text-gray-900 bg-white"
-            >
-              <option value="any">すべて</option>
-              <option value="available">空きありのみ</option>
-            </select>
-          </label>
-          <label className="flex items-center justify-between gap-2">
-            <span className="whitespace-nowrap shrink-0">一般席</span>
-            <select
-              value={seatingFilter}
-              onChange={(e) =>
-                setSeatingFilter(e.target.value as AvailabilityFilter)
-              }
-              className="border border-gray-400 rounded px-1 py-0.5 sm:py-1 text-base text-gray-900 bg-white"
-            >
-              <option value="any">すべて</option>
-              <option value="available">空きありのみ</option>
-            </select>
-          </label>
-          <label className="flex items-center justify-between gap-2">
-            <span className="whitespace-nowrap shrink-0">静かさ</span>
-            <select
-              value={noiseFilter}
-              onChange={(e) => setNoiseFilter(e.target.value as NoiseFilter)}
-              className="border border-gray-400 rounded px-1 py-0.5 sm:py-1 text-base text-gray-900 bg-white"
-            >
-              <option value="any">こだわらない</option>
-              <option value="quietOnly">静かな店のみ</option>
-              <option value="excludeLoud">うるさい店を除く</option>
-            </select>
-          </label>
+              <label className="flex flex-col gap-1">
+                <span>電源席</span>
+                <select
+                  value={outletFilter}
+                  onChange={(e) =>
+                    setOutletFilter(e.target.value as AvailabilityFilter)
+                  }
+                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-base text-gray-900 bg-white w-full"
+                >
+                  <option value="any">すべて</option>
+                  <option value="available">空きありのみ</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span>一般席</span>
+                <select
+                  value={seatingFilter}
+                  onChange={(e) =>
+                    setSeatingFilter(e.target.value as AvailabilityFilter)
+                  }
+                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-base text-gray-900 bg-white w-full"
+                >
+                  <option value="any">すべて</option>
+                  <option value="available">空きありのみ</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span>静かさ</span>
+                <select
+                  value={noiseFilter}
+                  onChange={(e) => setNoiseFilter(e.target.value as NoiseFilter)}
+                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-base text-gray-900 bg-white w-full"
+                >
+                  <option value="any">こだわらない</option>
+                  <option value="quietOnly">静かな店のみ</option>
+                  <option value="excludeLoud">うるさい店を除く</option>
+                </select>
+              </label>
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -1149,66 +1217,17 @@ export default function CafeMap() {
                   </div>
                 )}
 
-                {directionsPickerCafeId === cafe.id ? (
-                  <div className="flex items-center gap-2 text-xs bg-gray-50 border rounded p-1.5">
-                    <span className="text-gray-500">マップを選択:</span>
-                    <a
-                      href={directionsUrl(cafe, "google")}
-                      onClick={() => handleDirectionsProviderChoice("google")}
-                      className="text-blue-600 underline"
-                    >
-                      Googleマップ
-                    </a>
-                    <a
-                      href={directionsUrl(cafe, "apple")}
-                      onClick={() => handleDirectionsProviderChoice("apple")}
-                      className="text-blue-600 underline"
-                    >
-                      Apple Maps
-                    </a>
-                    <button
-                      onClick={() => setDirectionsPickerCafeId(null)}
-                      className="text-gray-400 ml-auto"
-                      aria-label="キャンセル"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 text-xs">
-                    {savedMapProvider ? (
-                      <>
-                        <a
-                          href={directionsUrl(cafe, savedMapProvider)}
-                          className="text-blue-600 underline"
-                        >
-                          経路を見る
-                        </a>
-                        <button
-                          onClick={() => setDirectionsPickerCafeId(cafe.id)}
-                          className="text-gray-400 underline"
-                        >
-                          (変更)
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => setDirectionsPickerCafeId(cafe.id)}
-                        className="text-blue-600 underline"
-                      >
-                        経路を見る
-                      </button>
-                    )}
-                    <a
-                      href={searchUrl(cafe)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 underline"
-                    >
-                      写真・口コミ(Googleマップ)
-                    </a>
-                  </div>
-                )}
+                <div className="flex items-center gap-2 text-xs flex-wrap">
+                  <CafeDirectionsLink cafe={cafe} />
+                  <a
+                    href={searchUrl(cafe)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 underline"
+                  >
+                    写真・口コミ(Googleマップ)
+                  </a>
+                </div>
 
                 {stats ? (
                   (() => {
