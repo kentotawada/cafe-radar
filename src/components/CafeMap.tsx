@@ -321,9 +321,13 @@ export default function CafeMap() {
     () => typeof window !== "undefined" && window.innerWidth >= 640
   );
   const [locateError, setLocateError] = useState<string | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
   const [directionsPickerCafeId, setDirectionsPickerCafeId] = useState<
     string | null
   >(null);
+  const [savedMapProvider, setSavedMapProvider] = useState<MapProvider | null>(
+    () => getMapProvider()
+  );
 
   // エリア検索など、ユーザーが自分で地図の表示先を選んだ後に、
   // 遅れて返ってきた位置情報がそれを上書きしてしまわないようにする
@@ -335,6 +339,7 @@ export default function CafeMap() {
       return;
     }
     setLocateError(null);
+    setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const position: [number, number] = [
@@ -344,6 +349,7 @@ export default function CafeMap() {
         setUserPosition(position);
         setMapFocus(position);
         hasManualFocusRef.current = true;
+        setIsLocating(false);
       },
       (err) => {
         setLocateError(
@@ -351,6 +357,7 @@ export default function CafeMap() {
             ? "位置情報がブロックされています。アドレスバー左側のアイコン(鍵マークなど)をタップ→「位置情報」を「許可」に変更→もう一度このボタンを押してください"
             : "現在地を取得できませんでした"
         );
+        setIsLocating(false);
       }
     );
   };
@@ -703,19 +710,10 @@ export default function CafeMap() {
     setFavorites(toggleFavorite(cafeId));
   };
 
-  const handleDirectionsClick = (cafe: Cafe) => {
-    const savedProvider = getMapProvider();
-    if (savedProvider) {
-      window.open(directionsUrl(cafe, savedProvider), "_blank", "noopener,noreferrer");
-      return;
-    }
-    setDirectionsPickerCafeId(cafe.id);
-  };
-
-  const handleDirectionsProviderChoice = (cafe: Cafe, provider: MapProvider) => {
+  const handleDirectionsProviderChoice = (provider: MapProvider) => {
     setMapProvider(provider);
+    setSavedMapProvider(provider);
     setDirectionsPickerCafeId(null);
-    window.open(directionsUrl(cafe, provider), "_blank", "noopener,noreferrer");
   };
 
   const startAddingCafe = () => {
@@ -880,7 +878,7 @@ export default function CafeMap() {
                 </select>
               </label>
               <label className="flex items-center justify-between gap-2">
-                <span>電源席</span>
+                <span className="whitespace-nowrap shrink-0">電源席</span>
             <select
               value={outletFilter}
               onChange={(e) =>
@@ -893,7 +891,7 @@ export default function CafeMap() {
             </select>
           </label>
           <label className="flex items-center justify-between gap-2">
-            <span>一般席</span>
+            <span className="whitespace-nowrap shrink-0">一般席</span>
             <select
               value={seatingFilter}
               onChange={(e) =>
@@ -906,7 +904,7 @@ export default function CafeMap() {
             </select>
           </label>
           <label className="flex items-center justify-between gap-2">
-            <span>静かさ</span>
+            <span className="whitespace-nowrap shrink-0">静かさ</span>
             <select
               value={noiseFilter}
               onChange={(e) => setNoiseFilter(e.target.value as NoiseFilter)}
@@ -940,25 +938,51 @@ export default function CafeMap() {
           )}
           <button
             onClick={locateMe}
+            disabled={isLocating}
             aria-label="現在地に戻る"
             title="現在地に戻る"
-            className="bg-white rounded-full shadow-lg border border-gray-300 w-10 h-10 flex items-center justify-center"
+            className="bg-white rounded-full shadow-lg border border-gray-300 w-10 h-10 flex items-center justify-center disabled:opacity-50"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="3" fill="#3b82f6" />
-              <circle
-                cx="12"
-                cy="12"
-                r="7"
-                fill="none"
-                stroke="#3b82f6"
-                strokeWidth="2"
-              />
-              <line x1="12" y1="1" x2="12" y2="4" stroke="#3b82f6" strokeWidth="2" />
-              <line x1="12" y1="20" x2="12" y2="23" stroke="#3b82f6" strokeWidth="2" />
-              <line x1="1" y1="12" x2="4" y2="12" stroke="#3b82f6" strokeWidth="2" />
-              <line x1="20" y1="12" x2="23" y2="12" stroke="#3b82f6" strokeWidth="2" />
-            </svg>
+            {isLocating ? (
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                className="animate-spin"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="9"
+                  fill="none"
+                  stroke="#93c5fd"
+                  strokeWidth="3"
+                />
+                <path
+                  d="M21 12a9 9 0 0 0-9-9"
+                  fill="none"
+                  stroke="#3b82f6"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="3" fill="#3b82f6" />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="7"
+                  fill="none"
+                  stroke="#3b82f6"
+                  strokeWidth="2"
+                />
+                <line x1="12" y1="1" x2="12" y2="4" stroke="#3b82f6" strokeWidth="2" />
+                <line x1="12" y1="20" x2="12" y2="23" stroke="#3b82f6" strokeWidth="2" />
+                <line x1="1" y1="12" x2="4" y2="12" stroke="#3b82f6" strokeWidth="2" />
+                <line x1="20" y1="12" x2="23" y2="12" stroke="#3b82f6" strokeWidth="2" />
+              </svg>
+            )}
           </button>
         </div>
       </div>
@@ -1128,18 +1152,20 @@ export default function CafeMap() {
                 {directionsPickerCafeId === cafe.id ? (
                   <div className="flex items-center gap-2 text-xs bg-gray-50 border rounded p-1.5">
                     <span className="text-gray-500">マップを選択:</span>
-                    <button
-                      onClick={() => handleDirectionsProviderChoice(cafe, "google")}
+                    <a
+                      href={directionsUrl(cafe, "google")}
+                      onClick={() => handleDirectionsProviderChoice("google")}
                       className="text-blue-600 underline"
                     >
                       Googleマップ
-                    </button>
-                    <button
-                      onClick={() => handleDirectionsProviderChoice(cafe, "apple")}
+                    </a>
+                    <a
+                      href={directionsUrl(cafe, "apple")}
+                      onClick={() => handleDirectionsProviderChoice("apple")}
                       className="text-blue-600 underline"
                     >
                       Apple Maps
-                    </button>
+                    </a>
                     <button
                       onClick={() => setDirectionsPickerCafeId(null)}
                       className="text-gray-400 ml-auto"
@@ -1149,13 +1175,30 @@ export default function CafeMap() {
                     </button>
                   </div>
                 ) : (
-                  <div className="flex gap-2 text-xs">
-                    <button
-                      onClick={() => handleDirectionsClick(cafe)}
-                      className="text-blue-600 underline"
-                    >
-                      経路を見る
-                    </button>
+                  <div className="flex items-center gap-2 text-xs">
+                    {savedMapProvider ? (
+                      <>
+                        <a
+                          href={directionsUrl(cafe, savedMapProvider)}
+                          className="text-blue-600 underline"
+                        >
+                          経路を見る
+                        </a>
+                        <button
+                          onClick={() => setDirectionsPickerCafeId(cafe.id)}
+                          className="text-gray-400 underline"
+                        >
+                          (変更)
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => setDirectionsPickerCafeId(cafe.id)}
+                        className="text-blue-600 underline"
+                      >
+                        経路を見る
+                      </button>
+                    )}
                     <a
                       href={searchUrl(cafe)}
                       target="_blank"
