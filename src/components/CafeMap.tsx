@@ -116,24 +116,31 @@ const ICONS = {
   full: createPinIcon(PIN_COLORS.full),
 };
 
-// 不動産サイトの周辺環境地図(文=学校、〒=郵便局 等)のように、色付きの
-// 丸バッジ+白い1文字のシンプルな表示にする。絵文字は色がバラバラで
-// 背景色と合わずに見づらくなるため使わない
-function createLandmarkIcon(color: string, label: string) {
-  const html = `<div style="width:22px;height:22px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-size:11px;line-height:1;color:white;font-weight:700;font-family:sans-serif;">${label}</div>`;
+// 不動産サイトの周辺環境地図のように、色付きの丸バッジ+シンプルな
+// 白1色のイラスト(アイコン)にする。絵文字は色がバラバラで背景色と
+// 合わずに見づらくなるため、単色のSVGアイコンを使う
+function createLandmarkIcon(color: string, iconPath: string) {
+  const html = `<div style="width:24px;height:24px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="white">${iconPath}</svg>
+  </div>`;
   return L.divIcon({
     className: "",
     html,
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
   });
 }
 
-const LANDMARK_CATEGORY_LABEL: Record<LandmarkCategory, string> = {
-  station_exit: "駅",
-  building: "館",
-  school: "学",
-  other: "印",
+// 駅=電車、建物=ビル、学校=卒業帽、その他=地図ピン のアイコン(Material Icons風)
+const LANDMARK_CATEGORY_ICON_PATH: Record<LandmarkCategory, string> = {
+  station_exit:
+    '<path d="M12 2c-4.42 0-8 .5-8 4v9.5C4 17.43 5.57 19 7.5 19L6 20.5v.5h2.23l2-2H14l2 2h2v-.5L16.5 19c1.93 0 3.5-1.57 3.5-3.5V6c0-3.5-3.58-4-8-4zM7.5 17c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm3.5-7H6V6h5v4zm2 0V6h5v4h-5zm3.5 7c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>',
+  building:
+    '<path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/>',
+  school:
+    '<path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/>',
+  other:
+    '<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/>',
 };
 
 const LANDMARK_CATEGORY_COLOR: Record<LandmarkCategory, string> = {
@@ -144,10 +151,10 @@ const LANDMARK_CATEGORY_COLOR: Record<LandmarkCategory, string> = {
 };
 
 const LANDMARK_ICONS: Record<LandmarkCategory, L.DivIcon> = {
-  station_exit: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.station_exit, LANDMARK_CATEGORY_LABEL.station_exit),
-  building: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.building, LANDMARK_CATEGORY_LABEL.building),
-  school: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.school, LANDMARK_CATEGORY_LABEL.school),
-  other: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.other, LANDMARK_CATEGORY_LABEL.other),
+  station_exit: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.station_exit, LANDMARK_CATEGORY_ICON_PATH.station_exit),
+  building: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.building, LANDMARK_CATEGORY_ICON_PATH.building),
+  school: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.school, LANDMARK_CATEGORY_ICON_PATH.school),
+  other: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.other, LANDMARK_CATEGORY_ICON_PATH.other),
 };
 
 const USER_LOCATION_ICON = L.divIcon({
@@ -1660,36 +1667,6 @@ export default function CafeMap() {
                       この場所情報を共有
                     </button>
                   </div>
-                  <div className="mt-1.5 sm:mt-2">
-                    <div className="text-[11px] sm:text-sm text-gray-500 mb-1">
-                      だいたいの座席数（任意）
-                    </div>
-                    <div className="flex gap-1">
-                      <input
-                        type="number"
-                        min={1}
-                        value={seatCountByCafe[cafe.id] ?? ""}
-                        onChange={(e) =>
-                          setSeatCountByCafe((prev) => ({
-                            ...prev,
-                            [cafe.id]: e.target.value,
-                          }))
-                        }
-                        placeholder="例: 20"
-                        className="w-full text-sm border rounded px-2 py-0.5 sm:py-1"
-                      />
-                      <button
-                        disabled={
-                          submitting === cafe.id ||
-                          !seatCountByCafe[cafe.id]?.trim()
-                        }
-                        onClick={() => submitSeatCount(cafe.id)}
-                        className="px-2 py-1 text-xs sm:text-sm rounded bg-blue-100 hover:bg-blue-200 disabled:opacity-50 whitespace-nowrap"
-                      >
-                        共有
-                      </button>
-                    </div>
-                  </div>
                 </div>
 
                 <div>
@@ -1748,6 +1725,37 @@ export default function CafeMap() {
                       </option>
                     ))}
                   </select>
+                </div>
+
+                <div>
+                  <div className="text-[11px] sm:text-sm text-gray-500 mb-1">
+                    お店全体の座席数はだいたい何席くらい？（任意）
+                  </div>
+                  <div className="flex gap-1">
+                    <input
+                      type="number"
+                      min={1}
+                      value={seatCountByCafe[cafe.id] ?? ""}
+                      onChange={(e) =>
+                        setSeatCountByCafe((prev) => ({
+                          ...prev,
+                          [cafe.id]: e.target.value,
+                        }))
+                      }
+                      placeholder="例: 20"
+                      className="w-full text-sm border rounded px-2 py-0.5 sm:py-1"
+                    />
+                    <button
+                      disabled={
+                        submitting === cafe.id ||
+                        !seatCountByCafe[cafe.id]?.trim()
+                      }
+                      onClick={() => submitSeatCount(cafe.id)}
+                      className="px-2 py-1 text-xs sm:text-sm rounded bg-blue-100 hover:bg-blue-200 disabled:opacity-50 whitespace-nowrap"
+                    >
+                      共有
+                    </button>
+                  </div>
                 </div>
 
                 {myReport && (
