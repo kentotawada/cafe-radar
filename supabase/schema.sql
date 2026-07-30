@@ -37,8 +37,11 @@ create table if not exists cafe_facts (
   reporter_id text,
   note text,
   seat_count integer,
+  outlet_seat_count integer,
   created_at timestamptz not null default now(),
-  constraint cafe_facts_has_content check (note is not null or seat_count is not null)
+  constraint cafe_facts_has_content check (
+    note is not null or seat_count is not null or outlet_seat_count is not null
+  )
 );
 
 create index if not exists cafe_facts_cafe_id_idx

@@ -19,6 +19,7 @@ export type CafeFact = {
   reporter_id: string | null;
   note: string | null;
   seat_count: number | null;
+  outlet_seat_count: number | null;
   created_at: string;
 };
 
@@ -41,7 +42,16 @@ export type CafeStats = {
 // Googleマップと見比べて調べた主要な目印(駅出口・有名な建物・学校など)。
 // カフェのピンとは別の控えめな見た目で地図に重ね、周辺の位置関係が
 // つかみやすいようにする(編集部調べ、クラウドソースの報告対象ではない)
-export type LandmarkCategory = "station_exit" | "building" | "school" | "other";
+export type LandmarkCategory =
+  | "station_exit"
+  | "building"
+  | "school"
+  | "bank"
+  | "conveni_seven"
+  | "conveni_lawson"
+  | "conveni_familymart"
+  | "traffic_signal"
+  | "other";
 
 export type Landmark = {
   id: string;

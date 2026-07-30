@@ -119,28 +119,57 @@ const ICONS = {
 // 不動産サイトの周辺環境地図のように、色付きの丸バッジ+シンプルな
 // 白1色のイラスト(アイコン)にする。絵文字は色がバラバラで背景色と
 // 合わずに見づらくなるため、単色のSVGアイコンを使う
-function createLandmarkIcon(color: string, iconPath: string) {
-  const html = `<div style="width:24px;height:24px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;">
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="white">${iconPath}</svg>
+function createLandmarkIcon(color: string, innerHtml: string) {
+  // 丸バッジの下に小さな三角のツノを付け、その先端が実際の座標(建物の
+  // 位置)を指すようにする。バッジ本体は建物の真上に浮くように見える
+  const html = `<div style="position:relative;width:24px;height:30px;">
+    <div style="width:24px;height:24px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;">
+      ${innerHtml}
+    </div>
+    <div style="position:absolute;left:50%;bottom:-4px;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid ${color};"></div>
   </div>`;
   return L.divIcon({
     className: "",
     html,
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
+    iconSize: [24, 30],
+    iconAnchor: [12, 30],
   });
 }
 
-// 駅=電車、建物=ビル、学校=卒業帽、その他=地図ピン のアイコン(Material Icons風)
-const LANDMARK_CATEGORY_ICON_PATH: Record<LandmarkCategory, string> = {
-  station_exit:
-    '<path d="M12 2c-4.42 0-8 .5-8 4v9.5C4 17.43 5.57 19 7.5 19L6 20.5v.5h2.23l2-2H14l2 2h2v-.5L16.5 19c1.93 0 3.5-1.57 3.5-3.5V6c0-3.5-3.58-4-8-4zM7.5 17c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm3.5-7H6V6h5v4zm2 0V6h5v4h-5zm3.5 7c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>',
-  building:
-    '<path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/>',
-  school:
-    '<path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/>',
-  other:
-    '<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/>',
+function svgIcon(path: string) {
+  return `<svg width="14" height="14" viewBox="0 0 24 24" fill="white">${path}</svg>`;
+}
+
+function letterIcon(letter: string) {
+  return `<span style="color:white;font-weight:800;font-size:12px;font-family:sans-serif;line-height:1;">${letter}</span>`;
+}
+
+// 駅=電車、建物=ビル、学校=卒業帽、銀行=¥、コンビニ=各社の頭文字、
+// 信号=信号機、その他=地図ピン のアイコン(実際のロゴは商標のため使わず、
+// 各社のブランドカラー+頭文字で見分けられるようにする)
+const LANDMARK_CATEGORY_ICON_HTML: Record<LandmarkCategory, string> = {
+  station_exit: svgIcon(
+    '<path d="M12 2c-4.42 0-8 .5-8 4v9.5C4 17.43 5.57 19 7.5 19L6 20.5v.5h2.23l2-2H14l2 2h2v-.5L16.5 19c1.93 0 3.5-1.57 3.5-3.5V6c0-3.5-3.58-4-8-4zM7.5 17c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm3.5-7H6V6h5v4zm2 0V6h5v4h-5zm3.5 7c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>'
+  ),
+  building: svgIcon(
+    '<path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/>'
+  ),
+  school: svgIcon(
+    '<path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7-3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/>'
+  ),
+  other: svgIcon(
+    '<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/>'
+  ),
+  bank: letterIcon("¥"),
+  conveni_seven: letterIcon("7"),
+  conveni_lawson: letterIcon("L"),
+  conveni_familymart: letterIcon("F"),
+  traffic_signal: `<svg width="12" height="16" viewBox="0 0 12 16">
+    <rect x="0" y="0" width="12" height="16" rx="2" fill="#1f2937"/>
+    <circle cx="6" cy="4" r="2.2" fill="#ef4444"/>
+    <circle cx="6" cy="8" r="2.2" fill="#eab308"/>
+    <circle cx="6" cy="12" r="2.2" fill="#22c55e"/>
+  </svg>`,
 };
 
 const LANDMARK_CATEGORY_COLOR: Record<LandmarkCategory, string> = {
@@ -148,14 +177,19 @@ const LANDMARK_CATEGORY_COLOR: Record<LandmarkCategory, string> = {
   building: "#f97316",
   school: "#0ea5e9",
   other: "#db2777",
+  bank: "#ca8a04",
+  conveni_seven: "#dc2626",
+  conveni_lawson: "#1e3a8a",
+  conveni_familymart: "#16a34a",
+  traffic_signal: "#374151",
 };
 
-const LANDMARK_ICONS: Record<LandmarkCategory, L.DivIcon> = {
-  station_exit: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.station_exit, LANDMARK_CATEGORY_ICON_PATH.station_exit),
-  building: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.building, LANDMARK_CATEGORY_ICON_PATH.building),
-  school: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.school, LANDMARK_CATEGORY_ICON_PATH.school),
-  other: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.other, LANDMARK_CATEGORY_ICON_PATH.other),
-};
+const LANDMARK_ICONS: Record<LandmarkCategory, L.DivIcon> = Object.fromEntries(
+  (Object.keys(LANDMARK_CATEGORY_COLOR) as LandmarkCategory[]).map((category) => [
+    category,
+    createLandmarkIcon(LANDMARK_CATEGORY_COLOR[category], LANDMARK_CATEGORY_ICON_HTML[category]),
+  ])
+) as Record<LandmarkCategory, L.DivIcon>;
 
 const USER_LOCATION_ICON = L.divIcon({
   className: "",
@@ -648,6 +682,9 @@ export default function CafeMap() {
   const [errorByCafe, setErrorByCafe] = useState<Record<string, string>>({});
   const [noteByCafe, setNoteByCafe] = useState<Record<string, string>>({});
   const [seatCountByCafe, setSeatCountByCafe] = useState<Record<string, string>>({});
+  const [outletSeatCountByCafe, setOutletSeatCountByCafe] = useState<
+    Record<string, string>
+  >({});
   const [dynamicCafes, setDynamicCafes] = useState<Cafe[]>([]);
   const [isAddingCafe, setIsAddingCafe] = useState(false);
   const [pendingCafeLocation, setPendingCafeLocation] = useState<
@@ -1055,6 +1092,34 @@ export default function CafeMap() {
     }
   };
 
+  const submitOutletSeatCount = async (cafeId: string) => {
+    const raw = outletSeatCountByCafe[cafeId]?.trim();
+    const outletSeatCount = raw ? Number(raw) : NaN;
+    if (!raw || !Number.isInteger(outletSeatCount) || outletSeatCount <= 0) return;
+    if (!supabase) {
+      setErrorByCafe((prev) => ({
+        ...prev,
+        [cafeId]: "Supabase未設定のため保存できません",
+      }));
+      return;
+    }
+    setSubmitting(cafeId);
+    setErrorByCafe((prev) => ({ ...prev, [cafeId]: "" }));
+    const { error } = await supabase
+      .from("cafe_facts")
+      .insert({ cafe_id: cafeId, reporter_id: reporterId, outlet_seat_count: outletSeatCount });
+    setSubmitting(null);
+    if (error) {
+      console.error(error);
+      setErrorByCafe((prev) => ({
+        ...prev,
+        [cafeId]: "共有に失敗しました",
+      }));
+    } else {
+      setOutletSeatCountByCafe((prev) => ({ ...prev, [cafeId]: "" }));
+    }
+  };
+
   const handleToggleFavorite = (cafeId: string) => {
     setFavorites(toggleFavorite(cafeId));
   };
@@ -1440,7 +1505,7 @@ export default function CafeMap() {
           icon={LANDMARK_ICONS[landmark.category]}
           interactive={false}
         >
-          <Tooltip permanent direction="top" offset={[0, -12]} className="landmark-tooltip">
+          <Tooltip permanent direction="top" offset={[0, -28]} className="landmark-tooltip">
             {landmark.name}
           </Tooltip>
         </Marker>
@@ -1455,6 +1520,10 @@ export default function CafeMap() {
           facts.filter((f) => f.seat_count != null)
         ).map((f) => f.seat_count as number);
         const seatCountMedian = median(seatCounts);
+        const outletSeatCounts = dedupeByReporter(
+          facts.filter((f) => f.outlet_seat_count != null)
+        ).map((f) => f.outlet_seat_count as number);
+        const outletSeatCountMedian = median(outletSeatCounts);
         const isDynamicCafe = dynamicCafeIds.has(cafe.id);
         const isUnconfirmed = isDynamicCafe && !hasIndependentActivity(cafe);
         const quickBadges = getQuickBadges(cafe, stats);
@@ -1569,12 +1638,20 @@ export default function CafeMap() {
                   </div>
                 )}
 
-                {(noteGroups.length > 0 || seatCountMedian !== null) && (
+                {(noteGroups.length > 0 ||
+                  seatCountMedian !== null ||
+                  outletSeatCountMedian !== null) && (
                   <div className="text-[11px] sm:text-sm bg-gray-50 rounded p-1.5 sm:p-2 flex flex-col gap-1">
                     {seatCountMedian !== null && (
                       <div className="text-gray-700">
-                        📊 座席数の目安: 約{seatCountMedian}席（
+                        📊 お店全体の座席数の目安: 約{seatCountMedian}席（
                         {seatCounts.length}人の報告）
+                      </div>
+                    )}
+                    {outletSeatCountMedian !== null && (
+                      <div className="text-gray-700">
+                        🔌 電源席数の目安: 約{outletSeatCountMedian}席（
+                        {outletSeatCounts.length}人の報告）
                       </div>
                     )}
                     {noteGroups.length > 0 && (
@@ -1666,6 +1743,36 @@ export default function CafeMap() {
                     >
                       この場所情報を共有
                     </button>
+                  </div>
+                  <div className="mt-1.5 sm:mt-2">
+                    <div className="text-[11px] sm:text-sm text-gray-500 mb-1">
+                      電源席はだいたい何席くらい？（任意）
+                    </div>
+                    <div className="flex gap-1">
+                      <input
+                        type="number"
+                        min={1}
+                        value={outletSeatCountByCafe[cafe.id] ?? ""}
+                        onChange={(e) =>
+                          setOutletSeatCountByCafe((prev) => ({
+                            ...prev,
+                            [cafe.id]: e.target.value,
+                          }))
+                        }
+                        placeholder="例: 4"
+                        className="w-full text-sm border rounded px-2 py-0.5 sm:py-1"
+                      />
+                      <button
+                        disabled={
+                          submitting === cafe.id ||
+                          !outletSeatCountByCafe[cafe.id]?.trim()
+                        }
+                        onClick={() => submitOutletSeatCount(cafe.id)}
+                        className="px-2 py-1 text-xs sm:text-sm rounded bg-blue-100 hover:bg-blue-200 disabled:opacity-50 whitespace-nowrap"
+                      >
+                        共有
+                      </button>
+                    </div>
                   </div>
                 </div>
 
