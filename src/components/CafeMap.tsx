@@ -71,10 +71,11 @@ import type {
 
 const FLAG_HIDE_THRESHOLD = 3;
 
-const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
-const TILE_URL = MAPTILER_KEY
-  ? `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}{r}.png?key=${MAPTILER_KEY}`
-  : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+// MapTilerタイルへの切り替えを試したところ、本番環境でページが
+// クラッシュする不具合が発生したため、原因調査が終わるまでCARTO
+// Voyagerに固定する(MAPTILER_KEYの設定有無に関わらずCARTOを使う)
+const MAPTILER_KEY: string | undefined = undefined;
+const TILE_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 
 const SHINJUKU_CENTER: [number, number] = [35.6905, 139.7005];
 const STALE_MINUTES = 30;
