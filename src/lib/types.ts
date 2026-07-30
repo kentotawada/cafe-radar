@@ -1,6 +1,11 @@
 export type NoiseLevel = "quiet" | "normal" | "noisy" | "loud";
 export type OccupancyLevel = "empty" | "sparse" | "moderate" | "full";
 
+// カフェの利用シーン・滞在スタイルによる分類(店名から推定、編集部調べ)。
+// チェーン=気軽に入れる・短時間利用、コワーキング=フルタイム作業向け、
+// 個人経営/おしゃれ=気分転換・ゆったり作業、深夜=夜間・早朝のノマド利用
+export type CafeUsageStyle = "chain" | "coworking" | "independent" | "night";
+
 export type Report = {
   id: string;
   cafe_id: string;
@@ -51,6 +56,8 @@ export type LandmarkCategory =
   | "conveni_lawson"
   | "conveni_familymart"
   | "traffic_signal"
+  | "restaurant"
+  | "drugstore"
   | "other";
 
 export type Landmark = {

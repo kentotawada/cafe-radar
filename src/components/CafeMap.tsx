@@ -68,6 +68,7 @@ import type {
   CafeFact,
   CafeFlag,
   CafeStats,
+  CafeUsageStyle,
   Landmark,
   LandmarkCategory,
   NoiseLevel,
@@ -90,70 +91,98 @@ type NoiseFilter = "any" | "quietOnly" | "excludeLoud";
 type AvailabilityFilter = "any" | "available";
 type SmokingFilter = "any" | "nonSmokingOnly" | "smokingOk";
 
+// お店の名前から「チェーン店(気軽・短時間利用)」「深夜/24時間営業
+// (夜間・早朝のノマド利用)」を推定する。それ以外は「コワーキング併設」
+// らしき記載があればcoworking、なければ独立店・おしゃれ系として扱う
+// (店名からの推定のため厳密ではないが、地図上でざっくり見分ける用途)
+const CHAIN_NAME_PATTERNS: RegExp[] = [
+  /スターバックス/,
+  /ドトール/,
+  /タリーズ/,
+  /PRONTO|プロント/i,
+  /星乃珈琲/,
+  /エクセルシオール/,
+  /ベローチェ/,
+  /コメダ/,
+  /サンマルク/,
+  /マクドナルド/,
+  /ガスト/,
+  /ジョナサン/,
+  /デニーズ/,
+  /ド・クリエ/,
+  /ルノアール/,
+];
+const NIGHT_NAME_PATTERNS = /24\s*時間|24H|深夜|オールナイト/i;
+const COWORKING_NAME_PATTERNS = /コワーキング|co-?working/i;
+
+function getCafeUsageStyle(cafe: Cafe): CafeUsageStyle {
+  if (CHAIN_NAME_PATTERNS.some((pattern) => pattern.test(cafe.name))) return "chain";
+  if (NIGHT_NAME_PATTERNS.test(cafe.name)) return "night";
+  if (
+    COWORKING_NAME_PATTERNS.test(cafe.name) ||
+    (cafe.outletInfo && COWORKING_NAME_PATTERNS.test(cafe.outletInfo))
+  ) {
+    return "coworking";
+  }
+  return "independent";
+}
+
+// 利用スタイルごとの内側アイコン(白1色)。チェーン店は外側のカップ型
+// そのもので「気軽な1杯」を表せるため、あえて内側は無地のままにする
+function usageStyleIconHtml(usageStyle: CafeUsageStyle, statusColor: string): string {
+  if (usageStyle === "coworking") {
+    // ノートPC(画面＋台形のキーボード部分)
+    return `<path d="M8 12h14v9H8z" fill="white"/><path d="M5 22h20l-1.8 3a1 1 0 0 1-.9.5H7.7a1 1 0 0 1-.9-.5L5 22z" fill="white"/>`;
+  }
+  if (usageStyle === "independent") {
+    // コーヒー豆(白い楕円＋中央の筋、筋はカップの色で切り抜いたように見せる)
+    return `<ellipse cx="15" cy="16" rx="6.5" ry="9.5" fill="white" transform="rotate(18 15 16)"/><path d="M15 8 Q11.5 16 15 24" stroke="${statusColor}" stroke-width="1.6" fill="none" transform="rotate(18 15 16)"/>`;
+  }
+  if (usageStyle === "night") {
+    // 三日月(白い円から少しずらした円をカップの色でくり抜く)
+    return `<circle cx="15" cy="16" r="6.5" fill="white"/><circle cx="18.5" cy="12.5" r="5.5" fill="${statusColor}"/>`;
+  }
+  return "";
+}
+
 // 円だけだと地図タイルの色(緑の公園、青の水面など)と紛れて見えにくいため、
-// ピン(涙型)＋白フチ＋影で背景色に関係なく視認できる形にする。
-// 外側(涙型本体)は混雑度・騒がしさの色、内側の丸はチェーンの
-// ブランドカラー+頭文字にして、チェーンも一目でわかるようにする
-function createPinIcon(statusColor: string, chainColor: string, letter: string) {
-  // 白フチだと地図の白っぽい道路・建物と紛れるため、濃い色のフチ＋影で
-  // どんな背景色の上でもピンだと判別できるようにする
-  const html = `<svg width="30" height="40" viewBox="0 0 28 36" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 1px 4px rgba(0,0,0,0.8));">
-    <path d="M14 0C6.3 0 0 6.3 0 14c0 10 14 22 14 22s14-12 14-22C28 6.3 21.7 0 14 0z" fill="${statusColor}" stroke="#1f2937" stroke-width="2"/>
-    <circle cx="14" cy="14" r="6.5" fill="${chainColor}" stroke="#1f2937" stroke-width="1"/>
-    <text x="14" y="14.5" font-size="7" font-weight="800" fill="white" text-anchor="middle" dominant-baseline="central" font-family="sans-serif">${letter}</text>
+// カップ型のピン＋濃色フチ＋影で背景色に関係なく視認できる形にする。
+// カップ全体の色は混雑度・騒がしさの色(最優先で一目でわかるようにする)、
+// 内側の白いアイコンで利用スタイル(チェーン/コワーキング/個人経営/深夜)を
+// 表す。ピンの先端は電源プラグの形にして「電源が使えるカフェ探し」という
+// アプリのテーマを表現する
+function createCupPinIcon(statusColor: string, usageStyle: CafeUsageStyle) {
+  const html = `<svg width="30" height="46" viewBox="0 0 30 46" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 1px 4px rgba(0,0,0,0.8));">
+    <path d="M5,4 Q5,2 7,2 L23,2 Q25,2 25,4 L25,7 L21,26 Q15,29 9,26 L5,7 Z" fill="${statusColor}" stroke="#1f2937" stroke-width="2"/>
+    <path d="M24,10 Q30,10.5 30,15 Q30,19.5 24,20" fill="none" stroke="#1f2937" stroke-width="2"/>
+    ${usageStyleIconHtml(usageStyle, statusColor)}
+    <rect x="11" y="27" width="2.4" height="7" fill="#1f2937"/>
+    <rect x="16.6" y="27" width="2.4" height="7" fill="#1f2937"/>
+    <path d="M9,33 L21,33 L15,43 Z" fill="#1f2937"/>
   </svg>`;
   return L.divIcon({
     className: "",
     html,
-    iconSize: [30, 40],
-    iconAnchor: [15, 40],
-    popupAnchor: [0, -36],
+    iconSize: [30, 46],
+    iconAnchor: [15, 44],
+    popupAnchor: [0, -40],
   });
 }
 
-// 実際のロゴ画像は商標のため使わず、チェーンごとのブランドカラー+
-// 頭文字で見分けられるようにする。国際チェーンはローマ字、
-// 日本のみのチェーンはカナ/漢字1文字にして重複を避ける
-const CAFE_CHAIN_PATTERNS: { pattern: RegExp; color: string; letter: string }[] = [
-  { pattern: /スターバックス/, color: "#00704a", letter: "S" },
-  { pattern: /ドトール/, color: "#9f1d29", letter: "D" },
-  { pattern: /タリーズ/, color: "#154734", letter: "T" },
-  { pattern: /PRONTO|プロント/i, color: "#c0392b", letter: "P" },
-  { pattern: /星乃珈琲/, color: "#6b3e26", letter: "星" },
-  { pattern: /エクセルシオール/, color: "#0f766e", letter: "E" },
-  { pattern: /ベローチェ/, color: "#7c2d12", letter: "V" },
-  { pattern: /コメダ/, color: "#a3541e", letter: "コ" },
-  { pattern: /サンマルク/, color: "#b8860b", letter: "サ" },
-  { pattern: /マクドナルド/, color: "#da291c", letter: "M" },
-  { pattern: /ガスト/, color: "#e67e22", letter: "ガ" },
-  { pattern: /ジョナサン/, color: "#0e7c61", letter: "ジ" },
-  { pattern: /デニーズ/, color: "#d62828", letter: "デ" },
-  { pattern: /ド・クリエ/, color: "#a4161a", letter: "ク" },
-  { pattern: /ルノアール/, color: "#5c1a1b", letter: "ル" },
-];
-
-function getChainBadge(name: string): { color: string; letter: string } {
-  for (const { pattern, color, letter } of CAFE_CHAIN_PATTERNS) {
-    if (pattern.test(name)) return { color, letter };
-  }
-  // チェーンが不明な独立店は、店名の頭文字をそのまま使う
-  return { color: "#57534e", letter: name.charAt(0) };
-}
-
-// (statusColor, chainColor, letter)の組み合わせごとにアイコンを作ると
+// (statusColor, usageStyle)の組み合わせごとにアイコンを作ると
 // 大量になるため、初回生成時にキャッシュしておく
 const cafePinIconCache = new Map<string, L.DivIcon>();
-function getCafePinIcon(statusColor: string, chainColor: string, letter: string) {
-  const key = `${statusColor}|${chainColor}|${letter}`;
+function getCafePinIcon(statusColor: string, usageStyle: CafeUsageStyle) {
+  const key = `${statusColor}|${usageStyle}`;
   let icon = cafePinIconCache.get(key);
   if (!icon) {
-    icon = createPinIcon(statusColor, chainColor, letter);
+    icon = createCupPinIcon(statusColor, usageStyle);
     cafePinIconCache.set(key, icon);
   }
   return icon;
 }
 
-const PENDING_CAFE_ICON = createPinIcon(PIN_COLORS.unknown, "#ffffff", "");
+const PENDING_CAFE_ICON = createCupPinIcon(PIN_COLORS.unknown, "independent");
 
 // 不動産サイトの周辺環境地図のように、色付きの丸バッジ+シンプルな
 // 白1色のイラスト(アイコン)にする。絵文字は色がバラバラで背景色と
@@ -209,6 +238,12 @@ const LANDMARK_CATEGORY_ICON_HTML: Record<LandmarkCategory, string> = {
     <circle cx="6" cy="8" r="2.2" fill="#eab308"/>
     <circle cx="6" cy="12" r="2.2" fill="#22c55e"/>
   </svg>`,
+  restaurant: svgIcon(
+    '<path d="M8.1 13.34l2.83-2.83L3.91 3.5c-1.56 1.56-1.56 4.09 0 5.66l4.19 4.18zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3.7 19.87l1.41 1.41L12 14.41l6.88 6.88 1.41-1.41L13.41 13l1.47-1.47z"/>'
+  ),
+  drugstore: svgIcon(
+    '<path d="M19 8h-2V6c0-1.66-1.34-3-3-3H10C8.34 3 7 4.34 7 6v2H5c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-.55.45-1 1-1h4c.55 0 1 .45 1 1v2H9V6zm6 9h-3v3h-2v-3H7v-2h3v-3h2v3h3v2z"/>'
+  ),
 };
 
 const LANDMARK_CATEGORY_COLOR: Record<LandmarkCategory, string> = {
@@ -221,6 +256,8 @@ const LANDMARK_CATEGORY_COLOR: Record<LandmarkCategory, string> = {
   conveni_lawson: "#1e3a8a",
   conveni_familymart: "#16a34a",
   traffic_signal: "#374151",
+  restaurant: "#e11d48",
+  drugstore: "#0d9488",
 };
 
 const LANDMARK_ICONS: Record<LandmarkCategory, L.DivIcon> = Object.fromEntries(
@@ -483,8 +520,7 @@ function statusColorForStats(stats: CafeStats | null) {
 
 function iconForCafe(cafe: Cafe, stats: CafeStats | null) {
   const statusColor = statusColorForStats(stats);
-  const { color: chainColor, letter } = getChainBadge(cafe.name);
-  return getCafePinIcon(statusColor, chainColor, letter);
+  return getCafePinIcon(statusColor, getCafeUsageStyle(cafe));
 }
 
 function directionsUrl(cafe: Cafe, provider: MapProvider) {
