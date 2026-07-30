@@ -1,5 +1,5 @@
-export type NoiseLevel = "quiet" | "normal" | "loud";
-export type OccupancyLevel = "empty" | "moderate" | "full";
+export type NoiseLevel = "quiet" | "normal" | "noisy" | "loud";
+export type OccupancyLevel = "empty" | "sparse" | "moderate" | "full";
 
 export type Report = {
   id: string;

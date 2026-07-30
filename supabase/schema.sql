@@ -5,10 +5,10 @@ create table if not exists reports (
   cafe_id text not null,
   reporter_id text,
   outlet_occupancy text not null default 'empty'
-    check (outlet_occupancy in ('empty', 'moderate', 'full')),
+    check (outlet_occupancy in ('empty', 'sparse', 'moderate', 'full')),
   seating_occupancy text not null default 'empty'
-    check (seating_occupancy in ('empty', 'moderate', 'full')),
-  noise_level text not null check (noise_level in ('quiet', 'normal', 'loud')),
+    check (seating_occupancy in ('empty', 'sparse', 'moderate', 'full')),
+  noise_level text not null check (noise_level in ('quiet', 'normal', 'noisy', 'loud')),
   created_at timestamptz not null default now()
 );
 

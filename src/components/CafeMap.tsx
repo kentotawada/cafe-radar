@@ -105,6 +105,7 @@ const ICONS = {
   unknown: createPinIcon(PIN_COLORS.unknown),
   quiet: createPinIcon(PIN_COLORS.quiet),
   normal: createPinIcon(PIN_COLORS.normal),
+  noisy: createPinIcon(PIN_COLORS.noisy),
   loud: createPinIcon(PIN_COLORS.loud),
   full: createPinIcon(PIN_COLORS.full),
 };
@@ -119,24 +120,28 @@ const USER_LOCATION_ICON = L.divIcon({
 const NOISE_LABEL: Record<NoiseLevel, string> = {
   quiet: "静か",
   normal: "普通",
+  noisy: "ややうるさい",
   loud: "うるさい",
 };
 
 const OCCUPANCY_LABEL: Record<OccupancyLevel, string> = {
   empty: "空いている",
+  sparse: "やや空いている",
   moderate: "やや混雑",
   full: "満席",
 };
 
 const OCCUPANCY_SCORE: Record<OccupancyLevel, number> = {
   empty: 0,
-  moderate: 50,
+  sparse: 33,
+  moderate: 66,
   full: 100,
 };
 
 const NOISE_SCORE: Record<NoiseLevel, number> = {
   quiet: 0,
-  normal: 50,
+  normal: 33,
+  noisy: 66,
   loud: 100,
 };
 
@@ -254,15 +259,18 @@ function computeStats(reports: Report[]): CafeStats | null {
   const noiseCounts: Record<NoiseLevel, number> = {
     quiet: 0,
     normal: 0,
+    noisy: 0,
     loud: 0,
   };
   const outletOccupancyCounts: Record<OccupancyLevel, number> = {
     empty: 0,
+    sparse: 0,
     moderate: 0,
     full: 0,
   };
   const seatingOccupancyCounts: Record<OccupancyLevel, number> = {
     empty: 0,
+    sparse: 0,
     moderate: 0,
     full: 0,
   };
@@ -516,10 +524,6 @@ function RecenterOnLocate({ position }: { position: [number, number] | null }) {
     }
   }, [position, map]);
   return null;
-}
-
-function selectedClass(isSelected: boolean) {
-  return isSelected ? "ring-2 ring-offset-1 ring-black" : "";
 }
 
 function AddCafeClickHandler({
@@ -1507,6 +1511,9 @@ export default function CafeMap() {
                 )}
 
                 <div className="border-t pt-2">
+                  <div className="text-xs text-gray-500 mb-2">
+                    📢 今の店内の様子を教えてください（リアルタイムの報告にご協力ください）
+                  </div>
                   {cafe.outletInfo && (
                     <div className="text-xs bg-blue-50 border border-blue-200 rounded p-2 text-blue-900 mb-2">
                       <div className="font-semibold mb-0.5">
@@ -1519,29 +1526,32 @@ export default function CafeMap() {
                     </div>
                   )}
                   <div className="text-xs font-semibold mb-1">電源席の混雑度</div>
-                  <div className="flex gap-1 flex-wrap">
+                  <select
+                    value={myReport?.outlet_occupancy ?? ""}
+                    disabled={submitting === cafe.id}
+                    onChange={(e) => {
+                      const level = e.target.value as OccupancyLevel;
+                      if (!level) return;
+                      submitReport(
+                        cafe.id,
+                        level,
+                        myReport?.seating_occupancy ?? "empty",
+                        myReport?.noise_level ?? "normal"
+                      );
+                    }}
+                    className="w-full text-base border rounded px-2 py-1 bg-white disabled:opacity-50"
+                  >
+                    <option value="" disabled>
+                      選択してください
+                    </option>
                     {(Object.keys(OCCUPANCY_LABEL) as OccupancyLevel[]).map(
                       (level) => (
-                        <button
-                          key={level}
-                          disabled={submitting === cafe.id}
-                          onClick={() =>
-                            submitReport(
-                              cafe.id,
-                              level,
-                              myReport?.seating_occupancy ?? "empty",
-                              myReport?.noise_level ?? "normal"
-                            )
-                          }
-                          className={`px-2 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50 ${selectedClass(
-                            myReport?.outlet_occupancy === level
-                          )}`}
-                        >
+                        <option key={level} value={level}>
                           {OCCUPANCY_LABEL[level]}
-                        </button>
+                        </option>
                       )
                     )}
-                  </div>
+                  </select>
                   <div className="mt-1">
                     <div className="text-xs text-gray-500 mb-1">
                       電源席はどこですか？（任意）
@@ -1603,54 +1613,60 @@ export default function CafeMap() {
 
                 <div>
                   <div className="text-xs font-semibold mb-1">一般席の混雑度</div>
-                  <div className="flex gap-1 flex-wrap">
+                  <select
+                    value={myReport?.seating_occupancy ?? ""}
+                    disabled={submitting === cafe.id}
+                    onChange={(e) => {
+                      const level = e.target.value as OccupancyLevel;
+                      if (!level) return;
+                      submitReport(
+                        cafe.id,
+                        myReport?.outlet_occupancy ?? "empty",
+                        level,
+                        myReport?.noise_level ?? "normal"
+                      );
+                    }}
+                    className="w-full text-base border rounded px-2 py-1 bg-white disabled:opacity-50"
+                  >
+                    <option value="" disabled>
+                      選択してください
+                    </option>
                     {(Object.keys(OCCUPANCY_LABEL) as OccupancyLevel[]).map(
                       (level) => (
-                        <button
-                          key={level}
-                          disabled={submitting === cafe.id}
-                          onClick={() =>
-                            submitReport(
-                              cafe.id,
-                              myReport?.outlet_occupancy ?? "empty",
-                              level,
-                              myReport?.noise_level ?? "normal"
-                            )
-                          }
-                          className={`px-2 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50 ${selectedClass(
-                            myReport?.seating_occupancy === level
-                          )}`}
-                        >
+                        <option key={level} value={level}>
                           {OCCUPANCY_LABEL[level]}
-                        </button>
+                        </option>
                       )
                     )}
-                  </div>
+                  </select>
                 </div>
 
                 <div>
                   <div className="text-xs font-semibold mb-1">騒がしさ</div>
-                  <div className="flex gap-1">
+                  <select
+                    value={myReport?.noise_level ?? ""}
+                    disabled={submitting === cafe.id}
+                    onChange={(e) => {
+                      const level = e.target.value as NoiseLevel;
+                      if (!level) return;
+                      submitReport(
+                        cafe.id,
+                        myReport?.outlet_occupancy ?? "empty",
+                        myReport?.seating_occupancy ?? "empty",
+                        level
+                      );
+                    }}
+                    className="w-full text-base border rounded px-2 py-1 bg-white disabled:opacity-50"
+                  >
+                    <option value="" disabled>
+                      選択してください
+                    </option>
                     {(Object.keys(NOISE_LABEL) as NoiseLevel[]).map((level) => (
-                      <button
-                        key={level}
-                        disabled={submitting === cafe.id}
-                        onClick={() =>
-                          submitReport(
-                            cafe.id,
-                            myReport?.outlet_occupancy ?? "empty",
-                            myReport?.seating_occupancy ?? "empty",
-                            level
-                          )
-                        }
-                        className={`px-2 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200 disabled:opacity-50 ${selectedClass(
-                          myReport?.noise_level === level
-                        )}`}
-                      >
+                      <option key={level} value={level}>
                         {NOISE_LABEL[level]}
-                      </button>
+                      </option>
                     ))}
-                  </div>
+                  </select>
                 </div>
 
                 {myReport && (
