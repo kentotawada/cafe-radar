@@ -116,20 +116,36 @@ const ICONS = {
   full: createPinIcon(PIN_COLORS.full),
 };
 
-// カフェのピンと紛れないよう、目印は小さなグレーの点だけにし、
-// 名前はTooltip(常時表示のラベル)側で見せる
-const LANDMARK_ICON = L.divIcon({
-  className: "",
-  html: `<div style="width:8px;height:8px;border-radius:50%;background:#6b7280;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.5);"></div>`,
-  iconSize: [8, 8],
-  iconAnchor: [4, 4],
-});
+// 不動産サイトの周辺環境地図のような、色付きの丸バッジ+絵文字にする
+function createLandmarkIcon(color: string, emoji: string) {
+  const html = `<div style="width:22px;height:22px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-size:12px;line-height:1;">${emoji}</div>`;
+  return L.divIcon({
+    className: "",
+    html,
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  });
+}
 
 const LANDMARK_CATEGORY_EMOJI: Record<LandmarkCategory, string> = {
   station_exit: "🚉",
   building: "🏢",
   school: "🏫",
   other: "📍",
+};
+
+const LANDMARK_CATEGORY_COLOR: Record<LandmarkCategory, string> = {
+  station_exit: "#2563eb",
+  building: "#f97316",
+  school: "#0ea5e9",
+  other: "#db2777",
+};
+
+const LANDMARK_ICONS: Record<LandmarkCategory, L.DivIcon> = {
+  station_exit: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.station_exit, LANDMARK_CATEGORY_EMOJI.station_exit),
+  building: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.building, LANDMARK_CATEGORY_EMOJI.building),
+  school: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.school, LANDMARK_CATEGORY_EMOJI.school),
+  other: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.other, LANDMARK_CATEGORY_EMOJI.other),
 };
 
 const USER_LOCATION_ICON = L.divIcon({
@@ -246,6 +262,18 @@ function getQuickBadges(cafe: Cafe, stats: CafeStats | null): QuickBadge[] {
         emoji: "🚬",
         label: "喫煙可",
         className: "bg-gray-200 text-gray-700",
+      });
+    }
+  }
+
+  if (cafe.wifiInfo) {
+    const noWifi = /Wi-?Fi.*(なし|不可)/i.test(cafe.wifiInfo);
+    if (!noWifi) {
+      badges.push({
+        key: "wifi",
+        emoji: "📶",
+        label: "Wi-Fiあり",
+        className: "bg-sky-100 text-sky-800",
       });
     }
   }
@@ -1391,11 +1419,11 @@ export default function CafeMap() {
         <Marker
           key={landmark.id}
           position={[landmark.lat, landmark.lng]}
-          icon={LANDMARK_ICON}
+          icon={LANDMARK_ICONS[landmark.category]}
           interactive={false}
         >
-          <Tooltip permanent direction="top" offset={[0, -4]} className="landmark-tooltip">
-            {LANDMARK_CATEGORY_EMOJI[landmark.category]} {landmark.name}
+          <Tooltip permanent direction="top" offset={[0, -12]} className="landmark-tooltip">
+            {landmark.name}
           </Tooltip>
         </Marker>
       ))}

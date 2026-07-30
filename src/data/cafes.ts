@@ -12,6 +12,8 @@ export type Cafe = {
   outletInfo?: string | null;
   // ネット上の口コミ・公式サイト等で確認できた喫煙所・喫煙可否の情報（編集部調べ）。
   smokingInfo?: string | null;
+  // ネット上の口コミ・公式サイト等で確認できたWi-Fiの有無の情報（編集部調べ）。
+  wifiInfo?: string | null;
 };
 
 // 店名・住所はウェブ検索で実在店舗を確認済み（2026年7月時点、各公式サイト等）。
