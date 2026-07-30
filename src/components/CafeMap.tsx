@@ -58,6 +58,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { PIN_COLORS } from "@/lib/pinColors";
 import { getReporterId } from "@/lib/reporterId";
 import { getFavorites, toggleFavorite } from "@/lib/favorites";
+import { getMapProvider, setMapProvider, type MapProvider } from "@/lib/mapProvider";
 import type {
   CafeFact,
   CafeFlag,
@@ -247,8 +248,11 @@ function iconForStats(stats: CafeStats | null) {
   return ICONS[pickMajority(stats.noiseCounts)];
 }
 
-function directionsUrl(cafe: Cafe) {
+function directionsUrl(cafe: Cafe, provider: MapProvider) {
   const query = cafe.address ? `${cafe.name} ${cafe.address}` : `${cafe.lat},${cafe.lng}`;
+  if (provider === "apple") {
+    return `https://maps.apple.com/?daddr=${encodeURIComponent(query)}`;
+  }
   return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(query)}`;
 }
 
@@ -317,6 +321,9 @@ export default function CafeMap() {
     () => typeof window !== "undefined" && window.innerWidth >= 640
   );
   const [locateError, setLocateError] = useState<string | null>(null);
+  const [directionsPickerCafeId, setDirectionsPickerCafeId] = useState<
+    string | null
+  >(null);
 
   // エリア検索など、ユーザーが自分で地図の表示先を選んだ後に、
   // 遅れて返ってきた位置情報がそれを上書きしてしまわないようにする
@@ -694,6 +701,21 @@ export default function CafeMap() {
 
   const handleToggleFavorite = (cafeId: string) => {
     setFavorites(toggleFavorite(cafeId));
+  };
+
+  const handleDirectionsClick = (cafe: Cafe) => {
+    const savedProvider = getMapProvider();
+    if (savedProvider) {
+      window.open(directionsUrl(cafe, savedProvider), "_blank", "noopener,noreferrer");
+      return;
+    }
+    setDirectionsPickerCafeId(cafe.id);
+  };
+
+  const handleDirectionsProviderChoice = (cafe: Cafe, provider: MapProvider) => {
+    setMapProvider(provider);
+    setDirectionsPickerCafeId(null);
+    window.open(directionsUrl(cafe, provider), "_blank", "noopener,noreferrer");
   };
 
   const startAddingCafe = () => {
@@ -1103,24 +1125,47 @@ export default function CafeMap() {
                   </div>
                 )}
 
-                <div className="flex gap-2 text-xs">
-                  <a
-                    href={directionsUrl(cafe)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 underline"
-                  >
-                    経路を見る
-                  </a>
-                  <a
-                    href={searchUrl(cafe)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 underline"
-                  >
-                    写真・口コミ(Googleマップ)
-                  </a>
-                </div>
+                {directionsPickerCafeId === cafe.id ? (
+                  <div className="flex items-center gap-2 text-xs bg-gray-50 border rounded p-1.5">
+                    <span className="text-gray-500">マップを選択:</span>
+                    <button
+                      onClick={() => handleDirectionsProviderChoice(cafe, "google")}
+                      className="text-blue-600 underline"
+                    >
+                      Googleマップ
+                    </button>
+                    <button
+                      onClick={() => handleDirectionsProviderChoice(cafe, "apple")}
+                      className="text-blue-600 underline"
+                    >
+                      Apple Maps
+                    </button>
+                    <button
+                      onClick={() => setDirectionsPickerCafeId(null)}
+                      className="text-gray-400 ml-auto"
+                      aria-label="キャンセル"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2 text-xs">
+                    <button
+                      onClick={() => handleDirectionsClick(cafe)}
+                      className="text-blue-600 underline"
+                    >
+                      経路を見る
+                    </button>
+                    <a
+                      href={searchUrl(cafe)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 underline"
+                    >
+                      写真・口コミ(Googleマップ)
+                    </a>
+                  </div>
+                )}
 
                 {stats ? (
                   (() => {
