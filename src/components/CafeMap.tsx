@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   MapContainer,
   Marker,
@@ -261,6 +262,59 @@ function searchUrl(cafe: Cafe) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
 }
 
+// マップアプリの選択肢はdocument.bodyへのポータルで表示する。
+// Leafletのポップアップの中に置くと、モバイルでポップアップ自体が
+// 閉じてしまった際に選択肢も道連れで消えてしまうため、ポップアップの
+// DOMツリーから独立させ、閉じるまで確実に表示され続けるようにする
+function MapProviderModal({
+  cafe,
+  onChoose,
+  onClose,
+}: {
+  cafe: Cafe;
+  onChoose: (provider: MapProvider) => void;
+  onClose: () => void;
+}) {
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-lg shadow-xl p-4 w-full max-w-xs flex flex-col gap-3"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="font-semibold text-gray-900">マップアプリを選択</div>
+        <a
+          href={directionsUrl(cafe, "google")}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => onChoose("google")}
+          className="block text-center px-4 py-2 rounded bg-blue-600 text-white cursor-pointer"
+        >
+          Googleマップ
+        </a>
+        <a
+          href={directionsUrl(cafe, "apple")}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => onChoose("apple")}
+          className="block text-center px-4 py-2 rounded bg-gray-900 text-white cursor-pointer"
+        >
+          Apple Maps
+        </a>
+        <button
+          onClick={onClose}
+          className="text-sm text-gray-500 cursor-pointer"
+        >
+          キャンセル
+        </button>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 // ポップアップごとに独立したstateとして持たせることで、経路案内の
 // 選択操作が他の全ての店舗ピンの再描画を引き起こさないようにする
 // (1000件以上のピンがあるため、親コンポーネントのstateにすると
@@ -277,67 +331,96 @@ function CafeDirectionsLink({ cafe }: { cafe: Cafe }) {
     setShowPicker(false);
   };
 
-  if (showPicker) {
-    return (
-      <div className="flex items-center gap-2 text-xs bg-gray-50 border rounded p-1.5 flex-wrap">
-        <span className="text-gray-500">マップを選択:</span>
-        <a
-          href={directionsUrl(cafe, "google")}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => choose("google")}
-          className="text-blue-600 underline"
-        >
-          Googleマップ
-        </a>
-        <a
-          href={directionsUrl(cafe, "apple")}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={() => choose("apple")}
-          className="text-blue-600 underline"
-        >
-          Apple Maps
-        </a>
-        <button
-          onClick={() => setShowPicker(false)}
-          className="text-gray-400 ml-auto"
-          aria-label="キャンセル"
-        >
-          ×
-        </button>
-      </div>
-    );
-  }
-
-  if (savedProvider) {
-    return (
-      <>
-        <a
-          href={directionsUrl(cafe, savedProvider)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 underline"
-        >
-          経路を見る
-        </a>
+  return (
+    <>
+      {savedProvider ? (
+        <>
+          <a
+            href={directionsUrl(cafe, savedProvider)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 underline cursor-pointer"
+          >
+            経路を見る
+          </a>
+          <button
+            onClick={() => setShowPicker(true)}
+            className="text-gray-400 underline cursor-pointer"
+          >
+            別のマップアプリを使う
+          </button>
+        </>
+      ) : (
         <button
           onClick={() => setShowPicker(true)}
-          className="text-gray-400 underline"
+          className="text-blue-600 underline cursor-pointer"
         >
-          別のマップアプリを使う
+          経路を見る
         </button>
-      </>
-    );
-  }
+      )}
+      {showPicker && (
+        <MapProviderModal
+          cafe={cafe}
+          onChoose={choose}
+          onClose={() => setShowPicker(false)}
+        />
+      )}
+    </>
+  );
+}
 
+function AttributionInfoButton() {
+  const [open, setOpen] = useState(false);
   return (
-    <button
-      onClick={() => setShowPicker(true)}
-      className="text-blue-600 underline"
-    >
-      経路を見る
-    </button>
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        aria-label="このサイトについて"
+        title="このサイトについて"
+        className="bg-white/90 rounded-full shadow border border-gray-300 w-6 h-6 flex items-center justify-center text-xs font-semibold text-gray-600 cursor-pointer"
+      >
+        i
+      </button>
+      {open &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/40 p-4"
+            onClick={() => setOpen(false)}
+          >
+            <div
+              className="bg-white rounded-lg shadow-xl w-full max-w-xs overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="px-4 py-3 bg-gray-100 font-semibold text-gray-900">
+                このサイトについて
+              </div>
+              <a
+                href="https://www.openstreetmap.org/copyright"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block px-4 py-3 border-b border-gray-200 text-blue-600 cursor-pointer"
+              >
+                ©OpenStreetMap contributors
+              </a>
+              <a
+                href="https://carto.com/attributions"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block px-4 py-3 border-b border-gray-200 text-blue-600 cursor-pointer"
+              >
+                ©CARTO
+              </a>
+              <button
+                onClick={() => setOpen(false)}
+                className="w-full px-4 py-3 font-semibold text-gray-700 cursor-pointer"
+              >
+                × 閉じる
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
+    </>
   );
 }
 
@@ -908,6 +991,7 @@ export default function CafeMap() {
       center={mapFocus ?? SHINJUKU_CENTER}
       zoom={16}
       style={{ position: "absolute", inset: 0 }}
+      attributionControl={false}
     >
       <RecenterOnLocate position={mapFocus} />
       <AddCafeClickHandler
@@ -915,8 +999,9 @@ export default function CafeMap() {
         onPick={(lat, lng) => setPendingCafeLocation({ lat, lng })}
       />
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        subdomains="abcd"
+        maxZoom={20}
       />
 
       <div className="leaflet-top leaflet-right" style={{ zIndex: 1000 }}>
@@ -1077,6 +1162,12 @@ export default function CafeMap() {
               ＋ お店を追加
             </button>
           )}
+        </div>
+      </div>
+
+      <div className="leaflet-bottom leaflet-left" style={{ zIndex: 1000 }}>
+        <div className="leaflet-control m-2">
+          <AttributionInfoButton />
         </div>
       </div>
 
