@@ -88,6 +88,7 @@ const STALE_MINUTES = 30;
 
 type NoiseFilter = "any" | "quietOnly" | "excludeLoud";
 type AvailabilityFilter = "any" | "available";
+type SmokingFilter = "any" | "nonSmokingOnly" | "smokingOk";
 
 // 円だけだと地図タイルの色(緑の公園、青の水面など)と紛れて見えにくいため、
 // ピン(涙型)＋白フチ＋影で背景色に関係なく視認できる形にする。
@@ -304,6 +305,28 @@ function pickMajority<T extends string>(counts: Record<T, number>): T {
   );
 }
 
+// 編集部調べのテキストから簡易判定するヘルパー。バッジ表示と
+// 絞り込みフィルターの両方で同じ判定基準を使うために共通化する
+function hasOutlet(cafe: Cafe): boolean {
+  if (!cafe.outletInfo) return false;
+  return !/電源.*(なし|不可)|コンセント.*(なし|不可)/.test(cafe.outletInfo);
+}
+
+function isNonSmoking(cafe: Cafe): boolean {
+  if (!cafe.smokingInfo) return false;
+  return /全席禁煙|全店舗?禁煙|敷地内.*禁煙|喫煙(所|ブース)なし/.test(cafe.smokingInfo);
+}
+
+function isSmokingOk(cafe: Cafe): boolean {
+  if (!cafe.smokingInfo) return false;
+  return /喫煙(ブース|室|目的室|席)|喫煙可|分煙/.test(cafe.smokingInfo);
+}
+
+function hasWifi(cafe: Cafe): boolean {
+  if (!cafe.wifiInfo) return false;
+  return !/Wi-?Fi.*(なし|不可)/i.test(cafe.wifiInfo);
+}
+
 type QuickBadge = { key: string; emoji: string; label: string; className: string };
 
 // ポップアップを開いてすぐ、電源・喫煙・騒がしさ・混雑度がひと目でわかるように
@@ -312,51 +335,39 @@ type QuickBadge = { key: string; emoji: string; label: string; className: string
 function getQuickBadges(cafe: Cafe, stats: CafeStats | null): QuickBadge[] {
   const badges: QuickBadge[] = [];
 
-  if (cafe.outletInfo) {
-    const noOutlet = /電源.*(なし|不可)|コンセント.*(なし|不可)/.test(cafe.outletInfo);
-    if (!noOutlet) {
-      badges.push({
-        key: "outlet",
-        emoji: "🔌",
-        label: "電源あり",
-        className: "bg-blue-100 text-blue-800",
-      });
-    }
+  if (hasOutlet(cafe)) {
+    badges.push({
+      key: "outlet",
+      emoji: "🔌",
+      label: "電源あり",
+      className: "bg-blue-100 text-blue-800",
+    });
   }
 
-  if (cafe.smokingInfo) {
-    const nonSmoking =
-      /全席禁煙|全店舗?禁煙|敷地内.*禁煙|喫煙(所|ブース)なし/.test(cafe.smokingInfo);
-    const smokingOk =
-      /喫煙(ブース|室|目的室|席)|喫煙可|分煙/.test(cafe.smokingInfo);
-    if (nonSmoking) {
-      badges.push({
-        key: "nonsmoking",
-        emoji: "🚭",
-        label: "禁煙",
-        className: "bg-green-100 text-green-800",
-      });
-    }
-    if (smokingOk) {
-      badges.push({
-        key: "smoking",
-        emoji: "🚬",
-        label: "喫煙可",
-        className: "bg-gray-200 text-gray-700",
-      });
-    }
+  if (isNonSmoking(cafe)) {
+    badges.push({
+      key: "nonsmoking",
+      emoji: "🚭",
+      label: "禁煙",
+      className: "bg-green-100 text-green-800",
+    });
+  }
+  if (isSmokingOk(cafe)) {
+    badges.push({
+      key: "smoking",
+      emoji: "🚬",
+      label: "喫煙可",
+      className: "bg-gray-200 text-gray-700",
+    });
   }
 
-  if (cafe.wifiInfo) {
-    const noWifi = /Wi-?Fi.*(なし|不可)/i.test(cafe.wifiInfo);
-    if (!noWifi) {
-      badges.push({
-        key: "wifi",
-        emoji: "📶",
-        label: "Wi-Fiあり",
-        className: "bg-sky-100 text-sky-800",
-      });
-    }
+  if (hasWifi(cafe)) {
+    badges.push({
+      key: "wifi",
+      emoji: "📶",
+      label: "Wi-Fiあり",
+      className: "bg-sky-100 text-sky-800",
+    });
   }
 
   if (cafe.seatCountInfo) {
@@ -719,6 +730,21 @@ function MapBoundsTracker({
   return null;
 }
 
+// ランドマークが多いエリアでは、引いた表示だとラベルの文字同士が重なって
+// 読めなくなるため、ある程度ズームインした時だけラベルを表示する
+function ZoomTracker({ onChange }: { onChange: (zoom: number) => void }) {
+  const map = useMap();
+  useEffect(() => {
+    const handleChange = () => onChange(map.getZoom());
+    map.on("zoomend", handleChange);
+    handleChange();
+    return () => {
+      map.off("zoomend", handleChange);
+    };
+  }, [map, onChange]);
+  return null;
+}
+
 export default function CafeMap() {
   const [reportsByCafe, setReportsByCafe] = useState<Record<string, Report[]>>({});
   const [factsByCafe, setFactsByCafe] = useState<Record<string, CafeFact[]>>({});
@@ -746,6 +772,8 @@ export default function CafeMap() {
   const [outletFilter, setOutletFilter] = useState<AvailabilityFilter>("any");
   const [seatingFilter, setSeatingFilter] = useState<AvailabilityFilter>("any");
   const [noiseFilter, setNoiseFilter] = useState<NoiseFilter>("any");
+  const [smokingFilter, setSmokingFilter] = useState<SmokingFilter>("any");
+  const [wifiFilter, setWifiFilter] = useState<AvailabilityFilter>("any");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [mapFocus, setMapFocus] = useState<[number, number] | null>(null);
   const [areaQuery, setAreaQuery] = useState("");
@@ -755,6 +783,7 @@ export default function CafeMap() {
   const [locateError, setLocateError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
+  const [mapZoom, setMapZoom] = useState(16);
 
   // エリア検索など、ユーザーが自分で地図の表示先を選んだ後に、
   // 遅れて返ってきた位置情報がそれを上書きしてしまわないようにする
@@ -1253,6 +1282,8 @@ export default function CafeMap() {
     outletFilter !== "any" ||
     seatingFilter !== "any" ||
     noiseFilter !== "any" ||
+    smokingFilter !== "any" ||
+    wifiFilter !== "any" ||
     favoritesOnly;
 
   const visibleCafes = allCafes.filter((cafe) => {
@@ -1287,6 +1318,9 @@ export default function CafeMap() {
       if (noiseFilter === "quietOnly" && majority !== "quiet") return false;
       if (noiseFilter === "excludeLoud" && majority === "loud") return false;
     }
+    if (smokingFilter === "nonSmokingOnly" && !isNonSmoking(cafe)) return false;
+    if (smokingFilter === "smokingOk" && !isSmokingOk(cafe)) return false;
+    if (wifiFilter === "available" && !hasWifi(cafe)) return false;
     return true;
   });
 
@@ -1299,6 +1333,7 @@ export default function CafeMap() {
     >
       <RecenterOnLocate position={mapFocus} />
       <MapBoundsTracker onChange={setMapBounds} />
+      <ZoomTracker onChange={setMapZoom} />
       <AddCafeClickHandler
         active={isAddingCafe}
         onPick={(lat, lng) => setPendingCafeLocation({ lat, lng })}
@@ -1371,6 +1406,33 @@ export default function CafeMap() {
                   <option value="any">こだわらない</option>
                   <option value="quietOnly">静かな店のみ</option>
                   <option value="excludeLoud">うるさい店を除く</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span>喫煙</span>
+                <select
+                  value={smokingFilter}
+                  onChange={(e) =>
+                    setSmokingFilter(e.target.value as SmokingFilter)
+                  }
+                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-base text-gray-900 bg-white w-full"
+                >
+                  <option value="any">こだわらない</option>
+                  <option value="nonSmokingOnly">禁煙のみ</option>
+                  <option value="smokingOk">喫煙可でもよい</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-1">
+                <span>Wi-Fi</span>
+                <select
+                  value={wifiFilter}
+                  onChange={(e) =>
+                    setWifiFilter(e.target.value as AvailabilityFilter)
+                  }
+                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-base text-gray-900 bg-white w-full"
+                >
+                  <option value="any">すべて</option>
+                  <option value="available">Wi-Fiありのみ</option>
                 </select>
               </label>
               <label className="flex items-center gap-2">
@@ -1549,9 +1611,11 @@ export default function CafeMap() {
           icon={LANDMARK_ICONS[landmark.category]}
           interactive={false}
         >
-          <Tooltip permanent direction="top" offset={[0, -28]} className="landmark-tooltip">
-            {landmark.name}
-          </Tooltip>
+          {mapZoom >= 17 && (
+            <Tooltip permanent direction="top" offset={[0, -28]} className="landmark-tooltip">
+              {landmark.name}
+            </Tooltip>
+          )}
         </Marker>
       ))}
       {visibleCafes.map((cafe) => {
@@ -1661,10 +1725,7 @@ export default function CafeMap() {
                     return (
                       <div className="text-xs sm:text-base">
                         <div className="font-semibold text-orange-700">
-                          🪑 総合混雑度: {overallPct}%
-                        </div>
-                        <div className="text-orange-700">
-                          🔌 電源席: {outletPct}%　💺 一般席: {seatingPct}%
+                          🪑 混雑度: {overallPct}%
                         </div>
                         <div className="text-purple-700">
                           🔊 騒音度: {noisePct}%
@@ -1734,19 +1795,14 @@ export default function CafeMap() {
                       </div>
                     </div>
                   )}
-                  <div className="text-xs sm:text-sm font-semibold mb-1">電源席の混雑度</div>
+                  <div className="text-xs sm:text-sm font-semibold mb-1">混雑度</div>
                   <select
                     value={myReport?.outlet_occupancy ?? ""}
                     disabled={submitting === cafe.id}
                     onChange={(e) => {
                       const level = e.target.value as OccupancyLevel;
                       if (!level) return;
-                      submitReport(
-                        cafe.id,
-                        level,
-                        myReport?.seating_occupancy ?? "empty",
-                        myReport?.noise_level ?? "normal"
-                      );
+                      submitReport(cafe.id, level, level, myReport?.noise_level ?? "normal");
                     }}
                     className="w-full text-sm sm:text-base border rounded px-2 py-0.5 sm:py-1 bg-white disabled:opacity-50"
                   >
@@ -1818,36 +1874,6 @@ export default function CafeMap() {
                       </button>
                     </div>
                   </div>
-                </div>
-
-                <div>
-                  <div className="text-xs sm:text-sm font-semibold mb-1">一般席の混雑度</div>
-                  <select
-                    value={myReport?.seating_occupancy ?? ""}
-                    disabled={submitting === cafe.id}
-                    onChange={(e) => {
-                      const level = e.target.value as OccupancyLevel;
-                      if (!level) return;
-                      submitReport(
-                        cafe.id,
-                        myReport?.outlet_occupancy ?? "empty",
-                        level,
-                        myReport?.noise_level ?? "normal"
-                      );
-                    }}
-                    className="w-full text-sm sm:text-base border rounded px-2 py-0.5 sm:py-1 bg-white disabled:opacity-50"
-                  >
-                    <option value="" disabled>
-                      選択してください
-                    </option>
-                    {(Object.keys(OCCUPANCY_LABEL) as OccupancyLevel[]).map(
-                      (level) => (
-                        <option key={level} value={level}>
-                          {OCCUPANCY_LABEL[level]}
-                        </option>
-                      )
-                    )}
-                  </select>
                 </div>
 
                 <div>

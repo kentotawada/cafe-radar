@@ -72,7 +72,11 @@ body {
   padding: 0 !important;
   margin: 0 !important;
   color: #374151 !important;
-  white-space: nowrap;
+  white-space: normal !important;
+  width: 72px !important;
+  overflow-wrap: anywhere !important;
+  line-height: 1.2;
+  text-align: center;
   text-shadow:
     0 0 2px #fff,
     0 0 2px #fff,
