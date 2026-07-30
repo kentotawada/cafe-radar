@@ -71,6 +71,11 @@ import type {
 
 const FLAG_HIDE_THRESHOLD = 3;
 
+const MAPTILER_KEY = process.env.NEXT_PUBLIC_MAPTILER_KEY;
+const TILE_URL = MAPTILER_KEY
+  ? `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}{r}.png?key=${MAPTILER_KEY}`
+  : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+
 const SHINJUKU_CENTER: [number, number] = [35.6905, 139.7005];
 const STALE_MINUTES = 30;
 
@@ -402,14 +407,25 @@ function AttributionInfoButton() {
               >
                 ©OpenStreetMap contributors
               </a>
-              <a
-                href="https://carto.com/attributions"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block px-4 py-3 border-b border-gray-200 text-blue-600 cursor-pointer"
-              >
-                ©CARTO
-              </a>
+              {MAPTILER_KEY ? (
+                <a
+                  href="https://www.maptiler.com/copyright/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block px-4 py-3 border-b border-gray-200 text-blue-600 cursor-pointer"
+                >
+                  ©MapTiler
+                </a>
+              ) : (
+                <a
+                  href="https://carto.com/attributions"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block px-4 py-3 border-b border-gray-200 text-blue-600 cursor-pointer"
+                >
+                  ©CARTO
+                </a>
+              )}
               <button
                 onClick={() => setOpen(false)}
                 className="w-full px-4 py-3 font-semibold text-gray-700 cursor-pointer"
@@ -1031,8 +1047,8 @@ export default function CafeMap() {
         onPick={(lat, lng) => setPendingCafeLocation({ lat, lng })}
       />
       <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-        subdomains="abcd"
+        url={TILE_URL}
+        subdomains={MAPTILER_KEY ? undefined : "abcd"}
         maxZoom={20}
       />
 
