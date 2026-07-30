@@ -550,9 +550,17 @@ function MapBoundsTracker({
   onChange: (bounds: L.LatLngBounds) => void;
 }) {
   const map = useMap();
+  // map.getBounds()は呼ぶたびに新しいオブジェクトを返すため、そのまま
+  // onChangeに渡すと座標が変わっていなくてもstate更新→再描画が起き続け、
+  // 再描画のタイミング次第でLeaflet側のイベントが再度発火し無限ループに
+  // つながることがあった。実際に座標が変わった時だけ更新するようにする
+  const prevBoundsRef = useRef<L.LatLngBounds | null>(null);
   useEffect(() => {
     const handleChange = () => {
-      onChange(map.getBounds());
+      const newBounds = map.getBounds();
+      if (prevBoundsRef.current?.equals(newBounds)) return;
+      prevBoundsRef.current = newBounds;
+      onChange(newBounds);
     };
     map.on("moveend", handleChange);
     map.on("zoomend", handleChange);
