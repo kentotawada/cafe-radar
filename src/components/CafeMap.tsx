@@ -1314,6 +1314,18 @@ export default function CafeMap() {
                   </div>
                 )}
 
+                {cafe.smokingInfo && (
+                  <div className="text-xs bg-orange-50 border border-orange-200 rounded p-2 text-orange-900">
+                    <div className="font-semibold mb-0.5">
+                      🚬 喫煙所情報（ネット調べ）
+                    </div>
+                    <div>{cafe.smokingInfo}</div>
+                    <div className="text-orange-400 mt-0.5">
+                      ※最新でない場合があります
+                    </div>
+                  </div>
+                )}
+
                 {isDynamicCafe && (
                   <div className="text-xs bg-yellow-50 border border-yellow-200 rounded p-2 flex flex-col gap-1">
                     {isUnconfirmed ? (
