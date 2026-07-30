@@ -90,13 +90,16 @@ type NoiseFilter = "any" | "quietOnly" | "excludeLoud";
 type AvailabilityFilter = "any" | "available";
 
 // 円だけだと地図タイルの色(緑の公園、青の水面など)と紛れて見えにくいため、
-// ピン(涙型)＋白フチ＋影で背景色に関係なく視認できる形にする
-function createPinIcon(color: string) {
+// ピン(涙型)＋白フチ＋影で背景色に関係なく視認できる形にする。
+// 外側(涙型本体)は混雑度・騒がしさの色、内側の丸はチェーンの
+// ブランドカラー+頭文字にして、チェーンも一目でわかるようにする
+function createPinIcon(statusColor: string, chainColor: string, letter: string) {
   // 白フチだと地図の白っぽい道路・建物と紛れるため、濃い色のフチ＋影で
   // どんな背景色の上でもピンだと判別できるようにする
   const html = `<svg width="30" height="40" viewBox="0 0 28 36" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 1px 4px rgba(0,0,0,0.8));">
-    <path d="M14 0C6.3 0 0 6.3 0 14c0 10 14 22 14 22s14-12 14-22C28 6.3 21.7 0 14 0z" fill="${color}" stroke="#1f2937" stroke-width="2"/>
-    <circle cx="14" cy="14" r="5.5" fill="white" stroke="#1f2937" stroke-width="1"/>
+    <path d="M14 0C6.3 0 0 6.3 0 14c0 10 14 22 14 22s14-12 14-22C28 6.3 21.7 0 14 0z" fill="${statusColor}" stroke="#1f2937" stroke-width="2"/>
+    <circle cx="14" cy="14" r="6.5" fill="${chainColor}" stroke="#1f2937" stroke-width="1"/>
+    <text x="14" y="14.5" font-size="7" font-weight="800" fill="white" text-anchor="middle" dominant-baseline="central" font-family="sans-serif">${letter}</text>
   </svg>`;
   return L.divIcon({
     className: "",
@@ -107,14 +110,49 @@ function createPinIcon(color: string) {
   });
 }
 
-const ICONS = {
-  unknown: createPinIcon(PIN_COLORS.unknown),
-  quiet: createPinIcon(PIN_COLORS.quiet),
-  normal: createPinIcon(PIN_COLORS.normal),
-  noisy: createPinIcon(PIN_COLORS.noisy),
-  loud: createPinIcon(PIN_COLORS.loud),
-  full: createPinIcon(PIN_COLORS.full),
-};
+// 実際のロゴ画像は商標のため使わず、チェーンごとのブランドカラー+
+// 頭文字で見分けられるようにする。国際チェーンはローマ字、
+// 日本のみのチェーンはカナ/漢字1文字にして重複を避ける
+const CAFE_CHAIN_PATTERNS: { pattern: RegExp; color: string; letter: string }[] = [
+  { pattern: /スターバックス/, color: "#00704a", letter: "S" },
+  { pattern: /ドトール/, color: "#9f1d29", letter: "D" },
+  { pattern: /タリーズ/, color: "#154734", letter: "T" },
+  { pattern: /PRONTO|プロント/i, color: "#c0392b", letter: "P" },
+  { pattern: /星乃珈琲/, color: "#6b3e26", letter: "星" },
+  { pattern: /エクセルシオール/, color: "#0f766e", letter: "E" },
+  { pattern: /ベローチェ/, color: "#7c2d12", letter: "V" },
+  { pattern: /コメダ/, color: "#a3541e", letter: "コ" },
+  { pattern: /サンマルク/, color: "#b8860b", letter: "サ" },
+  { pattern: /マクドナルド/, color: "#da291c", letter: "M" },
+  { pattern: /ガスト/, color: "#e67e22", letter: "ガ" },
+  { pattern: /ジョナサン/, color: "#0e7c61", letter: "ジ" },
+  { pattern: /デニーズ/, color: "#d62828", letter: "デ" },
+  { pattern: /ド・クリエ/, color: "#a4161a", letter: "ク" },
+  { pattern: /ルノアール/, color: "#5c1a1b", letter: "ル" },
+];
+
+function getChainBadge(name: string): { color: string; letter: string } {
+  for (const { pattern, color, letter } of CAFE_CHAIN_PATTERNS) {
+    if (pattern.test(name)) return { color, letter };
+  }
+  // チェーンが不明な独立店は、店名の頭文字をそのまま使う
+  return { color: "#57534e", letter: name.charAt(0) };
+}
+
+// (statusColor, chainColor, letter)の組み合わせごとにアイコンを作ると
+// 大量になるため、初回生成時にキャッシュしておく
+const cafePinIconCache = new Map<string, L.DivIcon>();
+function getCafePinIcon(statusColor: string, chainColor: string, letter: string) {
+  const key = `${statusColor}|${chainColor}|${letter}`;
+  let icon = cafePinIconCache.get(key);
+  if (!icon) {
+    icon = createPinIcon(statusColor, chainColor, letter);
+    cafePinIconCache.set(key, icon);
+  }
+  return icon;
+}
+
+const PENDING_CAFE_ICON = createPinIcon(PIN_COLORS.unknown, "#ffffff", "");
 
 // 不動産サイトの周辺環境地図のように、色付きの丸バッジ+シンプルな
 // 白1色のイラスト(アイコン)にする。絵文字は色がバラバラで背景色と
@@ -426,10 +464,16 @@ function median(values: number[]): number | null {
     : sorted[mid];
 }
 
-function iconForStats(stats: CafeStats | null) {
-  if (!stats) return ICONS.unknown;
-  if (pickMajority(stats.outletOccupancyCounts) === "full") return ICONS.full;
-  return ICONS[pickMajority(stats.noiseCounts)];
+function statusColorForStats(stats: CafeStats | null) {
+  if (!stats) return PIN_COLORS.unknown;
+  if (pickMajority(stats.outletOccupancyCounts) === "full") return PIN_COLORS.full;
+  return PIN_COLORS[pickMajority(stats.noiseCounts)];
+}
+
+function iconForCafe(cafe: Cafe, stats: CafeStats | null) {
+  const statusColor = statusColorForStats(stats);
+  const { color: chainColor, letter } = getChainBadge(cafe.name);
+  return getCafePinIcon(statusColor, chainColor, letter);
 }
 
 function directionsUrl(cafe: Cafe, provider: MapProvider) {
@@ -1432,7 +1476,7 @@ export default function CafeMap() {
       {pendingCafeLocation && (
         <Marker
           position={[pendingCafeLocation.lat, pendingCafeLocation.lng]}
-          icon={ICONS.unknown}
+          icon={PENDING_CAFE_ICON}
         >
           <Popup minWidth={220} autoClose={false} closeOnClick={false}>
             <div className="flex flex-col gap-2 text-gray-900">
@@ -1531,7 +1575,7 @@ export default function CafeMap() {
           <Marker
             key={cafe.id}
             position={[cafe.lat, cafe.lng]}
-            icon={iconForStats(stats)}
+            icon={iconForCafe(cafe, stats)}
           >
             <Popup minWidth={210} maxHeight={340}>
               <div className="flex flex-col gap-1 sm:gap-2 text-gray-900">
