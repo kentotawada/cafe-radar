@@ -14,6 +14,9 @@ export type Cafe = {
   smokingInfo?: string | null;
   // ネット上の口コミ・公式サイト等で確認できたWi-Fiの有無の情報（編集部調べ）。
   wifiInfo?: string | null;
+  // ネット上の口コミ・公式サイト等で確認できた席数の情報（編集部調べ）。
+  // ユーザーが投稿する「だいたいの座席数」とは別物として扱う。
+  seatCountInfo?: string | null;
 };
 
 // 店名・住所はウェブ検索で実在店舗を確認済み（2026年7月時点、各公式サイト等）。

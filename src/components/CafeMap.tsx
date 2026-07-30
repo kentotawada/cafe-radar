@@ -116,9 +116,11 @@ const ICONS = {
   full: createPinIcon(PIN_COLORS.full),
 };
 
-// 不動産サイトの周辺環境地図のような、色付きの丸バッジ+絵文字にする
-function createLandmarkIcon(color: string, emoji: string) {
-  const html = `<div style="width:22px;height:22px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-size:12px;line-height:1;">${emoji}</div>`;
+// 不動産サイトの周辺環境地図(文=学校、〒=郵便局 等)のように、色付きの
+// 丸バッジ+白い1文字のシンプルな表示にする。絵文字は色がバラバラで
+// 背景色と合わずに見づらくなるため使わない
+function createLandmarkIcon(color: string, label: string) {
+  const html = `<div style="width:22px;height:22px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;font-size:11px;line-height:1;color:white;font-weight:700;font-family:sans-serif;">${label}</div>`;
   return L.divIcon({
     className: "",
     html,
@@ -127,11 +129,11 @@ function createLandmarkIcon(color: string, emoji: string) {
   });
 }
 
-const LANDMARK_CATEGORY_EMOJI: Record<LandmarkCategory, string> = {
-  station_exit: "🚉",
-  building: "🏢",
-  school: "🏫",
-  other: "📍",
+const LANDMARK_CATEGORY_LABEL: Record<LandmarkCategory, string> = {
+  station_exit: "駅",
+  building: "館",
+  school: "学",
+  other: "印",
 };
 
 const LANDMARK_CATEGORY_COLOR: Record<LandmarkCategory, string> = {
@@ -142,10 +144,10 @@ const LANDMARK_CATEGORY_COLOR: Record<LandmarkCategory, string> = {
 };
 
 const LANDMARK_ICONS: Record<LandmarkCategory, L.DivIcon> = {
-  station_exit: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.station_exit, LANDMARK_CATEGORY_EMOJI.station_exit),
-  building: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.building, LANDMARK_CATEGORY_EMOJI.building),
-  school: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.school, LANDMARK_CATEGORY_EMOJI.school),
-  other: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.other, LANDMARK_CATEGORY_EMOJI.other),
+  station_exit: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.station_exit, LANDMARK_CATEGORY_LABEL.station_exit),
+  building: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.building, LANDMARK_CATEGORY_LABEL.building),
+  school: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.school, LANDMARK_CATEGORY_LABEL.school),
+  other: createLandmarkIcon(LANDMARK_CATEGORY_COLOR.other, LANDMARK_CATEGORY_LABEL.other),
 };
 
 const USER_LOCATION_ICON = L.divIcon({
@@ -276,6 +278,15 @@ function getQuickBadges(cafe: Cafe, stats: CafeStats | null): QuickBadge[] {
         className: "bg-sky-100 text-sky-800",
       });
     }
+  }
+
+  if (cafe.seatCountInfo) {
+    badges.push({
+      key: "seatcount",
+      emoji: "🪑",
+      label: cafe.seatCountInfo,
+      className: "bg-amber-100 text-amber-800",
+    });
   }
 
   if (stats) {
