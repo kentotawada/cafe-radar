@@ -7,6 +7,7 @@ import {
   Marker,
   Popup,
   TileLayer,
+  Tooltip,
   useMap,
   useMapEvents,
 } from "react-leaflet";
@@ -31,7 +32,10 @@ import { cafes as iidabashiCafes } from "@/data/cafes-iidabashi";
 import { cafes as nakanoCafes } from "@/data/cafes-nakano";
 import { cafes as tachikawaCafes } from "@/data/cafes-tachikawa";
 import { cafes as ochanomizuCafes } from "@/data/cafes-ochanomizu";
+import { landmarks as shinjukuLandmarks } from "@/data/landmarks-shinjuku";
 import { areas } from "@/data/areas";
+
+const allLandmarks: Landmark[] = [...shinjukuLandmarks];
 
 const seedCafes: Cafe[] = [
   ...shinjukuCafes,
@@ -64,6 +68,8 @@ import type {
   CafeFact,
   CafeFlag,
   CafeStats,
+  Landmark,
+  LandmarkCategory,
   NoiseLevel,
   OccupancyLevel,
   Report,
@@ -108,6 +114,22 @@ const ICONS = {
   noisy: createPinIcon(PIN_COLORS.noisy),
   loud: createPinIcon(PIN_COLORS.loud),
   full: createPinIcon(PIN_COLORS.full),
+};
+
+// カフェのピンと紛れないよう、目印は小さなグレーの点だけにし、
+// 名前はTooltip(常時表示のラベル)側で見せる
+const LANDMARK_ICON = L.divIcon({
+  className: "",
+  html: `<div style="width:8px;height:8px;border-radius:50%;background:#6b7280;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.5);"></div>`,
+  iconSize: [8, 8],
+  iconAnchor: [4, 4],
+});
+
+const LANDMARK_CATEGORY_EMOJI: Record<LandmarkCategory, string> = {
+  station_exit: "🚉",
+  building: "🏢",
+  school: "🏫",
+  other: "📍",
 };
 
 const USER_LOCATION_ICON = L.divIcon({
@@ -1365,6 +1387,18 @@ export default function CafeMap() {
           <Popup>現在地</Popup>
         </Marker>
       )}
+      {allLandmarks.map((landmark) => (
+        <Marker
+          key={landmark.id}
+          position={[landmark.lat, landmark.lng]}
+          icon={LANDMARK_ICON}
+          interactive={false}
+        >
+          <Tooltip permanent direction="top" offset={[0, -4]} className="landmark-tooltip">
+            {LANDMARK_CATEGORY_EMOJI[landmark.category]} {landmark.name}
+          </Tooltip>
+        </Marker>
+      ))}
       {visibleCafes.map((cafe) => {
         const stats = statsByCafe[cafe.id];
         const myReport = myReportByCafe[cafe.id];

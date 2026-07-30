@@ -37,3 +37,16 @@ export type CafeStats = {
   noiseCounts: Record<NoiseLevel, number>;
   latestAt: string;
 };
+
+// Googleマップと見比べて調べた主要な目印(駅出口・有名な建物・学校など)。
+// カフェのピンとは別の控えめな見た目で地図に重ね、周辺の位置関係が
+// つかみやすいようにする(編集部調べ、クラウドソースの報告対象ではない)
+export type LandmarkCategory = "station_exit" | "building" | "school" | "other";
+
+export type Landmark = {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  category: LandmarkCategory;
+};
