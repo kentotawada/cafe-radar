@@ -1318,30 +1318,6 @@ export default function CafeMap() {
                 </div>
                 <div className="text-xs text-gray-500">{cafe.address}</div>
 
-                {cafe.outletInfo && (
-                  <div className="text-xs bg-blue-50 border border-blue-200 rounded p-2 text-blue-900">
-                    <div className="font-semibold mb-0.5">
-                      🔌 電源情報（ネット調べ）
-                    </div>
-                    <div>{cafe.outletInfo}</div>
-                    <div className="text-blue-400 mt-0.5">
-                      ※最新でない場合があります
-                    </div>
-                  </div>
-                )}
-
-                {cafe.smokingInfo && (
-                  <div className="text-xs bg-orange-50 border border-orange-200 rounded p-2 text-orange-900">
-                    <div className="font-semibold mb-0.5">
-                      🚬 喫煙所情報（ネット調べ）
-                    </div>
-                    <div>{cafe.smokingInfo}</div>
-                    <div className="text-orange-400 mt-0.5">
-                      ※最新でない場合があります
-                    </div>
-                  </div>
-                )}
-
                 {isDynamicCafe && (
                   <div className="text-xs bg-yellow-50 border border-yellow-200 rounded p-2 flex flex-col gap-1">
                     {isUnconfirmed ? (
@@ -1449,6 +1425,17 @@ export default function CafeMap() {
                 )}
 
                 <div className="border-t pt-2">
+                  {cafe.outletInfo && (
+                    <div className="text-xs bg-blue-50 border border-blue-200 rounded p-2 text-blue-900 mb-2">
+                      <div className="font-semibold mb-0.5">
+                        🔌 電源情報（ネット調べ）
+                      </div>
+                      <div>{cafe.outletInfo}</div>
+                      <div className="text-blue-400 mt-0.5">
+                        ※最新でない場合があります
+                      </div>
+                    </div>
+                  )}
                   <div className="text-xs font-semibold mb-1">電源席の混雑度</div>
                   <div className="flex gap-1 flex-wrap">
                     {(Object.keys(OCCUPANCY_LABEL) as OccupancyLevel[]).map(
@@ -1593,6 +1580,12 @@ export default function CafeMap() {
                 {errorByCafe[cafe.id] && (
                   <div className="text-xs text-red-500">
                     {errorByCafe[cafe.id]}
+                  </div>
+                )}
+
+                {cafe.smokingInfo && (
+                  <div className="text-[10px] text-gray-400 text-right border-t pt-1">
+                    🚬 {cafe.smokingInfo}（ネット調べ）
                   </div>
                 )}
               </div>
