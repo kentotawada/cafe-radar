@@ -131,68 +131,90 @@ function getCafeUsageStyle(cafe: Cafe): CafeUsageStyle {
 // 珈琲を連想させる温かみのある焦茶色にする(視認性は保ったまま)
 const CUP_LINE_COLOR = "#6b4226";
 
-// 利用スタイルごとの内側アイコン(白1色+焦茶色のアクセント)。カップの
-// 色(混雑度の色)は明るい色になることもあるため、statusColorで「くり抜く」
-// トリックだとコントラスト不足で見えにくくなる。常にはっきり見えるよう、
-// 固定の焦茶色(CUP_LINE_COLOR)のアクセントを使い、アイコン自体も大きめに
-// する。チェーン店は外側のカップ型そのもので「気軽な1杯」を表せるため、
-// あえて内側は無地のままにする
+// 利用スタイルごとの内側アイコン(白1色+焦茶色の縁取り)。カップの色
+// (混雑度の色)は明るい色になることもあるため、白だけだとコントラスト
+// 不足で見えにくくなる。常にはっきり見えるよう、細い焦茶色(CUP_LINE_COLOR)
+// の縁取りを必ず付ける。チェーン店は外側のカップ型そのもので「気軽な
+// 1杯」を表せるため、あえて内側は無地のままにする
 function usageStyleIconHtml(usageStyle: CafeUsageStyle): string {
   if (usageStyle === "coworking") {
-    // ノートPC(画面＋台形のキーボード部分)、大きめのシルエットで
-    return `<rect x="7" y="5" width="22" height="10" rx="1.2" fill="white"/><path d="M4 15h28l-2.2 3.2a1 1 0 0 1-.9.5H7.1a1 1 0 0 1-.9-.5L4 15z" fill="white"/>`;
+    // ノートPC(画面＋台形のキーボード部分)
+    return `<rect x="7" y="5" width="22" height="10" rx="1.2" fill="white" stroke="${CUP_LINE_COLOR}" stroke-width="0.8"/><path d="M4 15h28l-2.2 3.2a1 1 0 0 1-.9.5H7.1a1 1 0 0 1-.9-.5L4 15z" fill="white" stroke="${CUP_LINE_COLOR}" stroke-width="0.8"/>`;
   }
   if (usageStyle === "independent") {
     // コーヒー豆(大きめの白い楕円＋焦茶色の太い筋)
-    return `<ellipse cx="18" cy="11" rx="9" ry="6.5" fill="white" transform="rotate(-8 18 11)"/><path d="M10 11 Q18 7 26 11" stroke="${CUP_LINE_COLOR}" stroke-width="2" fill="none" transform="rotate(-8 18 11)"/>`;
+    return `<ellipse cx="18" cy="11" rx="9" ry="6.5" fill="white" stroke="${CUP_LINE_COLOR}" stroke-width="0.8" transform="rotate(-8 18 11)"/><path d="M10 11 Q18 7 26 11" stroke="${CUP_LINE_COLOR}" stroke-width="2" fill="none" transform="rotate(-8 18 11)"/>`;
   }
   if (usageStyle === "night") {
     // 三日月(1本のパスで描く塗りつぶしの三日月シルエット)
-    return `<g transform="translate(8.4,1.4) scale(0.8)"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="white"/></g>`;
+    return `<g transform="translate(8.4,1.4) scale(0.8)"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="white" stroke="${CUP_LINE_COLOR}" stroke-width="1"/></g>`;
   }
   return "";
 }
+
+// 表示サイズをviewBoxより小さくすることで、線の太さの比率を保ったまま
+// 全体を縮小する(以前のサイズだと大きすぎたため)
+const CUP_PIN_VIEWBOX = 42;
+const CUP_PIN_DISPLAY_SIZE = 33;
+const CUP_PIN_SCALE = CUP_PIN_DISPLAY_SIZE / CUP_PIN_VIEWBOX;
 
 // 円だけだと地図タイルの色(緑の公園、青の水面など)と紛れて見えにくいため、
 // カップ型のピン＋焦茶色のフチ＋影で背景色に関係なく視認できる形にする。
 // カプチーノカップのように「低め・横広がり」な形にし、カップ全体の色は
 // 混雑度の色(最優先で一目でわかるようにする)、内側の白いアイコンで
-// 利用スタイル(チェーン/コワーキング/個人経営/深夜)を表す。ピンの先端は
-// 電源プラグの形にして「電源が使えるカフェ探し」というアプリのテーマを
-// 表現する
-function createCupPinIcon(statusColor: string, usageStyle: CafeUsageStyle) {
-  const html = `<svg width="42" height="42" viewBox="0 0 42 42" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 1px 4px rgba(0,0,0,0.6));">
+// 利用スタイル(チェーン/コワーキング/個人経営/深夜)を表す。電源席の
+// 情報が確認できたお店だけ、先端を電源プラグの形にする(電源の有無が
+// 不明なお店にまで「電源あり」を示唆しないようにするため)
+function createCupPinIcon(
+  statusColor: string,
+  usageStyle: CafeUsageStyle,
+  showOutletPlug: boolean
+) {
+  const plugHtml = showOutletPlug
+    ? `
+    <rect x="13" y="19" width="10" height="9" rx="2.5" fill="${CUP_LINE_COLOR}"/>
+    <rect x="15.6" y="27" width="1.8" height="6" fill="${CUP_LINE_COLOR}"/>
+    <rect x="18.6" y="27" width="1.8" height="6" fill="${CUP_LINE_COLOR}"/>`
+    : "";
+  const html = `<svg width="${CUP_PIN_DISPLAY_SIZE}" height="${CUP_PIN_DISPLAY_SIZE}" viewBox="0 0 ${CUP_PIN_VIEWBOX} ${CUP_PIN_VIEWBOX}" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 1px 3px rgba(0,0,0,0.45));">
     <path d="M4,5 Q4,3 6,3 L30,3 Q32,3 32,5 L32,9 L28,19 Q18,23 8,19 L4,9 Z" fill="${statusColor}" stroke="${CUP_LINE_COLOR}" stroke-width="1.5"/>
     <ellipse cx="18" cy="19.5" rx="6" ry="1.6" fill="${CUP_LINE_COLOR}"/>
     <path d="M31,8 Q39,8.5 39,13.5 Q39,18.5 31,19" fill="none" stroke="${CUP_LINE_COLOR}" stroke-width="1.5"/>
-    ${usageStyleIconHtml(usageStyle)}
-    <rect x="13" y="19" width="10" height="9" rx="2.5" fill="${CUP_LINE_COLOR}"/>
-    <rect x="15.6" y="27" width="1.8" height="6" fill="${CUP_LINE_COLOR}"/>
-    <rect x="18.6" y="27" width="1.8" height="6" fill="${CUP_LINE_COLOR}"/>
+    ${usageStyleIconHtml(usageStyle)}${plugHtml}
   </svg>`;
+  // アンカー(ピンの指す先端)は、プラグがあればプラグの先端、
+  // 無ければカップの底(丸い台座)にする
+  const anchorY = showOutletPlug ? 33 : 21;
   return L.divIcon({
     className: "",
     html,
-    iconSize: [42, 42],
-    iconAnchor: [18, 33],
-    popupAnchor: [0, -30],
+    iconSize: [CUP_PIN_DISPLAY_SIZE, CUP_PIN_DISPLAY_SIZE],
+    iconAnchor: [
+      Math.round(18 * CUP_PIN_SCALE),
+      Math.round(anchorY * CUP_PIN_SCALE),
+    ],
+    popupAnchor: [0, -Math.round((anchorY - 3) * CUP_PIN_SCALE)],
   });
 }
 
-// (statusColor, usageStyle)の組み合わせごとにアイコンを作ると
-// 大量になるため、初回生成時にキャッシュしておく
+// (statusColor, usageStyle, showOutletPlug)の組み合わせごとにアイコンを
+// 作ると大量になるため、初回生成時にキャッシュしておく
 const cafePinIconCache = new Map<string, L.DivIcon>();
-function getCafePinIcon(statusColor: string, usageStyle: CafeUsageStyle) {
-  const key = `${statusColor}|${usageStyle}`;
+function getCafePinIcon(
+  statusColor: string,
+  usageStyle: CafeUsageStyle,
+  showOutletPlug: boolean
+) {
+  const key = `${statusColor}|${usageStyle}|${showOutletPlug}`;
   let icon = cafePinIconCache.get(key);
   if (!icon) {
-    icon = createCupPinIcon(statusColor, usageStyle);
+    icon = createCupPinIcon(statusColor, usageStyle, showOutletPlug);
     cafePinIconCache.set(key, icon);
   }
   return icon;
 }
 
-const PENDING_CAFE_ICON = createCupPinIcon(PIN_COLORS.unknown, "independent");
+const PENDING_CAFE_ICON = createCupPinIcon(PIN_COLORS.unknown, "independent", false);
 
 // 不動産サイトの周辺環境地図のように、色付きの丸バッジ+シンプルな
 // 白1色のイラスト(アイコン)にする。絵文字は色がバラバラで背景色と
@@ -329,11 +351,14 @@ const LANDMARK_CATEGORY_ICON_HTML: Record<LandmarkCategory, string> = {
   conveni_seven: letterIcon("7"),
   conveni_lawson: letterIcon("L"),
   conveni_familymart: letterIcon("F"),
-  traffic_signal: `<svg width="12" height="16" viewBox="0 0 12 16">
-    <rect x="0" y="0" width="12" height="16" rx="2" fill="#1f2937"/>
-    <circle cx="6" cy="4" r="2.2" fill="#ef4444"/>
-    <circle cx="6" cy="8" r="2.2" fill="#eab308"/>
-    <circle cx="6" cy="12" r="2.2" fill="#22c55e"/>
+  // 信号機らしく、灯器(丸みのある箱に3色のランプ)＋支柱＋台座の形にする
+  traffic_signal: `<svg width="12" height="20" viewBox="0 0 12 20">
+    <rect x="1" y="0" width="10" height="13" rx="3" fill="#1f2937"/>
+    <circle cx="6" cy="3.4" r="1.9" fill="#ef4444"/>
+    <circle cx="6" cy="6.5" r="1.9" fill="#eab308"/>
+    <circle cx="6" cy="9.6" r="1.9" fill="#22c55e"/>
+    <rect x="5" y="13" width="2" height="5" fill="#1f2937"/>
+    <rect x="2" y="18" width="8" height="2" rx="1" fill="#1f2937"/>
   </svg>`,
   restaurant: svgIcon(
     '<path d="M8.1 13.34l2.83-2.83L3.91 3.5c-1.56 1.56-1.56 4.09 0 5.66l4.19 4.18zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3.7 19.87l1.41 1.41L12 14.41l6.88 6.88 1.41-1.41L13.41 13l1.47-1.47z"/>'
@@ -667,7 +692,7 @@ function statusColorForStats(stats: CafeStats | null) {
 
 function iconForCafe(cafe: Cafe, stats: CafeStats | null) {
   const statusColor = statusColorForStats(stats);
-  return getCafePinIcon(statusColor, getCafeUsageStyle(cafe));
+  return getCafePinIcon(statusColor, getCafeUsageStyle(cafe), hasOutlet(cafe));
 }
 
 function directionsUrl(cafe: Cafe, provider: MapProvider) {
@@ -1978,6 +2003,17 @@ export default function CafeMap() {
                   <div className="text-[11px] sm:text-sm text-gray-500 mb-1 sm:mb-2">
                     📢 今の店内の様子を教えてください（リアルタイムの報告にご協力ください）
                   </div>
+                  {cafe.hoursInfo && (
+                    <div className="text-[11px] sm:text-sm bg-indigo-50 border border-indigo-200 rounded p-1.5 sm:p-2 text-indigo-900 mb-1 sm:mb-2">
+                      <div className="font-semibold mb-0.5">
+                        ⏰ 営業時間（ネット調べ）
+                      </div>
+                      <div>{cafe.hoursInfo}</div>
+                      <div className="text-indigo-400 mt-0.5">
+                        ※最新でない場合があります
+                      </div>
+                    </div>
+                  )}
                   {cafe.outletInfo && (
                     <div className="text-[11px] sm:text-sm bg-blue-50 border border-blue-200 rounded p-1.5 sm:p-2 text-blue-900 mb-1 sm:mb-2">
                       <div className="font-semibold mb-0.5">

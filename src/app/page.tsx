@@ -37,6 +37,14 @@ export default function Home() {
             プライバシーポリシー
           </Link>
         </div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-gray-500">
+          <span>ピンの中のマーク:</span>
+          <span className="flex items-center gap-1">無地 = チェーン店</span>
+          <span className="flex items-center gap-1">💻 = コワーキング併設</span>
+          <span className="flex items-center gap-1">🫘 = 個人経営・おしゃれ</span>
+          <span className="flex items-center gap-1">🌙 = 24時間・深夜営業</span>
+          <span className="flex items-center gap-1">🔌の先端 = 電源席あり確認済み</span>
+        </div>
       </header>
       <div className="flex-1 relative">
         <CafeMap />
