@@ -1116,6 +1116,12 @@ export default function CafeMap() {
   const [mapZoom, setMapZoom] = useState(16);
   const [sortOrder, setSortOrder] = useState<SortOrder>("recommended");
   const [selectedCafeId, setSelectedCafeId] = useState<string | null>(null);
+  const [isListPanelOpen, setIsListPanelOpen] = useState(true);
+  // スマホは地図欄が狭く、店舗情報のポップアップを固定340pxで開くと
+  // 下のリスト欄と重なってしまうため、スマホでは上限を低めにする
+  const [popupMaxHeight] = useState(
+    () => (typeof window !== "undefined" && window.innerWidth < 640 ? 260 : 340)
+  );
 
   // エリア検索など、ユーザーが自分で地図の表示先を選んだ後に、
   // 遅れて返ってきた位置情報がそれを上書きしてしまわないようにする
@@ -1813,37 +1819,46 @@ export default function CafeMap() {
     <div className="cf-shell">
       {/* リストパネル。地図と常に同時に表示する。スマホでは下の固定高さの
           帯、PC/タブレットでは左のサイドバー */}
-      <div className="cf-list-panel">
-        <div className="sticky top-0 bg-gray-50 border-b border-gray-200 px-3 py-2 flex flex-col gap-1.5 z-10">
-          <span className="text-sm font-semibold text-gray-900">
-            {listCafes.length}件のお店
-          </span>
-          <select
-            value={areaQuery}
-            onChange={(e) => handleAreaSearch(e.target.value)}
-            className="text-xs sm:text-sm border border-gray-300 rounded px-2 py-1 bg-white text-gray-700"
+      <div className={`cf-list-panel${isListPanelOpen ? "" : " cf-list-panel-collapsed"}`}>
+        <div className="sticky top-0 bg-gray-50 border-b border-gray-200 z-10">
+          <button
+            onClick={() => setIsListPanelOpen((prev) => !prev)}
+            className="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-gray-900"
           >
-            <option value="">エリア: すべて</option>
-            {areas.map((area) => (
-              <option key={area.id} value={area.name}>
-                {area.name}
-              </option>
-            ))}
-          </select>
-          <select
-            value={sortOrder}
-            onChange={(e) => setSortOrder(e.target.value as SortOrder)}
-            className="text-xs sm:text-sm border border-gray-300 rounded px-2 py-1 bg-white text-gray-700"
-          >
-            <option value="recommended">おすすめ順</option>
-            <option value="distance" disabled={!userPosition}>
-              現在地から近い順{!userPosition ? "(現在地未取得)" : ""}
-            </option>
-            <option value="seats">席数が多い順</option>
-            <option value="occupancy">空いている順</option>
-            <option value="noise">静かな順</option>
-          </select>
+            <span>{listCafes.length}件のお店</span>
+            <span>{isListPanelOpen ? "▼" : "▲"}</span>
+          </button>
+          {isListPanelOpen && (
+            <div className="flex flex-col gap-1.5 px-3 pb-2">
+              <select
+                value={areaQuery}
+                onChange={(e) => handleAreaSearch(e.target.value)}
+                className="text-xs sm:text-sm border border-gray-300 rounded px-2 py-1 bg-white text-gray-700"
+              >
+                <option value="">エリア: すべて</option>
+                {areas.map((area) => (
+                  <option key={area.id} value={area.name}>
+                    {area.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+                className="text-xs sm:text-sm border border-gray-300 rounded px-2 py-1 bg-white text-gray-700"
+              >
+                <option value="recommended">おすすめ順</option>
+                <option value="distance" disabled={!userPosition}>
+                  現在地から近い順{!userPosition ? "(現在地未取得)" : ""}
+                </option>
+                <option value="seats">席数が多い順</option>
+                <option value="occupancy">空いている順</option>
+                <option value="noise">静かな順</option>
+              </select>
+            </div>
+          )}
         </div>
+        {isListPanelOpen && (
         <div className="flex flex-col gap-2 p-2">
           {listCafes.map((cafe) => {
             const stats = statsByCafe[cafe.id];
@@ -1904,6 +1919,7 @@ export default function CafeMap() {
             );
           })}
         </div>
+        )}
       </div>
 
       {/* 地図パネル。常に表示し、残りのスペースいっぱいに広がる */}
@@ -2255,7 +2271,7 @@ export default function CafeMap() {
               cafe.id === selectedCafeId
             )}
           >
-            <Popup minWidth={210} maxHeight={340}>
+            <Popup minWidth={210} maxHeight={popupMaxHeight}>
               <div className="flex flex-col gap-1 sm:gap-2 text-gray-900">
                 <div className="flex items-start justify-between gap-2">
                   <div className="font-bold text-sm sm:text-lg">{cafe.name}</div>

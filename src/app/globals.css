@@ -65,11 +65,21 @@ body {
   }
 }
 
+/* リストを「ピンの見方」と同じように引っ込め・展開できるようにする。
+   見出しの行だけ残して、それ以外のコンテンツ分の高さ(スマホ)/幅
+   (PC)を content-fit まで縮める */
+.cf-list-panel.cf-list-panel-collapsed {
+  flex: 0 0 auto;
+}
+
 .cf-map-panel {
   position: relative;
   flex: 1 1 0%;
   min-height: 0;
   min-width: 0;
+  /* ポップアップなど絶対配置の要素が地図欄の外(下のリスト欄)に
+     はみ出して重なって見えないよう、地図欄の枠でクリップする */
+  overflow: hidden;
 }
 
 /* 絞り込みパネルの展開部分の高さ上限。スマホのSafariはvh単位が
@@ -77,6 +87,22 @@ body {
    実際に見えている範囲を示すdvh単位を使い、上限も低めに抑える */
 .cf-filter-panel-content {
   max-height: min(26dvh, 200px);
+  /* スクロールできることが一見してわかるよう、上下に影を出す。
+     続きがある側だけ影が出て、端まで見えたら自然に消える */
+  background:
+    linear-gradient(#fff 30%, rgba(255, 255, 255, 0)) center top,
+    linear-gradient(rgba(255, 255, 255, 0), #fff 70%) center bottom,
+    radial-gradient(farthest-side at 50% 0, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0))
+      center top,
+    radial-gradient(farthest-side at 50% 100%, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0))
+      center bottom;
+  background-repeat: no-repeat;
+  background-size:
+    100% 20px,
+    100% 20px,
+    100% 8px,
+    100% 8px;
+  background-attachment: local, local, scroll, scroll;
 }
 @media (min-width: 640px) {
   .cf-filter-panel-content {

@@ -26,7 +26,8 @@ export default function Home() {
             onClick={() => setShowLegend((prev) => !prev)}
             className="shrink-0 text-xs md:text-sm text-gray-600 border border-gray-300 rounded-full px-2.5 py-0.5 sm:px-3 sm:py-1 hover:bg-gray-50"
           >
-            ピンの見方 {showLegend ? "▲" : "▼"}
+
+            ピンの説明 {showLegend ? "▲" : "▼"}
           </button>
         </div>
         {!isSupabaseConfigured && (
