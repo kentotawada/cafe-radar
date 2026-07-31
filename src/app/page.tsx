@@ -43,7 +43,9 @@ export default function Home() {
           <span className="flex items-center gap-1">💻 = コワーキング併設</span>
           <span className="flex items-center gap-1">🫘 = 個人経営・おしゃれ</span>
           <span className="flex items-center gap-1">🌙 = 24時間・深夜営業</span>
-          <span className="flex items-center gap-1">🔌の先端 = 電源席あり確認済み</span>
+          <span className="flex items-center gap-1">
+            🔌 プラグ付きピン = 電源席あり確認済み／プラグ無し = 電源情報未確認
+          </span>
         </div>
       </header>
       <div className="flex-1 relative">

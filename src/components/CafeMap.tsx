@@ -131,31 +131,40 @@ function getCafeUsageStyle(cafe: Cafe): CafeUsageStyle {
 // 珈琲を連想させる温かみのある焦茶色にする(視認性は保ったまま)
 const CUP_LINE_COLOR = "#6b4226";
 
-// 利用スタイルごとの内側アイコン(白1色+焦茶色の縁取り)。カップの色
-// (混雑度の色)は明るい色になることもあるため、白だけだとコントラスト
-// 不足で見えにくくなる。常にはっきり見えるよう、細い焦茶色(CUP_LINE_COLOR)
-// の縁取りを必ず付ける。チェーン店は外側のカップ型そのもので「気軽な
-// 1杯」を表せるため、あえて内側は無地のままにする
+// 利用スタイルごとの内側アイコンの色。ヘッダーの凡例(💻🫘🌙)の実物に
+// 近い色を付け、白フチで縁取ってどのカップの色の上でもはっきり見える
+// ようにする
+const USAGE_STYLE_ICON_COLOR: Record<CafeUsageStyle, string> = {
+  chain: "",
+  coworking: "#4b5563",
+  independent: "#6b4226",
+  night: "#f59e0b",
+};
+
+// 利用スタイルごとの内側アイコン。チェーン店は外側のカップ型そのもので
+// 「気軽な1杯」を表せるため、あえて内側は無地のままにする
 function usageStyleIconHtml(usageStyle: CafeUsageStyle): string {
+  const color = USAGE_STYLE_ICON_COLOR[usageStyle];
   if (usageStyle === "coworking") {
-    // ノートPC(画面＋台形のキーボード部分)
-    return `<rect x="7" y="5" width="22" height="10" rx="1.2" fill="white" stroke="${CUP_LINE_COLOR}" stroke-width="0.8"/><path d="M4 15h28l-2.2 3.2a1 1 0 0 1-.9.5H7.1a1 1 0 0 1-.9-.5L4 15z" fill="white" stroke="${CUP_LINE_COLOR}" stroke-width="0.8"/>`;
+    // ノートPC(画面＋台形のキーボード部分)。カップの内側に収まる
+    // サイズ・位置にする
+    return `<rect x="10" y="6" width="16" height="8" rx="1" fill="${color}" stroke="white" stroke-width="0.8"/><path d="M8 14h20l-1.6 2.4a1 1 0 0 1-.9.5H10.5a1 1 0 0 1-.9-.5L8 14z" fill="${color}" stroke="white" stroke-width="0.8"/>`;
   }
   if (usageStyle === "independent") {
-    // コーヒー豆(大きめの白い楕円＋焦茶色の太い筋)
-    return `<ellipse cx="18" cy="11" rx="9" ry="6.5" fill="white" stroke="${CUP_LINE_COLOR}" stroke-width="0.8" transform="rotate(-8 18 11)"/><path d="M10 11 Q18 7 26 11" stroke="${CUP_LINE_COLOR}" stroke-width="2" fill="none" transform="rotate(-8 18 11)"/>`;
+    // コーヒー豆(楕円＋中央の白い筋)
+    return `<ellipse cx="18" cy="11" rx="8" ry="6" fill="${color}" stroke="white" stroke-width="0.8" transform="rotate(-8 18 11)"/><path d="M11 11 Q18 7.5 25 11" stroke="white" stroke-width="1.6" fill="none" transform="rotate(-8 18 11)"/>`;
   }
   if (usageStyle === "night") {
     // 三日月(1本のパスで描く塗りつぶしの三日月シルエット)
-    return `<g transform="translate(8.4,1.4) scale(0.8)"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="white" stroke="${CUP_LINE_COLOR}" stroke-width="1"/></g>`;
+    return `<g transform="translate(8.4,1.4) scale(0.8)"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="${color}" stroke="white" stroke-width="0.8"/></g>`;
   }
   return "";
 }
 
 // 表示サイズをviewBoxより小さくすることで、線の太さの比率を保ったまま
-// 全体を縮小する(以前のサイズだと大きすぎたため)
+// 全体を縮小・拡大する
 const CUP_PIN_VIEWBOX = 42;
-const CUP_PIN_DISPLAY_SIZE = 33;
+const CUP_PIN_DISPLAY_SIZE = 38;
 const CUP_PIN_SCALE = CUP_PIN_DISPLAY_SIZE / CUP_PIN_VIEWBOX;
 
 // 円だけだと地図タイルの色(緑の公園、青の水面など)と紛れて見えにくいため、
@@ -284,10 +293,8 @@ const LANDMARK_LABEL_SPLIT_OVERRIDES: Record<string, [string, string]> = {
   "landmark-shinjuku-58": ["セブンイレブン", "新宿3丁目店"],
   "landmark-shinjuku-59": ["新宿駅東口", "交番"],
   "landmark-shinjuku-60": ["新宿駅西口", "交番"],
-  "landmark-shinjuku-61": ["新宿大ガード", "東交差点"],
   "landmark-shinjuku-63": ["東京都健康プラザ", "ハイジア"],
   "landmark-shinjuku-64": ["伊勢丹", "メンズ館"],
-  "landmark-shinjuku-65": ["新宿三丁目", "交差点"],
   "landmark-shinjuku-66": ["みらいおん像", "(心の絆・ライオンひろば)"],
   "landmark-shinjuku-67": ["ファミリーマート", "西新宿地下歩道店"],
   "landmark-shinjuku-68": ["みずほ銀行", "新宿西口支店"],
@@ -298,15 +305,6 @@ const LANDMARK_LABEL_SPLIT_OVERRIDES: Record<string, [string, string]> = {
   "landmark-shinjuku-78": ["ニューヨークグリル", "(パークハイアット東京)"],
   "landmark-shinjuku-79": ["BERG(ベルク)", "ルミネエスト新宿店"],
   "landmark-shinjuku-90": ["ウエルシア", "O-GUARD新宿店"],
-  "landmark-shinjuku-91": ["新宿駅東口", "交差点"],
-  "landmark-shinjuku-92": ["新宿大ガード西", "交差点"],
-  "landmark-shinjuku-93": ["西新宿一丁目", "交差点"],
-  "landmark-shinjuku-94": ["新宿四丁目", "交差点"],
-  "landmark-shinjuku-95": ["新宿五丁目", "交差点"],
-  "landmark-shinjuku-96": ["新宿二丁目", "交差点"],
-  "landmark-shinjuku-97": ["歌舞伎町", "交差点"],
-  "landmark-shinjuku-98": ["新宿郵便局前", "交差点"],
-  "landmark-shinjuku-99": ["新宿区役所前", "交差点"],
 };
 
 function splitLandmarkLabel(
@@ -351,15 +349,6 @@ const LANDMARK_CATEGORY_ICON_HTML: Record<LandmarkCategory, string> = {
   conveni_seven: letterIcon("7"),
   conveni_lawson: letterIcon("L"),
   conveni_familymart: letterIcon("F"),
-  // 信号機らしく、灯器(丸みのある箱に3色のランプ)＋支柱＋台座の形にする
-  traffic_signal: `<svg width="12" height="20" viewBox="0 0 12 20">
-    <rect x="1" y="0" width="10" height="13" rx="3" fill="#1f2937"/>
-    <circle cx="6" cy="3.4" r="1.9" fill="#ef4444"/>
-    <circle cx="6" cy="6.5" r="1.9" fill="#eab308"/>
-    <circle cx="6" cy="9.6" r="1.9" fill="#22c55e"/>
-    <rect x="5" y="13" width="2" height="5" fill="#1f2937"/>
-    <rect x="2" y="18" width="8" height="2" rx="1" fill="#1f2937"/>
-  </svg>`,
   restaurant: svgIcon(
     '<path d="M8.1 13.34l2.83-2.83L3.91 3.5c-1.56 1.56-1.56 4.09 0 5.66l4.19 4.18zm6.78-1.81c1.53.71 3.68.21 5.27-1.38 1.91-1.91 2.28-4.65.81-6.12-1.46-1.46-4.2-1.1-6.12.81-1.59 1.59-2.09 3.74-1.38 5.27L3.7 19.87l1.41 1.41L12 14.41l6.88 6.88 1.41-1.41L13.41 13l1.47-1.47z"/>'
   ),
@@ -377,7 +366,6 @@ const LANDMARK_CATEGORY_COLOR: Record<LandmarkCategory, string> = {
   conveni_seven: "#dc2626",
   conveni_lawson: "#1e3a8a",
   conveni_familymart: "#16a34a",
-  traffic_signal: "#374151",
   restaurant: "#e11d48",
   drugstore: "#0d9488",
 };
