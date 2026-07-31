@@ -15,9 +15,26 @@ import L from "leaflet";
 import { seedCafes, type Cafe } from "@/lib/seedCafes";
 import { hasOutlet } from "@/lib/cafeAmenities";
 import { landmarks as shinjukuLandmarks } from "@/data/landmarks-shinjuku";
+import { landmarks as shibuyaLandmarks } from "@/data/landmarks-shibuya";
+import { landmarks as ikebukuroLandmarks } from "@/data/landmarks-ikebukuro";
+import { landmarks as tokyoLandmarks } from "@/data/landmarks-tokyo";
+import { landmarks as uenoLandmarks } from "@/data/landmarks-ueno";
+import { landmarks as shinagawaLandmarks } from "@/data/landmarks-shinagawa";
+import { landmarks as shimbashiLandmarks } from "@/data/landmarks-shimbashi";
+import { landmarks as akihabaraLandmarks } from "@/data/landmarks-akihabara";
+import { landmarks as yurakuchoLandmarks } from "@/data/landmarks-yurakucho";
+import { landmarks as kandaLandmarks } from "@/data/landmarks-kanda";
+import { landmarks as takadanobabaLandmarks } from "@/data/landmarks-takadanobaba";
+import { landmarks as ochanomizuLandmarks } from "@/data/landmarks-ochanomizu";
+import { landmarks as kichijojiLandmarks } from "@/data/landmarks-kichijoji";
+import { landmarks as ebisuLandmarks } from "@/data/landmarks-ebisu";
+import { landmarks as roppongiLandmarks } from "@/data/landmarks-roppongi";
+import { landmarks as akasakaLandmarks } from "@/data/landmarks-akasaka";
+import { landmarks as gotandaLandmarks } from "@/data/landmarks-gotanda";
+import { landmarks as iidabashiLandmarks } from "@/data/landmarks-iidabashi";
+import { landmarks as nakanoLandmarks } from "@/data/landmarks-nakano";
+import { landmarks as tachikawaLandmarks } from "@/data/landmarks-tachikawa";
 import { areas } from "@/data/areas";
-
-const allLandmarks: Landmark[] = [...shinjukuLandmarks];
 import { supabase } from "@/lib/supabaseClient";
 import { PIN_COLORS } from "@/lib/pinColors";
 import { cupPinSvgMarkup, CUP_PIN_VIEWBOX } from "@/lib/cupPinIcon";
@@ -36,6 +53,29 @@ import type {
   OccupancyLevel,
   Report,
 } from "@/lib/types";
+
+const allLandmarks: Landmark[] = [
+  ...shinjukuLandmarks,
+  ...shibuyaLandmarks,
+  ...ikebukuroLandmarks,
+  ...tokyoLandmarks,
+  ...uenoLandmarks,
+  ...shinagawaLandmarks,
+  ...shimbashiLandmarks,
+  ...akihabaraLandmarks,
+  ...yurakuchoLandmarks,
+  ...kandaLandmarks,
+  ...takadanobabaLandmarks,
+  ...ochanomizuLandmarks,
+  ...kichijojiLandmarks,
+  ...ebisuLandmarks,
+  ...roppongiLandmarks,
+  ...akasakaLandmarks,
+  ...gotandaLandmarks,
+  ...iidabashiLandmarks,
+  ...nakanoLandmarks,
+  ...tachikawaLandmarks,
+];
 
 const FLAG_HIDE_THRESHOLD = 3;
 
