@@ -253,34 +253,6 @@ const LANDMARK_LABEL_SPLIT_OVERRIDES: Record<string, [string, string]> = {
   "landmark-shinjuku-78": ["ニューヨークグリル", "(パークハイアット東京)"],
   "landmark-shinjuku-79": ["BERG(ベルク)", "ルミネエスト新宿店"],
   "landmark-shinjuku-90": ["ウエルシア", "O-GUARD新宿店"],
-  "landmark-shinjuku-91": ["新宿大ガード", "東交差点"],
-  "landmark-shinjuku-92": ["新宿三丁目", "交差点"],
-  "landmark-shinjuku-93": ["新宿駅東口", "交差点"],
-  "landmark-shinjuku-94": ["新宿大ガード西", "交差点"],
-  "landmark-shinjuku-95": ["西新宿一丁目", "交差点"],
-  "landmark-shinjuku-96": ["新宿四丁目", "交差点"],
-  "landmark-shinjuku-97": ["新宿五丁目", "交差点"],
-  "landmark-shinjuku-98": ["新宿二丁目", "交差点"],
-  "landmark-shinjuku-99": ["歌舞伎町", "交差点"],
-  "landmark-shinjuku-100": ["新宿郵便局前", "交差点"],
-  "landmark-shinjuku-101": ["新宿区役所前", "交差点"],
-  "landmark-shinjuku-102": ["新宿五丁目東", "交差点"],
-  "landmark-shinjuku-103": ["新宿六丁目", "交差点"],
-  "landmark-shinjuku-104": ["角筈区民センター前", "交差点"],
-  "landmark-shinjuku-105": ["西新宿二丁目", "交差点"],
-  "landmark-shinjuku-106": ["熊野神社前", "交差点"],
-  "landmark-shinjuku-107": ["中央通り東", "交差点"],
-  "landmark-shinjuku-108": ["新宿西口ロータリー", "入口交差点"],
-  "landmark-shinjuku-109": ["新宿二丁目北", "交差点"],
-  "landmark-shinjuku-110": ["新宿三丁目北", "交差点"],
-  "landmark-shinjuku-111": ["新宿中央公園前", "交差点"],
-  "landmark-shinjuku-112": ["新宿中央公園北", "交差点"],
-  "landmark-shinjuku-113": ["新宿税務署前", "交差点"],
-  "landmark-shinjuku-114": ["新宿都税事務所前", "交差点"],
-  "landmark-shinjuku-115": ["新宿柳通り", "交差点"],
-  "landmark-shinjuku-116": ["新宿区役所通り", "交差点"],
-  "landmark-shinjuku-117": ["西新宿三丁目", "交差点"],
-  "landmark-shinjuku-118": ["新宿一丁目西", "交差点"],
 };
 
 function splitLandmarkLabel(
@@ -355,21 +327,23 @@ const LANDMARK_CATEGORY_COLOR: Record<
 // 信号機は横長のピル型(丸みを帯びた箱に緑・黄・オレンジの丸)にする。
 // 他のカテゴリのような丸バッジ+文字アイコンの形には合わないため、
 // 専用の見た目にする(下に小さなツノを付けて座標を指すのは他と共通)
+// Googleマップの信号アイコンのように、ごく小さく控えめにする
+// (新宿エリアの信号を全部載せるため、1つ1つは目立たせすぎない)
 function createTrafficSignalIcon() {
-  const html = `<div style="position:relative;width:28px;height:20px;">
-    <svg width="28" height="15" viewBox="0 0 28 15" style="filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));">
+  const html = `<div style="position:relative;width:16px;height:12px;">
+    <svg width="16" height="9" viewBox="0 0 28 15" style="filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));">
       <rect x="0.5" y="0.5" width="27" height="14" rx="7" fill="#c7cfe0" stroke="white" stroke-width="1.2"/>
       <circle cx="7" cy="7.5" r="4.6" fill="#22c55e"/>
       <circle cx="14" cy="7.5" r="4.6" fill="#eab308"/>
       <circle cx="21" cy="7.5" r="4.6" fill="#f97316"/>
     </svg>
-    <div style="position:absolute;left:50%;bottom:-4px;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #c7cfe0;"></div>
+    <div style="position:absolute;left:50%;bottom:-3px;transform:translateX(-50%);width:0;height:0;border-left:3px solid transparent;border-right:3px solid transparent;border-top:4px solid #c7cfe0;"></div>
   </div>`;
   return L.divIcon({
     className: "",
     html,
-    iconSize: [28, 20],
-    iconAnchor: [14, 20],
+    iconSize: [16, 12],
+    iconAnchor: [8, 12],
   });
 }
 
@@ -463,35 +437,49 @@ function pickMajority<T extends string>(counts: Record<T, number>): T {
 // react-leafletはPopupの中身(props.children)が変わるたびにLeafletの
 // popup.update()を呼ぶが、これが内部で一瞬「高さを外して再計測→
 // 付け直す」処理をするため、ポップアップ内のスクロール位置(scrollTop)が
-// 0に戻ってしまう。入力欄の数値を変える(スピンボタンクリック含む)たびに
-// 店舗情報が一番上にスクロールし直されるのはこれが原因。
-// setTimeoutで遅らせて直すと、0に戻った状態が一瞬描画されてから
-// 元の位置に戻るため、ガクッと動いて見えてしまう。popup.update()は
-// このdiv自身のstyle/classを書き換えるので、MutationObserverで
-// それを検知してscrollTopを即座に(=描画される前に)書き戻すことで、
-// 画面上は一切動かないようにする
+// 0に戻ってしまう。中身は入力欄の操作だけでなく、2分ごとのreports再取得や
+// 1分ごとの古い報告の間引き、リアルタイム通知の受信でも変わるため、
+// 「入力した時だけ直す」のでは不十分(何もしていなくても時間経過で
+// 勝手にスクロールが戻る)。そこで、ポップアップが開いた時点で
+// (1)ユーザーが実際にスクロールした位置を'scroll'イベントで常に記録し、
+// (2)MutationObserverでLeafletのDOM書き換えを検知するたびに、
+// 記録しておいた位置へ即座に(描画される前に)書き戻す。これで原因を
+// 問わずスクロール位置が保たれる
 const popupScrollGuardTargets = new WeakSet<HTMLElement>();
-const popupScrollGuardDesired = new WeakMap<HTMLElement, number>();
-function withPopupScrollPreserved(target: EventTarget | null, applyChange: () => void) {
-  const scrollEl = (target as HTMLElement | null)?.closest(
-    ".leaflet-popup-content"
-  ) as HTMLElement | null;
-  if (!scrollEl) {
-    applyChange();
-    return;
-  }
-  popupScrollGuardDesired.set(scrollEl, scrollEl.scrollTop);
-  if (!popupScrollGuardTargets.has(scrollEl)) {
-    popupScrollGuardTargets.add(scrollEl);
-    const observer = new MutationObserver(() => {
-      const desired = popupScrollGuardDesired.get(scrollEl);
-      if (desired !== undefined && scrollEl.scrollTop !== desired) {
-        scrollEl.scrollTop = desired;
-      }
-    });
-    observer.observe(scrollEl, { attributes: true, attributeFilter: ["style", "class"] });
-  }
-  applyChange();
+function armPopupScrollGuard(scrollEl: HTMLElement) {
+  if (popupScrollGuardTargets.has(scrollEl)) return;
+  popupScrollGuardTargets.add(scrollEl);
+  let desired = scrollEl.scrollTop;
+  scrollEl.addEventListener("scroll", () => {
+    desired = scrollEl.scrollTop;
+  });
+  const observer = new MutationObserver(() => {
+    if (scrollEl.scrollTop !== desired) {
+      scrollEl.scrollTop = desired;
+    }
+  });
+  observer.observe(scrollEl, { attributes: true, attributeFilter: ["style", "class"] });
+}
+
+// ポップアップが開くたびに、その中の.leaflet-popup-contentへ
+// armPopupScrollGuardを仕込む
+function PopupScrollGuard() {
+  const map = useMap();
+  useEffect(() => {
+    function handlePopupOpen(e: L.LeafletEvent) {
+      const popupEvent = e as L.PopupEvent;
+      const container = popupEvent.popup.getElement();
+      const scrollEl = container?.querySelector(
+        ".leaflet-popup-content"
+      ) as HTMLElement | null;
+      if (scrollEl) armPopupScrollGuard(scrollEl);
+    }
+    map.on("popupopen", handlePopupOpen);
+    return () => {
+      map.off("popupopen", handlePopupOpen);
+    };
+  }, [map]);
+  return null;
 }
 
 // 編集部調べのテキストから簡易判定するヘルパー。バッジ表示と
@@ -1538,6 +1526,7 @@ export default function CafeMap() {
       <RecenterOnLocate position={mapFocus} />
       <MapBoundsTracker onChange={setMapBounds} />
       <ZoomTracker onChange={setMapZoom} />
+      <PopupScrollGuard />
       <AddCafeClickHandler
         active={isAddingCafe}
         onPick={(lat, lng) => setPendingCafeLocation({ lat, lng })}
@@ -1815,7 +1804,7 @@ export default function CafeMap() {
           icon={LANDMARK_ICONS[landmark.category]}
           interactive={false}
         >
-          {mapZoom >= 17 && (
+          {mapZoom >= 17 && landmark.category !== "traffic_signal" && (
             <Tooltip permanent direction="top" offset={[0, -28]} className="landmark-tooltip">
               {(() => {
                 const { primary, secondary } = splitLandmarkLabel(landmark.id, landmark.name);
@@ -2063,12 +2052,10 @@ export default function CafeMap() {
                       value={noteByCafe[cafe.id] ?? ""}
                       onChange={(e) => {
                         const value = e.target.value;
-                        withPopupScrollPreserved(e.target, () =>
-                          setNoteByCafe((prev) => ({
-                            ...prev,
-                            [cafe.id]: value,
-                          }))
-                        );
+                        setNoteByCafe((prev) => ({
+                          ...prev,
+                          [cafe.id]: value,
+                        }));
                       }}
                       placeholder="例: レジ横の窓側の席"
                       className="w-full text-sm border rounded px-2 py-0.5 sm:py-1"
@@ -2094,12 +2081,10 @@ export default function CafeMap() {
                         value={outletSeatCountByCafe[cafe.id] ?? ""}
                         onChange={(e) => {
                           const value = e.target.value;
-                          withPopupScrollPreserved(e.target, () =>
-                            setOutletSeatCountByCafe((prev) => ({
-                              ...prev,
-                              [cafe.id]: value,
-                            }))
-                          );
+                          setOutletSeatCountByCafe((prev) => ({
+                            ...prev,
+                            [cafe.id]: value,
+                          }));
                         }}
                         placeholder="例: 4"
                         className="w-full text-sm border rounded px-2 py-0.5 sm:py-1"
@@ -2157,12 +2142,10 @@ export default function CafeMap() {
                       value={seatCountByCafe[cafe.id] ?? ""}
                       onChange={(e) => {
                         const value = e.target.value;
-                        withPopupScrollPreserved(e.target, () =>
-                          setSeatCountByCafe((prev) => ({
-                            ...prev,
-                            [cafe.id]: value,
-                          }))
-                        );
+                        setSeatCountByCafe((prev) => ({
+                          ...prev,
+                          [cafe.id]: value,
+                        }));
                       }}
                       placeholder="例: 20"
                       className="w-full text-sm border rounded px-2 py-0.5 sm:py-1"
@@ -2193,7 +2176,7 @@ export default function CafeMap() {
                 )}
 
                 {cafe.smokingInfo && (
-                  <div className="text-[10px] sm:text-xs text-gray-400 text-right border-t pt-1">
+                  <div className="text-[10px] sm:text-xs text-gray-600 text-right border-t pt-1">
                     🚬 {cafe.smokingInfo}（ネット調べ）
                   </div>
                 )}

@@ -61,6 +61,20 @@ body {
   border-radius: 0 0 12px 12px;
 }
 
+/* ポップアップの閉じるボタン(×)が小さくてタップしにくいため、
+   タップ領域・見た目ともに大きくする */
+.leaflet-container a.leaflet-popup-close-button {
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 22px !important;
+  line-height: 32px !important;
+  color: #4b5563 !important;
+}
+.leaflet-container a.leaflet-popup-close-button:hover,
+.leaflet-container a.leaflet-popup-close-button:focus {
+  color: #1f2937 !important;
+}
+
 /* 目印(駅出口・有名な建物など)のラベル。カフェのピンの邪魔にならないよう
    常時ごく小さく・控えめに表示する */
 .landmark-tooltip {
