@@ -66,6 +66,10 @@ const dictionary = {
     "quickPick.button": "近くの空席候補",
     "quickPick.notFound": "近くに条件に合うお店が見つかりませんでした",
 
+    "favorites.share": "共有する",
+    "favorites.shareTitle": "お気に入りカフェ",
+    "favorites.copied": "リンクをコピーしました",
+
     "addCafe.button": "＋ お店を追加",
     "addCafe.tapHint": "地図をタップしてお店の場所を選んでください",
     "addCafe.title": "この場所にお店を追加",
@@ -148,6 +152,10 @@ const dictionary = {
 
     "quickPick.button": "Find nearby seat",
     "quickPick.notFound": "No matching cafes found nearby",
+
+    "favorites.share": "Share",
+    "favorites.shareTitle": "Favorite cafes",
+    "favorites.copied": "Link copied",
 
     "addCafe.button": "+ Add a cafe",
     "addCafe.tapHint": "Tap the map to choose the cafe's location",

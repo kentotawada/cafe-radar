@@ -1104,6 +1104,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
   const [reporterId] = useState<string>(() => getReporterId());
   const [favorites, setFavorites] = useState<Set<string>>(() => getFavorites());
+  const [shareStatus, setShareStatus] = useState<"idle" | "copied">("idle");
   const [outletFilter, setOutletFilter] = useState<OutletFilter>("any");
   const [seatingFilter, setSeatingFilter] = useState<AvailabilityFilter>("any");
   const [noiseFilter, setNoiseFilter] = useState<NoiseFilter>("any");
@@ -1924,6 +1925,24 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     }
   };
 
+  const handleShareFavorites = async () => {
+    if (favorites.size === 0) return;
+    const url = `${window.location.origin}/list?ids=${[...favorites].join(",")}`;
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ title: t("favorites.shareTitle"), url });
+      } catch {
+        // ユーザーが共有をキャンセルした場合は何もしない
+      }
+      return;
+    }
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(url);
+      setShareStatus("copied");
+      setTimeout(() => setShareStatus("idle"), 2500);
+    }
+  };
+
   return (
     <div className="cf-shell">
       {/* リストパネル。地図と常に同時に表示する。スマホでは下の固定高さの
@@ -2189,6 +2208,16 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                 />
                 <span>{t("filter.favoritesOnly")}</span>
               </label>
+              {favorites.size > 0 && (
+                <button
+                  onClick={handleShareFavorites}
+                  className="self-start text-blue-600 underline"
+                >
+                  {shareStatus === "copied"
+                    ? t("favorites.copied")
+                    : t("favorites.share")}
+                </button>
+              )}
             </div>
           )}
           {isFilterPanelOpen && filterHasMoreBelow && (
