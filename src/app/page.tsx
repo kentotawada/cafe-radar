@@ -14,17 +14,17 @@ export default function Home() {
 
   return (
     <div className="flex flex-col flex-1 h-screen">
-      <header className="border-b px-4 py-3">
-        <div className="flex items-start justify-between gap-3">
+      <header className="border-b px-3 py-1.5 sm:px-4 sm:py-3">
+        <div className="flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-lg md:text-2xl font-bold">カフェレーダー</h1>
-            <p className="text-xs md:text-sm text-gray-500">
+            <h1 className="text-base sm:text-lg md:text-2xl font-bold">カフェレーダー</h1>
+            <p className="hidden sm:block text-xs md:text-sm text-gray-500">
               カフェの混雑度・電源・Wi-Fiをリアルタイムでチェック
             </p>
           </div>
           <button
             onClick={() => setShowLegend((prev) => !prev)}
-            className="shrink-0 text-xs md:text-sm text-gray-600 border border-gray-300 rounded-full px-3 py-1 hover:bg-gray-50"
+            className="shrink-0 text-xs md:text-sm text-gray-600 border border-gray-300 rounded-full px-2.5 py-0.5 sm:px-3 sm:py-1 hover:bg-gray-50"
           >
             ピンの見方 {showLegend ? "▲" : "▼"}
           </button>
@@ -99,9 +99,15 @@ export default function Home() {
                 = 電源情報未確認
               </span>
             </div>
+            <Link
+              href="/privacy"
+              className="sm:hidden block text-xs text-gray-400 underline"
+            >
+              プライバシーポリシー
+            </Link>
           </div>
         )}
-        <div className="mt-1">
+        <div className="hidden sm:block mt-1">
           <Link href="/privacy" className="text-xs md:text-sm text-gray-400 underline">
             プライバシーポリシー
           </Link>

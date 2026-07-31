@@ -26,28 +26,50 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* 地図パネル(リストと並べて表示する分割ビュー用)。TailwindのJITが
-   なぜかsm:flex-1とsm:visible/invisibleを生成しないことがあったため、
-   手書きCSSで確実に効くようにする。スマホでは絶対配置でリストパネルと
-   領域を取り合い(visibility切り替え、display:noneにするとLeafletの
-   サイズ計算が壊れるため使わない)、PC(sm以上)では残り幅いっぱいの
-   通常のflex要素になり、常に表示する */
-.cf-map-panel {
+/* 地図とリストを常に同時に表示するレイアウト。TailwindのJITがなぜか
+   sm:flex-1やsm:visible/invisibleなど一部のクラスを生成しないことが
+   あったため、手書きCSSで確実に効くようにしている。
+   スマホ(縦画面): 上に地図、下に固定高さのリスト(フッター的な帯)。
+   PC/タブレット(sm以上、640px〜): 左にリストのサイドバー、右に地図。 */
+.cf-shell {
   position: absolute;
   inset: 0;
-}
-.cf-map-panel.cf-map-panel-hidden {
-  visibility: hidden;
+  display: flex;
+  flex-direction: column;
 }
 @media (min-width: 640px) {
-  .cf-map-panel {
-    position: relative;
-    inset: auto;
-    flex: 1 1 0%;
+  .cf-shell {
+    flex-direction: row;
   }
-  .cf-map-panel.cf-map-panel-hidden {
-    visibility: visible;
+}
+
+.cf-list-panel {
+  order: 2;
+  flex: 0 0 38vh;
+  min-height: 0;
+  overflow-y: auto;
+  background: #f9fafb;
+  border-top: 1px solid #d1d5db;
+}
+@media (min-width: 640px) {
+  .cf-list-panel {
+    order: 0;
+    flex: 0 0 20rem;
+    border-top: none;
+    border-right: 1px solid #d1d5db;
   }
+}
+@media (min-width: 768px) {
+  .cf-list-panel {
+    flex-basis: 24rem;
+  }
+}
+
+.cf-map-panel {
+  position: relative;
+  flex: 1 1 0%;
+  min-height: 0;
+  min-width: 0;
 }
 
 /* leaflet-map-paneはtransformでスタッキングコンテキストを作るため、

@@ -116,41 +116,48 @@ function getCafeUsageStyle(cafe: Cafe): CafeUsageStyle {
 // 表示サイズをviewBoxより小さく/大きくすることで、線の太さの比率を
 // 保ったまま全体を縮小・拡大する
 const CUP_PIN_DISPLAY_SIZE = 42;
-const CUP_PIN_SCALE = CUP_PIN_DISPLAY_SIZE / CUP_PIN_VIEWBOX;
+// リストで店舗をタップした時、地図上のどのピンかひと目でわかるように
+// 大きく表示するためのサイズ
+const CUP_PIN_HIGHLIGHT_SIZE = 66;
 
 function createCupPinIcon(
   statusColor: string,
   usageStyle: CafeUsageStyle,
-  showOutletPlug: boolean
+  showOutletPlug: boolean,
+  displaySize: number = CUP_PIN_DISPLAY_SIZE
 ) {
-  const html = cupPinSvgMarkup(statusColor, usageStyle, showOutletPlug, CUP_PIN_DISPLAY_SIZE);
+  const scale = displaySize / CUP_PIN_VIEWBOX;
+  const html = cupPinSvgMarkup(statusColor, usageStyle, showOutletPlug, displaySize);
   // アンカー(ピンの指す先端)は、プラグがあればプラグの先端、
   // 無ければカップの底(丸い台座)にする
   const anchorY = showOutletPlug ? 33 : 21;
   return L.divIcon({
     className: "",
     html,
-    iconSize: [CUP_PIN_DISPLAY_SIZE, CUP_PIN_DISPLAY_SIZE],
-    iconAnchor: [
-      Math.round(18 * CUP_PIN_SCALE),
-      Math.round(anchorY * CUP_PIN_SCALE),
-    ],
-    popupAnchor: [0, -Math.round((anchorY - 3) * CUP_PIN_SCALE)],
+    iconSize: [displaySize, displaySize],
+    iconAnchor: [Math.round(18 * scale), Math.round(anchorY * scale)],
+    popupAnchor: [0, -Math.round((anchorY - 3) * scale)],
   });
 }
 
-// (statusColor, usageStyle, showOutletPlug)の組み合わせごとにアイコンを
-// 作ると大量になるため、初回生成時にキャッシュしておく
+// (statusColor, usageStyle, showOutletPlug, highlighted)の組み合わせごとに
+// アイコンを作ると大量になるため、初回生成時にキャッシュしておく
 const cafePinIconCache = new Map<string, L.DivIcon>();
 function getCafePinIcon(
   statusColor: string,
   usageStyle: CafeUsageStyle,
-  showOutletPlug: boolean
+  showOutletPlug: boolean,
+  highlighted: boolean = false
 ) {
-  const key = `${statusColor}|${usageStyle}|${showOutletPlug}`;
+  const key = `${statusColor}|${usageStyle}|${showOutletPlug}|${highlighted}`;
   let icon = cafePinIconCache.get(key);
   if (!icon) {
-    icon = createCupPinIcon(statusColor, usageStyle, showOutletPlug);
+    icon = createCupPinIcon(
+      statusColor,
+      usageStyle,
+      showOutletPlug,
+      highlighted ? CUP_PIN_HIGHLIGHT_SIZE : CUP_PIN_DISPLAY_SIZE
+    );
     cafePinIconCache.set(key, icon);
   }
   return icon;
@@ -659,13 +666,15 @@ function statusColorForStats(stats: CafeStats | null) {
 function iconForCafe(
   cafe: Cafe,
   stats: CafeStats | null,
-  verifiedOutletCafeIds: Set<string>
+  verifiedOutletCafeIds: Set<string>,
+  highlighted: boolean = false
 ) {
   const statusColor = statusColorForStats(stats);
   return getCafePinIcon(
     statusColor,
     getCafeUsageStyle(cafe),
-    hasOutlet(cafe, verifiedOutletCafeIds)
+    hasOutlet(cafe, verifiedOutletCafeIds),
+    highlighted
   );
 }
 
@@ -1078,8 +1087,8 @@ export default function CafeMap() {
   const [isLocating, setIsLocating] = useState(false);
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
   const [mapZoom, setMapZoom] = useState(16);
-  const [viewMode, setViewMode] = useState<"map" | "list">("map");
   const [sortOrder, setSortOrder] = useState<SortOrder>("recommended");
+  const [selectedCafeId, setSelectedCafeId] = useState<string | null>(null);
 
   // エリア検索など、ユーザーが自分で地図の表示先を選んだ後に、
   // 遅れて返ってきた位置情報がそれを上書きしてしまわないようにする
@@ -1708,10 +1717,11 @@ export default function CafeMap() {
     return passesNonBoundsFilters(cafe);
   });
 
-  // リスト表示用: 地図で今見えているエリアの店舗(visibleCafesと同じ範囲)を
-  // 並び順に応じてソートする。全エリアを一度に出すと1000件超になり
-  // 実用的でないため、地図の表示範囲(エリア検索・現在地・パン)に連動させる
-  const listCafes = visibleCafes.slice();
+  // リスト表示用: エリア検索で絞り込んでいなくても店舗が表示されるよう、
+  // 地図の表示範囲(mapBounds)には連動させず、絞り込み条件を満たす
+  // 全エリアの店舗を対象にする。並び替え(特に現在地から近い順)で
+  // 使いやすくする
+  const listCafes = allCafes.filter(passesNonBoundsFilters).slice();
   if (sortOrder === "distance" && userPosition) {
     listCafes.sort(
       (a, b) =>
@@ -1752,26 +1762,14 @@ export default function CafeMap() {
   }
 
   return (
-    <div className="absolute inset-0 sm:flex sm:flex-row">
-      {/* スマホでは「リスト」表示中だけ全画面、PC(sm以上)では常に左サイドバーとして
-          地図と同時に表示する */}
-      <div
-        className={`absolute inset-0 sm:relative sm:inset-auto sm:w-80 md:w-96 sm:shrink-0 sm:border-r sm:border-gray-300 bg-gray-50 overflow-y-auto z-[900] ${
-          viewMode === "list" ? "block" : "hidden"
-        } sm:block`}
-      >
+    <div className="cf-shell">
+      {/* リストパネル。地図と常に同時に表示する。スマホでは下の固定高さの
+          帯、PC/タブレットでは左のサイドバー */}
+      <div className="cf-list-panel">
         <div className="sticky top-0 bg-gray-50 border-b border-gray-200 px-3 py-2 flex flex-col gap-1.5 z-10">
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-semibold text-gray-900">
-              {listCafes.length}件のお店
-            </span>
-            <button
-              onClick={() => setViewMode("map")}
-              className="sm:hidden text-xs font-semibold text-blue-600"
-            >
-              📍 地図に戻る
-            </button>
-          </div>
+          <span className="text-sm font-semibold text-gray-900">
+            {listCafes.length}件のお店
+          </span>
           <select
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value as SortOrder)}
@@ -1794,15 +1792,20 @@ export default function CafeMap() {
             const distance = userPosition
               ? distanceMeters(userPosition, [cafe.lat, cafe.lng])
               : null;
+            const isSelected = cafe.id === selectedCafeId;
             return (
               <button
                 key={cafe.id}
                 onClick={() => {
+                  setSelectedCafeId(cafe.id);
                   setMapFocus([cafe.lat, cafe.lng]);
                   hasManualFocusRef.current = true;
-                  setViewMode("map");
                 }}
-                className="text-left bg-white border border-gray-200 rounded-lg shadow-sm p-3 flex flex-col gap-1 hover:border-blue-300"
+                className={`text-left bg-white border rounded-lg shadow-sm p-3 flex flex-col gap-1 ${
+                  isSelected
+                    ? "border-blue-500 ring-2 ring-blue-200"
+                    : "border-gray-200 hover:border-blue-300"
+                }`}
               >
                 <div className="flex items-start gap-2">
                   <span
@@ -1843,21 +1846,8 @@ export default function CafeMap() {
         </div>
       </div>
 
-      {/* 地図パネル。スマホでは絶対配置でリストパネルと同じ領域を取り合い、
-          表示中(map)以外はvisibility:hiddenにする(display:noneにすると
-          Leafletのサイズ計算が崩れるため)。PC(sm以上)では通常のflex
-          レイアウトの一員(残り幅いっぱい)になり、常に表示する */}
-      <div
-        className={`cf-map-panel ${viewMode === "map" ? "" : "cf-map-panel-hidden"}`}
-      >
-        <div className="sm:hidden absolute top-2 left-1/2 -translate-x-1/2 z-[1000]">
-          <button
-            onClick={() => setViewMode("list")}
-            className="bg-white/95 rounded-full shadow border border-gray-300 text-xs font-semibold text-gray-700 px-3 py-1.5"
-          >
-            📋 リスト
-          </button>
-        </div>
+      {/* 地図パネル。常に表示し、残りのスペースいっぱいに広がる */}
+      <div className="cf-map-panel">
     <MapContainer
       center={mapFocus ?? SHINJUKU_CENTER}
       zoom={16}
@@ -2185,7 +2175,12 @@ export default function CafeMap() {
           <Marker
             key={cafe.id}
             position={[cafe.lat, cafe.lng]}
-            icon={iconForCafe(cafe, stats, verifiedOutletCafeIds)}
+            icon={iconForCafe(
+              cafe,
+              stats,
+              verifiedOutletCafeIds,
+              cafe.id === selectedCafeId
+            )}
           >
             <Popup minWidth={210} maxHeight={340}>
               <div className="flex flex-col gap-1 sm:gap-2 text-gray-900">
