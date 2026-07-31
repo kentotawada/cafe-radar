@@ -50,6 +50,32 @@ const STALE_MINUTES = 30;
 type NoiseFilter = "any" | "quietOnly" | "excludeLoud";
 type AvailabilityFilter = "any" | "available";
 type SmokingFilter = "any" | "nonSmokingOnly" | "smokingOk";
+type SortOrder = "recommended" | "distance" | "seats" | "occupancy" | "noise";
+
+// 2点間の距離をメートル単位で計算(近い順ソート用)
+function distanceMeters(
+  a: [number, number],
+  b: [number, number]
+): number {
+  const R = 6371000;
+  const dLat = ((b[0] - a[0]) * Math.PI) / 180;
+  const dLng = ((b[1] - a[1]) * Math.PI) / 180;
+  const lat1 = (a[0] * Math.PI) / 180;
+  const lat2 = (b[0] * Math.PI) / 180;
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+// 「全40席(カウンター15・テーブル15・テラス10)」のような編集部調べの
+// テキストから、先頭の数字を座席数の目安として取り出す(席数が多い順
+// ソート用)。数字が見つからなければnull
+function parseSeatCount(seatCountInfo: string | null | undefined): number | null {
+  if (!seatCountInfo) return null;
+  const match = seatCountInfo.match(/(\d+)\s*席/);
+  return match ? Number(match[1]) : null;
+}
 
 // お店の名前から「チェーン店(気軽・短時間利用)」「深夜/24時間営業
 // (夜間・早朝のノマド利用)」を推定する。それ以外は「コワーキング併設」
@@ -1052,6 +1078,8 @@ export default function CafeMap() {
   const [isLocating, setIsLocating] = useState(false);
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
   const [mapZoom, setMapZoom] = useState(16);
+  const [viewMode, setViewMode] = useState<"map" | "list">("map");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("recommended");
 
   // エリア検索など、ユーザーが自分で地図の表示先を選んだ後に、
   // 遅れて返ってきた位置情報がそれを上書きしてしまわないようにする
@@ -1637,11 +1665,9 @@ export default function CafeMap() {
     wifiFilter !== "any" ||
     favoritesOnly;
 
-  const visibleCafes = allCafes.filter((cafe) => {
+  // 絞り込み条件の判定(地図の表示範囲チェックは別途行うため、ここには含めない)
+  function passesNonBoundsFilters(cafe: Cafe): boolean {
     if (favoritesOnly && !favorites.has(cafe.id)) return false;
-    if (mapBounds && !mapBounds.pad(0.5).contains([cafe.lat, cafe.lng])) {
-      return false;
-    }
     const stats = statsByCafe[cafe.id];
     if (!isFiltering) return true;
     if (
@@ -1673,9 +1699,164 @@ export default function CafeMap() {
     if (smokingFilter === "smokingOk" && !isSmokingOk(cafe)) return false;
     if (wifiFilter === "available" && !hasWifi(cafe)) return false;
     return true;
+  }
+
+  const visibleCafes = allCafes.filter((cafe) => {
+    if (mapBounds && !mapBounds.pad(0.5).contains([cafe.lat, cafe.lng])) {
+      return false;
+    }
+    return passesNonBoundsFilters(cafe);
   });
 
+  // リスト表示用: 地図で今見えているエリアの店舗(visibleCafesと同じ範囲)を
+  // 並び順に応じてソートする。全エリアを一度に出すと1000件超になり
+  // 実用的でないため、地図の表示範囲(エリア検索・現在地・パン)に連動させる
+  const listCafes = visibleCafes.slice();
+  if (sortOrder === "distance" && userPosition) {
+    listCafes.sort(
+      (a, b) =>
+        distanceMeters(userPosition, [a.lat, a.lng]) -
+        distanceMeters(userPosition, [b.lat, b.lng])
+    );
+  } else if (sortOrder === "seats") {
+    listCafes.sort((a, b) => {
+      const seatsA = parseSeatCount(a.seatCountInfo) ?? -1;
+      const seatsB = parseSeatCount(b.seatCountInfo) ?? -1;
+      return seatsB - seatsA;
+    });
+  } else if (sortOrder === "occupancy") {
+    // 報告が無い店舗は「空いている」と決めつけられないため、常に最後に回す
+    listCafes.sort((a, b) => {
+      const statsA = statsByCafe[a.id];
+      const statsB = statsByCafe[b.id];
+      if (!statsA && !statsB) return 0;
+      if (!statsA) return 1;
+      if (!statsB) return -1;
+      return (
+        OCCUPANCY_SCORE[pickMajority(statsA.outletOccupancyCounts)] -
+        OCCUPANCY_SCORE[pickMajority(statsB.outletOccupancyCounts)]
+      );
+    });
+  } else if (sortOrder === "noise") {
+    listCafes.sort((a, b) => {
+      const statsA = statsByCafe[a.id];
+      const statsB = statsByCafe[b.id];
+      if (!statsA && !statsB) return 0;
+      if (!statsA) return 1;
+      if (!statsB) return -1;
+      return (
+        NOISE_SCORE[pickMajority(statsA.noiseCounts)] -
+        NOISE_SCORE[pickMajority(statsB.noiseCounts)]
+      );
+    });
+  }
+
   return (
+    <div style={{ position: "absolute", inset: 0 }}>
+      <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[1000] bg-white/95 rounded-full shadow border border-gray-300 flex items-center gap-1 px-1 py-1">
+        <button
+          onClick={() => setViewMode("map")}
+          className={`text-xs sm:text-sm font-semibold rounded-full px-3 py-1 ${
+            viewMode === "map" ? "bg-blue-600 text-white" : "text-gray-600"
+          }`}
+        >
+          📍 地図
+        </button>
+        <button
+          onClick={() => setViewMode("list")}
+          className={`text-xs sm:text-sm font-semibold rounded-full px-3 py-1 ${
+            viewMode === "list" ? "bg-blue-600 text-white" : "text-gray-600"
+          }`}
+        >
+          📋 リスト
+        </button>
+        {viewMode === "list" && (
+          <select
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+            className="text-xs sm:text-sm border border-gray-300 rounded-full pl-2 pr-1 py-1 bg-white text-gray-700"
+          >
+            <option value="recommended">おすすめ順</option>
+            <option value="distance" disabled={!userPosition}>
+              現在地から近い順{!userPosition ? "(現在地未取得)" : ""}
+            </option>
+            <option value="seats">席数が多い順</option>
+            <option value="occupancy">空いている順</option>
+            <option value="noise">静かな順</option>
+          </select>
+        )}
+      </div>
+
+      {viewMode === "list" && (
+        <div className="absolute inset-0 pt-14 pb-2 px-2 overflow-y-auto bg-gray-50 z-[900]">
+          <div className="max-w-lg mx-auto flex flex-col gap-2">
+            <p className="text-xs text-gray-500 px-1">
+              {listCafes.length}件のお店
+            </p>
+            {listCafes.map((cafe) => {
+              const stats = statsByCafe[cafe.id];
+              const statusColor = statusColorForStats(stats);
+              const badges = getQuickBadges(cafe, stats, verifiedOutletCafeIds);
+              const distance = userPosition
+                ? distanceMeters(userPosition, [cafe.lat, cafe.lng])
+                : null;
+              return (
+                <button
+                  key={cafe.id}
+                  onClick={() => {
+                    setMapFocus([cafe.lat, cafe.lng]);
+                    hasManualFocusRef.current = true;
+                    setViewMode("map");
+                  }}
+                  className="text-left bg-white border border-gray-200 rounded-lg shadow-sm p-3 flex flex-col gap-1 hover:border-blue-300"
+                >
+                  <div className="flex items-start gap-2">
+                    <span
+                      className="inline-block w-3 h-3 rounded-full border border-white shadow mt-1 shrink-0"
+                      style={{ backgroundColor: statusColor }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-sm text-gray-900">
+                        {cafe.name}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {cafe.address ?? "住所未登録"}
+                      </div>
+                    </div>
+                    {distance !== null && (
+                      <div className="text-xs text-gray-500 shrink-0">
+                        {distance < 1000
+                          ? `${Math.round(distance)}m`
+                          : `${(distance / 1000).toFixed(1)}km`}
+                      </div>
+                    )}
+                  </div>
+                  {badges.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {badges.map((badge) => (
+                        <span
+                          key={badge.key}
+                          className={`text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full ${badge.className}`}
+                        >
+                          {badge.emoji} {badge.label}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          visibility: viewMode === "map" ? "visible" : "hidden",
+        }}
+      >
     <MapContainer
       center={mapFocus ?? SHINJUKU_CENTER}
       zoom={16}
@@ -2397,5 +2578,7 @@ export default function CafeMap() {
         );
       })}
     </MapContainer>
+      </div>
+    </div>
   );
 }
