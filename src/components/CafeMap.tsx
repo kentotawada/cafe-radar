@@ -771,7 +771,7 @@ function AttributionInfoButton() {
         onClick={() => setOpen(true)}
         aria-label="このサイトについて"
         title="このサイトについて"
-        className="bg-white/90 rounded-full shadow border border-gray-300 w-6 h-6 flex items-center justify-center text-xs font-semibold text-gray-600 cursor-pointer"
+        className="bg-white/90 rounded-full shadow border border-gray-300 w-8 h-8 flex items-center justify-center text-sm font-semibold text-gray-600 cursor-pointer"
       >
         i
       </button>
@@ -870,9 +870,9 @@ function InquiryButton() {
         onClick={() => setOpen(true)}
         aria-label="お問い合わせ"
         title="お問い合わせ"
-        className="bg-white/90 rounded-full shadow border border-gray-300 w-6 h-6 flex items-center justify-center text-xs font-semibold text-gray-600 cursor-pointer"
+        className="bg-white/90 rounded-full shadow border border-gray-300 h-8 px-3 flex items-center gap-1 text-xs sm:text-sm font-semibold text-gray-700 cursor-pointer"
       >
-        ✉
+        ✉ お問い合わせ
       </button>
       {open &&
         createPortal(
@@ -1016,9 +1016,6 @@ export default function CafeMap() {
   const [seatCountByCafe, setSeatCountByCafe] = useState<Record<string, string>>({});
   const [outletSeatCountByCafe, setOutletSeatCountByCafe] = useState<
     Record<string, string>
-  >({});
-  const [infoCorrectionOpenByCafe, setInfoCorrectionOpenByCafe] = useState<
-    Record<string, boolean>
   >({});
   const [infoCorrectionByCafe, setInfoCorrectionByCafe] = useState<
     Record<string, string>
@@ -2195,48 +2192,46 @@ export default function CafeMap() {
                     <div className="text-[11px] sm:text-sm text-green-700">
                       ✓ ご報告ありがとうございます
                     </div>
-                  ) : infoCorrectionOpenByCafe[cafe.id] ? (
-                    <div className="flex flex-col gap-1">
-                      <div className="text-[11px] sm:text-sm text-gray-500">
-                        店舗情報が実際と違う場合はこちらにご記入ください
-                      </div>
-                      <textarea
-                        value={infoCorrectionByCafe[cafe.id] ?? ""}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setInfoCorrectionByCafe((prev) => ({
-                            ...prev,
-                            [cafe.id]: value,
-                          }));
-                        }}
-                        maxLength={300}
-                        rows={2}
-                        placeholder="例: 喫煙席と書かれているが実際は全席禁煙だった"
-                        className="border border-gray-400 rounded px-2 py-1 text-sm text-gray-900 bg-white resize-none"
-                      />
-                      <button
-                        disabled={
-                          submitting === cafe.id ||
-                          !infoCorrectionByCafe[cafe.id]?.trim()
-                        }
-                        onClick={() => submitInfoCorrection(cafe.id)}
-                        className="self-start px-2 py-1 text-xs sm:text-sm rounded bg-blue-100 hover:bg-blue-200 disabled:opacity-50"
-                      >
-                        送信する
-                      </button>
-                    </div>
                   ) : (
-                    <button
-                      onClick={() =>
-                        setInfoCorrectionOpenByCafe((prev) => ({
-                          ...prev,
-                          [cafe.id]: true,
-                        }))
-                      }
-                      className="self-start text-[11px] sm:text-sm text-gray-400 underline"
-                    >
-                      😕 店舗情報が実際と違う場合はこちら
-                    </button>
+                    // React stateでの開閉切り替えだと、ポップアップの中身(children)が
+                    // 変わるたびにLeafletのpopup.update()が呼ばれ、その中で一瞬
+                    // visibility:hiddenにされるため、ポップアップが一瞬消えて見える
+                    // 問題があった。<details>のネイティブな開閉はReactの再描画を
+                    // 一切発生させないため、この問題が起きない
+                    <details className="flex flex-col gap-1">
+                      <summary className="text-[11px] sm:text-sm text-gray-400 underline cursor-pointer">
+                        😕 店舗情報が実際と違う場合はこちら
+                      </summary>
+                      <div className="flex flex-col gap-1 mt-1">
+                        <div className="text-[11px] sm:text-sm text-gray-500">
+                          店舗情報が実際と違う場合はこちらにご記入ください
+                        </div>
+                        <textarea
+                          value={infoCorrectionByCafe[cafe.id] ?? ""}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setInfoCorrectionByCafe((prev) => ({
+                              ...prev,
+                              [cafe.id]: value,
+                            }));
+                          }}
+                          maxLength={300}
+                          rows={2}
+                          placeholder="例: 喫煙席と書かれているが実際は全席禁煙だった"
+                          className="border border-gray-400 rounded px-2 py-1 text-sm text-gray-900 bg-white resize-none"
+                        />
+                        <button
+                          disabled={
+                            submitting === cafe.id ||
+                            !infoCorrectionByCafe[cafe.id]?.trim()
+                          }
+                          onClick={() => submitInfoCorrection(cafe.id)}
+                          className="self-start px-2 py-1 text-xs sm:text-sm rounded bg-blue-100 hover:bg-blue-200 disabled:opacity-50"
+                        >
+                          送信する
+                        </button>
+                      </div>
+                    </details>
                   )}
                 </div>
 
