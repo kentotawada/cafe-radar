@@ -17,7 +17,7 @@ export default function Home() {
       <header className="border-b px-4 py-3">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h1 className="text-lg md:text-2xl font-bold">ノマドカフェレーダー</h1>
+            <h1 className="text-lg md:text-2xl font-bold">カフェレーダー</h1>
             <p className="text-xs md:text-sm text-gray-500">
               カフェの混雑度・電源・Wi-Fiをリアルタイムでチェック
             </p>

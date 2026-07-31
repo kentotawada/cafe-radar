@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ノマドカフェレーダー",
-  description: "電源とうるささをその場にいる人同士でリアルタイムに共有",
+  title: "カフェレーダー",
+  description: "カフェの混雑度・電源・Wi-Fiをリアルタイムでチェック",
 };
 
 export default function RootLayout({
