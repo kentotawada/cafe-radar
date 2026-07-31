@@ -1145,6 +1145,8 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   const [reporterId] = useState<string>(() => getReporterId());
   const [favorites, setFavorites] = useState<Set<string>>(() => getFavorites());
   const [shareStatus, setShareStatus] = useState<"idle" | "copied">("idle");
+  const [isReportFabOpen, setIsReportFabOpen] = useState(false);
+  const [reportFabMessage, setReportFabMessage] = useState<string | null>(null);
   const [outletFilter, setOutletFilter] = useState<OutletFilter>("any");
   const [seatingFilter, setSeatingFilter] = useState<AvailabilityFilter>("any");
   const [noiseFilter, setNoiseFilter] = useState<NoiseFilter>("any");
@@ -1205,6 +1207,9 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   // エリア検索など、ユーザーが自分で地図の表示先を選んだ後に、
   // 遅れて返ってきた位置情報がそれを上書きしてしまわないようにする
   const hasManualFocusRef = useRef(false);
+  // 現在地が取れたら自動で「近い順」にするが、ユーザーが自分で並び順を
+  // 変えた後はそれを尊重して上書きしない
+  const hasManualSortRef = useRef(false);
 
   const locateMe = (onSuccess?: (position: [number, number]) => void) => {
     if (!("geolocation" in navigator)) {
@@ -1223,6 +1228,9 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
         setMapFocus(position);
         hasManualFocusRef.current = true;
         setIsLocating(false);
+        if (!hasManualSortRef.current) {
+          setSortOrder("distance");
+        }
         onSuccess?.(position);
       },
       (err) => {
@@ -1250,6 +1258,9 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
         ];
         setUserPosition(position);
         setMapFocus(position);
+        if (!hasManualSortRef.current) {
+          setSortOrder("distance");
+        }
       },
       () => {
         // 取得できなくても地図はデフォルト位置のまま表示する
@@ -1973,6 +1984,55 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     }
   };
 
+  // 「選んでいるお店」がなければ、現在地から一番近いお店を対象にする
+  function resolveQuickReportTarget(): Cafe | null {
+    if (selectedCafeId) {
+      const selected = allCafes.find((cafe) => cafe.id === selectedCafeId);
+      if (selected) return selected;
+    }
+    if (userPosition) {
+      let nearest: Cafe | null = null;
+      let nearestDist = Infinity;
+      for (const cafe of allCafes) {
+        const d = distanceMeters(userPosition, [cafe.lat, cafe.lng]);
+        if (d < nearestDist) {
+          nearestDist = d;
+          nearest = cafe;
+        }
+      }
+      return nearest;
+    }
+    return null;
+  }
+
+  const quickReport = async (kind: "available" | "full" | "outletOk") => {
+    const target = resolveQuickReportTarget();
+    if (!target) {
+      setReportFabMessage(t("quickReport.noTarget"));
+      setTimeout(() => setReportFabMessage(null), 2500);
+      return;
+    }
+    const prior = myReportByCafe[target.id];
+    if (kind === "available") {
+      await submitReport(target.id, "empty", "empty", prior?.noise_level ?? "normal");
+    } else if (kind === "full") {
+      await submitReport(target.id, "full", "full", prior?.noise_level ?? "normal");
+    } else {
+      await submitReport(
+        target.id,
+        "empty",
+        prior?.seating_occupancy ?? "empty",
+        prior?.noise_level ?? "normal"
+      );
+    }
+    setSelectedCafeId(target.id);
+    setMapFocus([target.lat, target.lng]);
+    hasManualFocusRef.current = true;
+    setIsReportFabOpen(false);
+    setReportFabMessage(t("quickReport.sent").replace("{name}", target.name));
+    setTimeout(() => setReportFabMessage(null), 3000);
+  };
+
   const handleShareFavorites = async () => {
     if (favorites.size === 0) return;
     const url = `${window.location.origin}/list?ids=${[...favorites].join(",")}`;
@@ -2023,7 +2083,10 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
               </select>
               <select
                 value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value as SortOrder)}
+                onChange={(e) => {
+                  hasManualSortRef.current = true;
+                  setSortOrder(e.target.value as SortOrder);
+                }}
                 className="text-xs sm:text-sm border border-gray-300 rounded px-2 py-1 bg-white text-gray-700"
               >
                 <option value="recommended">{t("list.sortRecommended")}</option>
@@ -2302,6 +2365,53 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
               </button>
             </div>
           )}
+          {reportFabMessage && (
+            <div className="bg-white text-xs text-blue-700 rounded shadow-lg border border-gray-300 px-2 py-1.5 max-w-[260px] leading-relaxed">
+              {reportFabMessage}
+            </div>
+          )}
+          {isReportFabOpen && (
+            <div className="bg-white rounded-lg shadow-lg border border-gray-300 p-2 flex flex-col gap-1 w-44">
+              <div className="text-[11px] text-gray-500 px-1">
+                {(() => {
+                  const target = resolveQuickReportTarget();
+                  return target ? target.name : t("quickReport.noTarget");
+                })()}
+              </div>
+              <button
+                onClick={() => quickReport("available")}
+                className="text-left text-xs sm:text-sm rounded px-2 py-1.5 bg-green-50 hover:bg-green-100 text-green-800 font-semibold"
+              >
+                😊 {t("quickReport.available")}
+              </button>
+              <button
+                onClick={() => quickReport("full")}
+                className="text-left text-xs sm:text-sm rounded px-2 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-800 font-semibold"
+              >
+                😣 {t("quickReport.full")}
+              </button>
+              <button
+                onClick={() => quickReport("outletOk")}
+                className="text-left text-xs sm:text-sm rounded px-2 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold"
+              >
+                🔌 {t("quickReport.outletOk")}
+              </button>
+              <button
+                onClick={() => setIsReportFabOpen(false)}
+                className="text-center text-xs text-gray-400 hover:text-gray-600 mt-0.5"
+              >
+                {t("quickReport.close")}
+              </button>
+            </div>
+          )}
+          <button
+            onClick={() => setIsReportFabOpen((prev) => !prev)}
+            className="bg-white rounded-full shadow-lg border border-gray-300 w-10 h-10 flex items-center justify-center text-lg"
+            aria-label={t("quickReport.fab")}
+            title={t("quickReport.fab")}
+          >
+            📢
+          </button>
           <button
             onClick={handleQuickPick}
             disabled={isLocating}

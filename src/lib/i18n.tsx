@@ -70,6 +70,14 @@ const dictionary = {
     "favorites.shareTitle": "お気に入りカフェ",
     "favorites.copied": "リンクをコピーしました",
 
+    "quickReport.fab": "投稿する",
+    "quickReport.available": "空いている",
+    "quickReport.full": "混んでいる",
+    "quickReport.outletOk": "電源使えた",
+    "quickReport.close": "閉じる",
+    "quickReport.noTarget": "お店を選んでください",
+    "quickReport.sent": "{name} に送信しました",
+
     "addCafe.button": "＋ お店を追加",
     "addCafe.tapHint": "地図をタップしてお店の場所を選んでください",
     "addCafe.title": "この場所にお店を追加",
@@ -156,6 +164,14 @@ const dictionary = {
     "favorites.share": "Share",
     "favorites.shareTitle": "Favorite cafes",
     "favorites.copied": "Link copied",
+
+    "quickReport.fab": "Report",
+    "quickReport.available": "Seats available",
+    "quickReport.full": "Crowded",
+    "quickReport.outletOk": "Outlet works",
+    "quickReport.close": "Close",
+    "quickReport.noTarget": "Select a cafe first",
+    "quickReport.sent": "Sent for {name}",
 
     "addCafe.button": "+ Add a cafe",
     "addCafe.tapHint": "Tap the map to choose the cafe's location",
