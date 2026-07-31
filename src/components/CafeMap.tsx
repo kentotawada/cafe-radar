@@ -50,6 +50,7 @@ const STALE_MINUTES = 30;
 
 type NoiseFilter = "any" | "quietOnly" | "excludeLoud";
 type AvailabilityFilter = "any" | "available";
+type OutletFilter = "any" | "available" | "plentyOutlets";
 type SmokingFilter = "any" | "nonSmokingOnly" | "smokingOk";
 type SortOrder = "recommended" | "distance" | "seats" | "occupancy" | "noise";
 
@@ -1103,7 +1104,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
   const [reporterId] = useState<string>(() => getReporterId());
   const [favorites, setFavorites] = useState<Set<string>>(() => getFavorites());
-  const [outletFilter, setOutletFilter] = useState<AvailabilityFilter>("any");
+  const [outletFilter, setOutletFilter] = useState<OutletFilter>("any");
   const [seatingFilter, setSeatingFilter] = useState<AvailabilityFilter>("any");
   const [noiseFilter, setNoiseFilter] = useState<NoiseFilter>("any");
   const [smokingFilter, setSmokingFilter] = useState<SmokingFilter>("any");
@@ -1124,6 +1125,10 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   };
   const [locateError, setLocateError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [quickPickError, setQuickPickError] = useState<string | null>(null);
+  // リスト内で該当のお店のカードまでスクロールするために、カードのDOM要素を
+  // 覚えておく(件数が多いのでrefはstateではなくMapで管理する)
+  const listItemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
   const [mapZoom, setMapZoom] = useState(16);
   const [sortOrder, setSortOrder] = useState<SortOrder>("recommended");
@@ -1160,7 +1165,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   // 遅れて返ってきた位置情報がそれを上書きしてしまわないようにする
   const hasManualFocusRef = useRef(false);
 
-  const locateMe = () => {
+  const locateMe = (onSuccess?: (position: [number, number]) => void) => {
     if (!("geolocation" in navigator)) {
       setLocateError("この端末・ブラウザでは現在地を取得できません");
       return;
@@ -1177,6 +1182,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
         setMapFocus(position);
         hasManualFocusRef.current = true;
         setIsLocating(false);
+        onSuccess?.(position);
       },
       (err) => {
         setLocateError(
@@ -1739,6 +1745,24 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     );
   }
 
+  // みんなが投稿した「席数」「電源席数」の目安から、電源席の割合を
+  // 概算する(投稿が両方揃っていない店舗はnullを返し、絞り込み対象外にする)
+  function outletSeatRatio(cafe: Cafe): number | null {
+    const facts = factsByCafe[cafe.id] ?? [];
+    const seatCountMedian = median(
+      dedupeByReporter(facts.filter((f) => f.seat_count != null)).map(
+        (f) => f.seat_count as number
+      )
+    );
+    const outletSeatCountMedian = median(
+      dedupeByReporter(facts.filter((f) => f.outlet_seat_count != null)).map(
+        (f) => f.outlet_seat_count as number
+      )
+    );
+    if (!seatCountMedian || outletSeatCountMedian === null) return null;
+    return outletSeatCountMedian / seatCountMedian;
+  }
+
   const allCafes = [...seedCafes, ...dynamicCafes].filter(
     (cafe) => !dynamicCafeIds.has(cafe.id) || distinctFlagCount(cafe.id) < FLAG_HIDE_THRESHOLD
   );
@@ -1765,7 +1789,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     const stats = statsByCafe[cafe.id];
     if (!isFiltering) return true;
     if (
-      (outletFilter !== "any" || seatingFilter !== "any" || noiseFilter !== "any") &&
+      (outletFilter === "available" || seatingFilter !== "any" || noiseFilter !== "any") &&
       !stats
     ) {
       return false;
@@ -1776,6 +1800,10 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
       pickMajority(stats.outletOccupancyCounts) === "full"
     ) {
       return false;
+    }
+    if (outletFilter === "plentyOutlets") {
+      const ratio = outletSeatRatio(cafe);
+      if (ratio === null || ratio < 0.5) return false;
     }
     if (
       seatingFilter === "available" &&
@@ -1848,6 +1876,54 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     });
   }
 
+  // 「現在地からすぐ行ける、空いてそうなお店」を1タップで探す機能。
+  // 現在の絞り込み条件は尊重しつつ、徒歩圏内(1.2km以内)で「満席」と
+  // 報告されている店舗は後回しにし、一番近い店舗を選ぶ
+  const runQuickPick = (position: [number, number]) => {
+    const candidates = allCafes
+      .filter(passesNonBoundsFilters)
+      .map((cafe) => ({
+        cafe,
+        distance: distanceMeters(position, [cafe.lat, cafe.lng]),
+      }))
+      .filter((entry) => entry.distance <= 1200);
+
+    if (candidates.length === 0) {
+      setQuickPickError(t("quickPick.notFound"));
+      return;
+    }
+
+    candidates.sort((a, b) => {
+      const statsA = statsByCafe[a.cafe.id];
+      const statsB = statsByCafe[b.cafe.id];
+      const aFull = !!statsA && pickMajority(statsA.outletOccupancyCounts) === "full";
+      const bFull = !!statsB && pickMajority(statsB.outletOccupancyCounts) === "full";
+      if (aFull !== bFull) return aFull ? 1 : -1;
+      return a.distance - b.distance;
+    });
+
+    const best = candidates[0].cafe;
+    setQuickPickError(null);
+    setSortOrder("distance");
+    setSelectedCafeId(best.id);
+    setMapFocus([best.lat, best.lng]);
+    hasManualFocusRef.current = true;
+    setIsListPanelOpen(true);
+    setTimeout(() => {
+      listItemRefs.current
+        .get(best.id)
+        ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }, 50);
+  };
+
+  const handleQuickPick = () => {
+    if (userPosition) {
+      runQuickPick(userPosition);
+    } else {
+      locateMe((position) => runQuickPick(position));
+    }
+  };
+
   return (
     <div className="cf-shell">
       {/* リストパネル。地図と常に同時に表示する。スマホでは下の固定高さの
@@ -1908,6 +1984,10 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
             return (
               <button
                 key={cafe.id}
+                ref={(el) => {
+                  if (el) listItemRefs.current.set(cafe.id, el);
+                  else listItemRefs.current.delete(cafe.id);
+                }}
                 onClick={() => {
                   setSelectedCafeId(cafe.id);
                   setMapFocus([cafe.lat, cafe.lng]);
@@ -2039,12 +2119,13 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                 <select
                   value={outletFilter}
                   onChange={(e) =>
-                    setOutletFilter(e.target.value as AvailabilityFilter)
+                    setOutletFilter(e.target.value as OutletFilter)
                   }
                   className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-sm text-gray-900 bg-white w-full"
                 >
                   <option value="any">{t("filter.any")}</option>
                   <option value="available">{t("filter.availableOnly")}</option>
+                  <option value="plentyOutlets">{t("filter.plentyOutlets")}</option>
                 </select>
               </label>
               <label className="flex flex-col gap-0.5 sm:gap-1">
@@ -2125,8 +2206,20 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
               {locateError}
             </div>
           )}
+          {quickPickError && (
+            <div className="bg-white text-xs text-red-600 rounded shadow-lg border border-gray-300 px-2 py-1.5 max-w-[260px] leading-relaxed">
+              {quickPickError}
+            </div>
+          )}
           <button
-            onClick={locateMe}
+            onClick={handleQuickPick}
+            disabled={isLocating}
+            className="bg-white rounded-full shadow-lg border border-gray-300 h-9 sm:h-10 px-3 flex items-center gap-1 text-xs sm:text-sm font-semibold text-gray-900 disabled:opacity-50"
+          >
+            📍 {t("quickPick.button")}
+          </button>
+          <button
+            onClick={() => locateMe()}
             disabled={isLocating}
             aria-label="現在地に戻る"
             title="現在地に戻る"

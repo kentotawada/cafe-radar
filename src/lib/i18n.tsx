@@ -42,6 +42,7 @@ const dictionary = {
     "filter.wifi": "Wi-Fi",
     "filter.any": "すべて",
     "filter.availableOnly": "空きありのみ",
+    "filter.plentyOutlets": "電源席多め(半数以上)",
     "filter.wifiAvailableOnly": "Wi-Fiありのみ",
     "filter.noiseAny": "こだわらない",
     "filter.quietOnly": "静かな店のみ",
@@ -61,6 +62,9 @@ const dictionary = {
     "list.sortOccupancy": "空いている順",
     "list.sortNoise": "静かな順",
     "list.noAddress": "住所未登録",
+
+    "quickPick.button": "近くの空席候補",
+    "quickPick.notFound": "近くに条件に合うお店が見つかりませんでした",
 
     "addCafe.button": "＋ お店を追加",
     "addCafe.tapHint": "地図をタップしてお店の場所を選んでください",
@@ -121,6 +125,7 @@ const dictionary = {
     "filter.wifi": "Wi-Fi",
     "filter.any": "Any",
     "filter.availableOnly": "Available only",
+    "filter.plentyOutlets": "Mostly outlet seats (50%+)",
     "filter.wifiAvailableOnly": "Wi-Fi available only",
     "filter.noiseAny": "No preference",
     "filter.quietOnly": "Quiet places only",
@@ -140,6 +145,9 @@ const dictionary = {
     "list.sortOccupancy": "Least crowded",
     "list.sortNoise": "Quietest",
     "list.noAddress": "No address on file",
+
+    "quickPick.button": "Find nearby seat",
+    "quickPick.notFound": "No matching cafes found nearby",
 
     "addCafe.button": "+ Add a cafe",
     "addCafe.tapHint": "Tap the map to choose the cafe's location",
