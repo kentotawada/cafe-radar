@@ -36,6 +36,23 @@ export type CafeFlag = {
   created_at: string;
 };
 
+// 店舗情報(喫煙・電源・Wi-Fi等の編集部調べ情報)が実際と違うという指摘報告
+export type InfoCorrection = {
+  id: string;
+  cafe_id: string;
+  reporter_id: string | null;
+  message: string;
+  created_at: string;
+};
+
+// 店舗に紐づかない、アプリ全体へのお問い合わせ
+export type Inquiry = {
+  id: string;
+  reporter_id: string | null;
+  message: string;
+  created_at: string;
+};
+
 export type CafeStats = {
   totalReporters: number;
   outletOccupancyCounts: Record<OccupancyLevel, number>;

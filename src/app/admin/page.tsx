@@ -5,7 +5,7 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { seedCafes, type Cafe } from "@/lib/seedCafes";
 import { hasOutlet } from "@/lib/cafeAmenities";
-import type { CafeFact, CafeFlag, Report } from "@/lib/types";
+import type { CafeFact, CafeFlag, InfoCorrection, Inquiry, Report } from "@/lib/types";
 
 const FLAG_HIDE_THRESHOLD = 3;
 
@@ -19,6 +19,11 @@ type Row = {
 type OutletReportRow = {
   cafe: Cafe;
   notes: string[];
+};
+
+type InfoCorrectionRow = {
+  correction: InfoCorrection;
+  cafeName: string;
 };
 
 function formatDateTime(iso: string | undefined): string {
@@ -107,6 +112,12 @@ export default function AdminPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [outletReports, setOutletReports] = useState<OutletReportRow[] | null>(null);
   const [busyOutletCafeId, setBusyOutletCafeId] = useState<string | null>(null);
+  const [infoCorrections, setInfoCorrections] = useState<InfoCorrectionRow[] | null>(
+    null
+  );
+  const [busyCorrectionId, setBusyCorrectionId] = useState<string | null>(null);
+  const [inquiries, setInquiries] = useState<Inquiry[] | null>(null);
+  const [busyInquiryId, setBusyInquiryId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!supabase) return;
@@ -238,6 +249,86 @@ export default function AdminPage() {
     loadOutletReports();
   };
 
+  // 店舗情報(喫煙・電源・Wi-Fi等)が実際と違うという指摘報告の一覧
+  const fetchInfoCorrections = async (): Promise<InfoCorrectionRow[] | null> => {
+    if (!supabase) return null;
+
+    const [correctionsRes, dynamicCafesRes] = await Promise.all([
+      supabase.from("info_corrections").select("*").order("created_at", { ascending: false }),
+      supabase.from("cafes").select("*"),
+    ]);
+
+    if (correctionsRes.error || dynamicCafesRes.error) {
+      console.error(correctionsRes.error ?? dynamicCafesRes.error);
+      return null;
+    }
+
+    const allCafes: Cafe[] = [
+      ...seedCafes,
+      ...((dynamicCafesRes.data as Cafe[] | null) ?? []),
+    ];
+    const cafesById = new Map(allCafes.map((cafe) => [cafe.id, cafe]));
+
+    return ((correctionsRes.data as InfoCorrection[] | null) ?? []).map(
+      (correction) => ({
+        correction,
+        cafeName: cafesById.get(correction.cafe_id)?.name ?? "(店舗不明)",
+      })
+    );
+  };
+
+  const loadInfoCorrections = async () => {
+    const computed = await fetchInfoCorrections();
+    if (computed !== null) setInfoCorrections(computed);
+  };
+
+  const resolveInfoCorrection = async (id: string) => {
+    if (!supabase) return;
+    setBusyCorrectionId(id);
+    setActionError(null);
+    const { error } = await supabase.from("info_corrections").delete().eq("id", id);
+    setBusyCorrectionId(null);
+    if (error) {
+      console.error(error);
+      setActionError("対応済みへの更新に失敗しました");
+      return;
+    }
+    loadInfoCorrections();
+  };
+
+  // 店舗に紐づかない、アプリ全体へのお問い合わせ一覧
+  const fetchInquiries = async (): Promise<Inquiry[] | null> => {
+    if (!supabase) return null;
+    const { data, error } = await supabase
+      .from("inquiries")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error(error);
+      return null;
+    }
+    return (data as Inquiry[]) ?? [];
+  };
+
+  const loadInquiries = async () => {
+    const computed = await fetchInquiries();
+    if (computed !== null) setInquiries(computed);
+  };
+
+  const resolveInquiry = async (id: string) => {
+    if (!supabase) return;
+    setBusyInquiryId(id);
+    setActionError(null);
+    const { error } = await supabase.from("inquiries").delete().eq("id", id);
+    setBusyInquiryId(null);
+    if (error) {
+      console.error(error);
+      setActionError("対応済みへの更新に失敗しました");
+      return;
+    }
+    loadInquiries();
+  };
+
   useEffect(() => {
     if (!session) return;
     fetchRows().then((computed) => {
@@ -249,6 +340,12 @@ export default function AdminPage() {
     });
     fetchOutletReports().then((computed) => {
       if (computed !== null) setOutletReports(computed);
+    });
+    fetchInfoCorrections().then((computed) => {
+      if (computed !== null) setInfoCorrections(computed);
+    });
+    fetchInquiries().then((computed) => {
+      if (computed !== null) setInquiries(computed);
     });
   }, [session]);
 
@@ -387,6 +484,83 @@ export default function AdminPage() {
                         className="text-xs bg-blue-50 text-blue-800 border border-blue-300 rounded px-2 py-1 hover:bg-blue-100 disabled:opacity-50"
                       >
                         🔌 電源ありとして承認
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
+
+        {infoCorrections !== null && (
+          <section className="mb-8">
+            <h2 className="font-semibold text-gray-900 mb-2">
+              店舗情報の間違いの報告（{infoCorrections.length}件）
+            </h2>
+            <p className="text-xs text-gray-600 mb-3">
+              喫煙・電源・Wi-Fi等の編集部調べ情報が実際と違うという指摘です。内容を確認し、該当する店舗データを修正したら「対応済みにする」を押してください。
+            </p>
+            {infoCorrections.length === 0 ? (
+              <p className="text-sm text-gray-500">報告はありません</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {infoCorrections.map(({ correction, cafeName }) => (
+                  <li
+                    key={correction.id}
+                    className="bg-white border border-amber-200 rounded-lg shadow-sm p-3 flex flex-col gap-1"
+                  >
+                    <div className="font-medium text-gray-900">{cafeName}</div>
+                    <div className="text-xs text-gray-400">
+                      ID: {correction.cafe_id}　／　{formatDateTime(correction.created_at)}
+                    </div>
+                    <div className="text-sm text-gray-700">{correction.message}</div>
+                    <div className="mt-1">
+                      <button
+                        disabled={busyCorrectionId === correction.id}
+                        onClick={() => resolveInfoCorrection(correction.id)}
+                        className="text-xs bg-green-50 text-green-800 border border-green-300 rounded px-2 py-1 hover:bg-green-100 disabled:opacity-50"
+                      >
+                        対応済みにする
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
+
+        {inquiries !== null && (
+          <section className="mb-8">
+            <h2 className="font-semibold text-gray-900 mb-2">
+              お問い合わせ（{inquiries.length}件）
+            </h2>
+            <p className="text-xs text-gray-600 mb-3">
+              店舗に紐づかない、アプリ全体へのお問い合わせです。
+            </p>
+            {inquiries.length === 0 ? (
+              <p className="text-sm text-gray-500">お問い合わせはありません</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {inquiries.map((inquiry) => (
+                  <li
+                    key={inquiry.id}
+                    className="bg-white border border-gray-300 rounded-lg shadow-sm p-3 flex flex-col gap-1"
+                  >
+                    <div className="text-xs text-gray-400">
+                      {formatDateTime(inquiry.created_at)}
+                    </div>
+                    <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                      {inquiry.message}
+                    </div>
+                    <div className="mt-1">
+                      <button
+                        disabled={busyInquiryId === inquiry.id}
+                        onClick={() => resolveInquiry(inquiry.id)}
+                        className="text-xs bg-green-50 text-green-800 border border-green-300 rounded px-2 py-1 hover:bg-green-100 disabled:opacity-50"
+                      >
+                        対応済みにする
                       </button>
                     </div>
                   </li>

@@ -829,6 +829,109 @@ function AttributionInfoButton() {
   );
 }
 
+// お店に紐づかない、アプリ全体へのお問い合わせフォーム。管理画面から
+// 内容を確認できる(お問い合わせ一覧は管理者のみ閲覧可)
+function InquiryButton() {
+  const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState("");
+  const [status, setStatus] = useState<"idle" | "submitting" | "done" | "error">(
+    "idle"
+  );
+
+  const handleClose = () => {
+    setOpen(false);
+    setMessage("");
+    setStatus("idle");
+  };
+
+  const handleSubmit = async () => {
+    const trimmed = message.trim();
+    if (!trimmed) return;
+    if (!supabase) {
+      setStatus("error");
+      return;
+    }
+    setStatus("submitting");
+    const { error } = await supabase
+      .from("inquiries")
+      .insert({ reporter_id: getReporterId(), message: trimmed });
+    if (error) {
+      console.error(error);
+      setStatus("error");
+      return;
+    }
+    setStatus("done");
+    setMessage("");
+  };
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        aria-label="お問い合わせ"
+        title="お問い合わせ"
+        className="bg-white/90 rounded-full shadow border border-gray-300 w-6 h-6 flex items-center justify-center text-xs font-semibold text-gray-600 cursor-pointer"
+      >
+        ✉
+      </button>
+      {open &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/40 p-4"
+            onClick={handleClose}
+          >
+            <div
+              className="bg-white rounded-lg shadow-xl w-full max-w-xs overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="px-4 py-3 bg-gray-100 font-semibold text-gray-900">
+                お問い合わせ
+              </div>
+              <div className="p-4 flex flex-col gap-2">
+                {status === "done" ? (
+                  <p className="text-sm text-green-700">
+                    送信しました。ありがとうございます。
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-xs text-gray-600">
+                      ご意見・ご要望・不具合報告など、店舗に関係のない内容はこちらからどうぞ。
+                    </p>
+                    <textarea
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      maxLength={1000}
+                      rows={4}
+                      placeholder="内容を入力してください"
+                      className="border border-gray-400 rounded px-2 py-1.5 text-sm text-gray-900 bg-white resize-none"
+                    />
+                    {status === "error" && (
+                      <p className="text-xs text-red-600">送信に失敗しました</p>
+                    )}
+                    <button
+                      onClick={handleSubmit}
+                      disabled={status === "submitting" || !message.trim()}
+                      className="bg-blue-600 text-white rounded px-3 py-2 text-sm font-semibold hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {status === "submitting" ? "送信中…" : "送信する"}
+                    </button>
+                  </>
+                )}
+              </div>
+              <button
+                onClick={handleClose}
+                className="w-full px-4 py-3 font-semibold text-gray-700 cursor-pointer border-t"
+              >
+                × 閉じる
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
+    </>
+  );
+}
+
 function RecenterOnLocate({ position }: { position: [number, number] | null }) {
   const map = useMap();
   useEffect(() => {
@@ -913,6 +1016,15 @@ export default function CafeMap() {
   const [seatCountByCafe, setSeatCountByCafe] = useState<Record<string, string>>({});
   const [outletSeatCountByCafe, setOutletSeatCountByCafe] = useState<
     Record<string, string>
+  >({});
+  const [infoCorrectionOpenByCafe, setInfoCorrectionOpenByCafe] = useState<
+    Record<string, boolean>
+  >({});
+  const [infoCorrectionByCafe, setInfoCorrectionByCafe] = useState<
+    Record<string, string>
+  >({});
+  const [infoCorrectionSentByCafe, setInfoCorrectionSentByCafe] = useState<
+    Record<string, boolean>
   >({});
   const [dynamicCafes, setDynamicCafes] = useState<Cafe[]>([]);
   const [isAddingCafe, setIsAddingCafe] = useState(false);
@@ -1351,6 +1463,34 @@ export default function CafeMap() {
     }
   };
 
+  const submitInfoCorrection = async (cafeId: string) => {
+    const message = infoCorrectionByCafe[cafeId]?.trim();
+    if (!message) return;
+    if (!supabase) {
+      setErrorByCafe((prev) => ({
+        ...prev,
+        [cafeId]: "Supabase未設定のため保存できません",
+      }));
+      return;
+    }
+    setSubmitting(cafeId);
+    setErrorByCafe((prev) => ({ ...prev, [cafeId]: "" }));
+    const { error } = await supabase
+      .from("info_corrections")
+      .insert({ cafe_id: cafeId, reporter_id: reporterId, message });
+    setSubmitting(null);
+    if (error) {
+      console.error(error);
+      setErrorByCafe((prev) => ({
+        ...prev,
+        [cafeId]: "送信に失敗しました",
+      }));
+    } else {
+      setInfoCorrectionByCafe((prev) => ({ ...prev, [cafeId]: "" }));
+      setInfoCorrectionSentByCafe((prev) => ({ ...prev, [cafeId]: true }));
+    }
+  };
+
   const submitSeatCount = async (cafeId: string) => {
     const raw = seatCountByCafe[cafeId]?.trim();
     const seatCount = raw ? Number(raw) : NaN;
@@ -1745,7 +1885,8 @@ export default function CafeMap() {
             </button>
           )}
         </div>
-        <div className="leaflet-control m-2">
+        <div className="leaflet-control m-2 flex flex-col gap-1.5 items-end">
+          <InquiryButton />
           <AttributionInfoButton />
         </div>
       </div>
@@ -2049,6 +2190,53 @@ export default function CafeMap() {
                         ※最新でない場合があります
                       </div>
                     </div>
+                  )}
+                  {infoCorrectionSentByCafe[cafe.id] ? (
+                    <div className="text-[11px] sm:text-sm text-green-700">
+                      ✓ ご報告ありがとうございます
+                    </div>
+                  ) : infoCorrectionOpenByCafe[cafe.id] ? (
+                    <div className="flex flex-col gap-1">
+                      <div className="text-[11px] sm:text-sm text-gray-500">
+                        店舗情報が実際と違う場合はこちらにご記入ください
+                      </div>
+                      <textarea
+                        value={infoCorrectionByCafe[cafe.id] ?? ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setInfoCorrectionByCafe((prev) => ({
+                            ...prev,
+                            [cafe.id]: value,
+                          }));
+                        }}
+                        maxLength={300}
+                        rows={2}
+                        placeholder="例: 喫煙席と書かれているが実際は全席禁煙だった"
+                        className="border border-gray-400 rounded px-2 py-1 text-sm text-gray-900 bg-white resize-none"
+                      />
+                      <button
+                        disabled={
+                          submitting === cafe.id ||
+                          !infoCorrectionByCafe[cafe.id]?.trim()
+                        }
+                        onClick={() => submitInfoCorrection(cafe.id)}
+                        className="self-start px-2 py-1 text-xs sm:text-sm rounded bg-blue-100 hover:bg-blue-200 disabled:opacity-50"
+                      >
+                        送信する
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() =>
+                        setInfoCorrectionOpenByCafe((prev) => ({
+                          ...prev,
+                          [cafe.id]: true,
+                        }))
+                      }
+                      className="self-start text-[11px] sm:text-sm text-gray-400 underline"
+                    >
+                      😕 店舗情報が実際と違う場合はこちら
+                    </button>
                   )}
                 </div>
 
