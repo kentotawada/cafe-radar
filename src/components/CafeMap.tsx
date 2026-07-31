@@ -1160,6 +1160,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   const [shareStatus, setShareStatus] = useState<"idle" | "copied">("idle");
   const [isReportFabOpen, setIsReportFabOpen] = useState(false);
   const [reportFabMessage, setReportFabMessage] = useState<string | null>(null);
+  const [cafeShareMessage, setCafeShareMessage] = useState<string | null>(null);
   const [outletFilter, setOutletFilter] = useState<OutletFilter>("any");
   const [seatingFilter, setSeatingFilter] = useState<AvailabilityFilter>("any");
   const [noiseFilter, setNoiseFilter] = useState<NoiseFilter>("any");
@@ -2746,6 +2747,30 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                   >
                     写真・口コミ(Googleマップ)
                   </a>
+                  <button
+                    onClick={async () => {
+                      const url = `${window.location.origin}/cafe/${cafe.id}`;
+                      if (typeof navigator.share === "function") {
+                        try {
+                          await navigator.share({ title: cafe.name, url });
+                        } catch {
+                          // ユーザーが共有をキャンセルした場合は何もしない
+                        }
+                        return;
+                      }
+                      if (navigator.clipboard) {
+                        await navigator.clipboard.writeText(url);
+                        setCafeShareMessage(cafe.id);
+                        setTimeout(() => setCafeShareMessage(null), 2500);
+                      }
+                    }}
+                    className="text-blue-600 underline"
+                  >
+                    🔗{" "}
+                    {cafeShareMessage === cafe.id
+                      ? "コピーしました"
+                      : "このお店を共有"}
+                  </button>
                 </div>
 
                 {stats ? (
