@@ -1752,29 +1752,30 @@ export default function CafeMap() {
   }
 
   return (
-    <div style={{ position: "absolute", inset: 0 }}>
-      <div className="absolute top-2 left-1/2 -translate-x-1/2 z-[1000] bg-white/95 rounded-full shadow border border-gray-300 flex items-center gap-1 px-1 py-1">
-        <button
-          onClick={() => setViewMode("map")}
-          className={`text-xs sm:text-sm font-semibold rounded-full px-3 py-1 ${
-            viewMode === "map" ? "bg-blue-600 text-white" : "text-gray-600"
-          }`}
-        >
-          📍 地図
-        </button>
-        <button
-          onClick={() => setViewMode("list")}
-          className={`text-xs sm:text-sm font-semibold rounded-full px-3 py-1 ${
-            viewMode === "list" ? "bg-blue-600 text-white" : "text-gray-600"
-          }`}
-        >
-          📋 リスト
-        </button>
-        {viewMode === "list" && (
+    <div className="absolute inset-0 sm:flex sm:flex-row">
+      {/* スマホでは「リスト」表示中だけ全画面、PC(sm以上)では常に左サイドバーとして
+          地図と同時に表示する */}
+      <div
+        className={`absolute inset-0 sm:relative sm:inset-auto sm:w-80 md:w-96 sm:shrink-0 sm:border-r sm:border-gray-300 bg-gray-50 overflow-y-auto z-[900] ${
+          viewMode === "list" ? "block" : "hidden"
+        } sm:block`}
+      >
+        <div className="sticky top-0 bg-gray-50 border-b border-gray-200 px-3 py-2 flex flex-col gap-1.5 z-10">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-sm font-semibold text-gray-900">
+              {listCafes.length}件のお店
+            </span>
+            <button
+              onClick={() => setViewMode("map")}
+              className="sm:hidden text-xs font-semibold text-blue-600"
+            >
+              📍 地図に戻る
+            </button>
+          </div>
           <select
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value as SortOrder)}
-            className="text-xs sm:text-sm border border-gray-300 rounded-full pl-2 pr-1 py-1 bg-white text-gray-700"
+            className="text-xs sm:text-sm border border-gray-300 rounded px-2 py-1 bg-white text-gray-700"
           >
             <option value="recommended">おすすめ順</option>
             <option value="distance" disabled={!userPosition}>
@@ -1784,79 +1785,79 @@ export default function CafeMap() {
             <option value="occupancy">空いている順</option>
             <option value="noise">静かな順</option>
           </select>
-        )}
-      </div>
-
-      {viewMode === "list" && (
-        <div className="absolute inset-0 pt-14 pb-2 px-2 overflow-y-auto bg-gray-50 z-[900]">
-          <div className="max-w-lg mx-auto flex flex-col gap-2">
-            <p className="text-xs text-gray-500 px-1">
-              {listCafes.length}件のお店
-            </p>
-            {listCafes.map((cafe) => {
-              const stats = statsByCafe[cafe.id];
-              const statusColor = statusColorForStats(stats);
-              const badges = getQuickBadges(cafe, stats, verifiedOutletCafeIds);
-              const distance = userPosition
-                ? distanceMeters(userPosition, [cafe.lat, cafe.lng])
-                : null;
-              return (
-                <button
-                  key={cafe.id}
-                  onClick={() => {
-                    setMapFocus([cafe.lat, cafe.lng]);
-                    hasManualFocusRef.current = true;
-                    setViewMode("map");
-                  }}
-                  className="text-left bg-white border border-gray-200 rounded-lg shadow-sm p-3 flex flex-col gap-1 hover:border-blue-300"
-                >
-                  <div className="flex items-start gap-2">
-                    <span
-                      className="inline-block w-3 h-3 rounded-full border border-white shadow mt-1 shrink-0"
-                      style={{ backgroundColor: statusColor }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm text-gray-900">
-                        {cafe.name}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        {cafe.address ?? "住所未登録"}
-                      </div>
+        </div>
+        <div className="flex flex-col gap-2 p-2">
+          {listCafes.map((cafe) => {
+            const stats = statsByCafe[cafe.id];
+            const statusColor = statusColorForStats(stats);
+            const badges = getQuickBadges(cafe, stats, verifiedOutletCafeIds);
+            const distance = userPosition
+              ? distanceMeters(userPosition, [cafe.lat, cafe.lng])
+              : null;
+            return (
+              <button
+                key={cafe.id}
+                onClick={() => {
+                  setMapFocus([cafe.lat, cafe.lng]);
+                  hasManualFocusRef.current = true;
+                  setViewMode("map");
+                }}
+                className="text-left bg-white border border-gray-200 rounded-lg shadow-sm p-3 flex flex-col gap-1 hover:border-blue-300"
+              >
+                <div className="flex items-start gap-2">
+                  <span
+                    className="inline-block w-3 h-3 rounded-full border border-white shadow mt-1 shrink-0"
+                    style={{ backgroundColor: statusColor }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-sm text-gray-900">
+                      {cafe.name}
                     </div>
-                    {distance !== null && (
-                      <div className="text-xs text-gray-500 shrink-0">
-                        {distance < 1000
-                          ? `${Math.round(distance)}m`
-                          : `${(distance / 1000).toFixed(1)}km`}
-                      </div>
-                    )}
+                    <div className="text-xs text-gray-500">
+                      {cafe.address ?? "住所未登録"}
+                    </div>
                   </div>
-                  {badges.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {badges.map((badge) => (
-                        <span
-                          key={badge.key}
-                          className={`text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full ${badge.className}`}
-                        >
-                          {badge.emoji} {badge.label}
-                        </span>
-                      ))}
+                  {distance !== null && (
+                    <div className="text-xs text-gray-500 shrink-0">
+                      {distance < 1000
+                        ? `${Math.round(distance)}m`
+                        : `${(distance / 1000).toFixed(1)}km`}
                     </div>
                   )}
-                </button>
-              );
-            })}
-          </div>
+                </div>
+                {badges.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {badges.map((badge) => (
+                      <span
+                        key={badge.key}
+                        className={`text-[10px] sm:text-xs px-1.5 py-0.5 rounded-full ${badge.className}`}
+                      >
+                        {badge.emoji} {badge.label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
-      )}
+      </div>
 
+      {/* 地図パネル。スマホでは絶対配置でリストパネルと同じ領域を取り合い、
+          表示中(map)以外はvisibility:hiddenにする(display:noneにすると
+          Leafletのサイズ計算が崩れるため)。PC(sm以上)では通常のflex
+          レイアウトの一員(残り幅いっぱい)になり、常に表示する */}
       <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          visibility: viewMode === "map" ? "visible" : "hidden",
-        }}
+        className={`cf-map-panel ${viewMode === "map" ? "" : "cf-map-panel-hidden"}`}
       >
+        <div className="sm:hidden absolute top-2 left-1/2 -translate-x-1/2 z-[1000]">
+          <button
+            onClick={() => setViewMode("list")}
+            className="bg-white/95 rounded-full shadow border border-gray-300 text-xs font-semibold text-gray-700 px-3 py-1.5"
+          >
+            📋 リスト
+          </button>
+        </div>
     <MapContainer
       center={mapFocus ?? SHINJUKU_CENTER}
       zoom={16}

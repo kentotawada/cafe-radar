@@ -26,6 +26,30 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* 地図パネル(リストと並べて表示する分割ビュー用)。TailwindのJITが
+   なぜかsm:flex-1とsm:visible/invisibleを生成しないことがあったため、
+   手書きCSSで確実に効くようにする。スマホでは絶対配置でリストパネルと
+   領域を取り合い(visibility切り替え、display:noneにするとLeafletの
+   サイズ計算が壊れるため使わない)、PC(sm以上)では残り幅いっぱいの
+   通常のflex要素になり、常に表示する */
+.cf-map-panel {
+  position: absolute;
+  inset: 0;
+}
+.cf-map-panel.cf-map-panel-hidden {
+  visibility: hidden;
+}
+@media (min-width: 640px) {
+  .cf-map-panel {
+    position: relative;
+    inset: auto;
+    flex: 1 1 0%;
+  }
+  .cf-map-panel.cf-map-panel-hidden {
+    visibility: visible;
+  }
+}
+
 /* leaflet-map-paneはtransformでスタッキングコンテキストを作るため、
    内側のpopup-paneのz-indexをどれだけ上げてもコントロール類(leaflet-top/
    leaflet-bottom、外側の兄弟要素)より前面には出せない。そのため、狭い
