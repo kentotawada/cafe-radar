@@ -68,6 +68,22 @@ function distanceMeters(
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
+// カフェのデータには「どのエリアか」を示す項目が無いため、areas.tsの
+// 各駅の座標との距離が一番近い駅をそのカフェの所属エリアとみなす。
+// リストのエリア選択(絞り込み欄のエリア検索と同期)で使う
+function nearestAreaName(cafe: Cafe): string {
+  let bestName = areas[0]?.name ?? "";
+  let bestDist = Infinity;
+  for (const area of areas) {
+    const d = distanceMeters([cafe.lat, cafe.lng], [area.lat, area.lng]);
+    if (d < bestDist) {
+      bestDist = d;
+      bestName = area.name;
+    }
+  }
+  return bestName;
+}
+
 // 「全40席(カウンター15・テーブル15・テラス10)」のような編集部調べの
 // テキストから、先頭の数字を座席数の目安として取り出す(席数が多い順
 // ソート用)。数字が見つからなければnull
@@ -124,18 +140,28 @@ function createCupPinIcon(
   statusColor: string,
   usageStyle: CafeUsageStyle,
   showOutletPlug: boolean,
-  displaySize: number = CUP_PIN_DISPLAY_SIZE
+  displaySize: number = CUP_PIN_DISPLAY_SIZE,
+  highlighted: boolean = false
 ) {
   const scale = displaySize / CUP_PIN_VIEWBOX;
-  const html = cupPinSvgMarkup(statusColor, usageStyle, showOutletPlug, displaySize);
+  const svgHtml = cupPinSvgMarkup(statusColor, usageStyle, showOutletPlug, displaySize);
   // アンカー(ピンの指す先端)は、プラグがあればプラグの先端、
   // 無ければカップの底(丸い台座)にする
   const anchorY = showOutletPlug ? 33 : 21;
+  const anchorPx = Math.round(anchorY * scale);
+  // 選択中のピンは、先端から広がるパルスリングを足して地図上で
+  // すぐ見つけられるようにする
+  const html = highlighted
+    ? `<div style="position:relative;width:${displaySize}px;height:${displaySize}px;">
+        <div class="cf-pin-pulse-ring" style="bottom:${displaySize - anchorPx}px;"></div>
+        ${svgHtml}
+      </div>`
+    : svgHtml;
   return L.divIcon({
     className: "",
     html,
     iconSize: [displaySize, displaySize],
-    iconAnchor: [Math.round(18 * scale), Math.round(anchorY * scale)],
+    iconAnchor: [Math.round(18 * scale), anchorPx],
     popupAnchor: [0, -Math.round((anchorY - 3) * scale)],
   });
 }
@@ -156,7 +182,8 @@ function getCafePinIcon(
       statusColor,
       usageStyle,
       showOutletPlug,
-      highlighted ? CUP_PIN_HIGHLIGHT_SIZE : CUP_PIN_DISPLAY_SIZE
+      highlighted ? CUP_PIN_HIGHLIGHT_SIZE : CUP_PIN_DISPLAY_SIZE,
+      highlighted
     );
     cafePinIconCache.set(key, icon);
   }
@@ -806,7 +833,7 @@ function AttributionInfoButton() {
         onClick={() => setOpen(true)}
         aria-label="このサイトについて"
         title="このサイトについて"
-        className="bg-white/90 rounded-full shadow border border-gray-300 w-8 h-8 flex items-center justify-center text-sm font-semibold text-gray-600 cursor-pointer"
+        className="bg-white/90 rounded-full shadow border border-gray-300 w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center text-xs sm:text-sm font-semibold text-gray-600 cursor-pointer"
       >
         i
       </button>
@@ -905,7 +932,7 @@ function InquiryButton() {
         onClick={() => setOpen(true)}
         aria-label="お問い合わせ"
         title="お問い合わせ"
-        className="bg-white/90 rounded-full shadow border border-gray-300 h-8 px-3 flex items-center gap-1 text-xs sm:text-sm font-semibold text-gray-700 cursor-pointer"
+        className="bg-white/90 rounded-full shadow border border-gray-300 h-6 px-2 sm:h-8 sm:px-3 flex items-center gap-1 text-[10px] sm:text-sm font-semibold text-gray-700 cursor-pointer"
       >
         ✉ お問い合わせ
       </button>
@@ -1719,9 +1746,11 @@ export default function CafeMap() {
 
   // リスト表示用: エリア検索で絞り込んでいなくても店舗が表示されるよう、
   // 地図の表示範囲(mapBounds)には連動させず、絞り込み条件を満たす
-  // 全エリアの店舗を対象にする。並び替え(特に現在地から近い順)で
-  // 使いやすくする
-  const listCafes = allCafes.filter(passesNonBoundsFilters).slice();
+  // 全エリアの店舗を対象にする。エリア検索(絞り込み欄と同期)が選択されて
+  // いる場合は、そのエリアの店舗だけに絞る
+  const listCafes = allCafes
+    .filter(passesNonBoundsFilters)
+    .filter((cafe) => !areaQuery || nearestAreaName(cafe) === areaQuery);
   if (sortOrder === "distance" && userPosition) {
     listCafes.sort(
       (a, b) =>
@@ -1770,6 +1799,18 @@ export default function CafeMap() {
           <span className="text-sm font-semibold text-gray-900">
             {listCafes.length}件のお店
           </span>
+          <select
+            value={areaQuery}
+            onChange={(e) => handleAreaSearch(e.target.value)}
+            className="text-xs sm:text-sm border border-gray-300 rounded px-2 py-1 bg-white text-gray-700"
+          >
+            <option value="">エリア: すべて</option>
+            {areas.map((area) => (
+              <option key={area.id} value={area.name}>
+                {area.name}
+              </option>
+            ))}
+          </select>
           <select
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value as SortOrder)}
@@ -1869,22 +1910,25 @@ export default function CafeMap() {
       />
 
       <div className="leaflet-top leaflet-right" style={{ zIndex: 1000 }}>
-        <div className="leaflet-control bg-white text-gray-900 rounded-lg shadow-lg border border-gray-300 m-2 text-xs sm:text-sm w-36 sm:w-60">
+        <div className="leaflet-control bg-white text-gray-900 rounded-lg shadow-lg border border-gray-300 m-1.5 sm:m-2 text-[11px] sm:text-sm w-28 sm:w-60">
           <button
             onClick={() => setIsFilterPanelOpen((prev) => !prev)}
-            className="w-full flex items-center justify-between px-2 sm:px-3 py-1.5 sm:py-2 font-semibold"
+            className="w-full flex items-center justify-between px-1.5 sm:px-3 py-1 sm:py-2 font-semibold"
           >
             <span>絞り込み</span>
             <span>{isFilterPanelOpen ? "▲" : "▼"}</span>
           </button>
           {isFilterPanelOpen && (
-            <div className="flex flex-col gap-1 sm:gap-2 px-2 sm:px-3 pb-2 sm:pb-3">
-              <label className="flex flex-col gap-1">
+            <div
+              className="flex flex-col gap-0.5 sm:gap-2 px-1.5 sm:px-3 pb-1.5 sm:pb-3 overflow-y-auto"
+              style={{ maxHeight: "min(42vh, 340px)" }}
+            >
+              <label className="flex flex-col gap-0.5 sm:gap-1">
                 <span>エリア検索</span>
                 <select
                   value={areaQuery}
                   onChange={(e) => handleAreaSearch(e.target.value)}
-                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-base text-gray-900 bg-white w-full"
+                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-sm sm:text-base text-gray-900 bg-white w-full"
                 >
                   <option value="">選択してください</option>
                   {areas.map((area) => (
@@ -1894,77 +1938,77 @@ export default function CafeMap() {
                   ))}
                 </select>
               </label>
-              <label className="flex flex-col gap-1">
+              <label className="flex flex-col gap-0.5 sm:gap-1">
                 <span>電源席</span>
                 <select
                   value={outletFilter}
                   onChange={(e) =>
                     setOutletFilter(e.target.value as AvailabilityFilter)
                   }
-                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-base text-gray-900 bg-white w-full"
+                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-sm sm:text-base text-gray-900 bg-white w-full"
                 >
                   <option value="any">すべて</option>
                   <option value="available">空きありのみ</option>
                 </select>
               </label>
-              <label className="flex flex-col gap-1">
+              <label className="flex flex-col gap-0.5 sm:gap-1">
                 <span>一般席</span>
                 <select
                   value={seatingFilter}
                   onChange={(e) =>
                     setSeatingFilter(e.target.value as AvailabilityFilter)
                   }
-                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-base text-gray-900 bg-white w-full"
+                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-sm sm:text-base text-gray-900 bg-white w-full"
                 >
                   <option value="any">すべて</option>
                   <option value="available">空きありのみ</option>
                 </select>
               </label>
-              <label className="flex flex-col gap-1">
+              <label className="flex flex-col gap-0.5 sm:gap-1">
                 <span>静かさ</span>
                 <select
                   value={noiseFilter}
                   onChange={(e) => setNoiseFilter(e.target.value as NoiseFilter)}
-                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-base text-gray-900 bg-white w-full"
+                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-sm sm:text-base text-gray-900 bg-white w-full"
                 >
                   <option value="any">こだわらない</option>
                   <option value="quietOnly">静かな店のみ</option>
                   <option value="excludeLoud">うるさい店を除く</option>
                 </select>
               </label>
-              <label className="flex flex-col gap-1">
+              <label className="flex flex-col gap-0.5 sm:gap-1">
                 <span>喫煙</span>
                 <select
                   value={smokingFilter}
                   onChange={(e) =>
                     setSmokingFilter(e.target.value as SmokingFilter)
                   }
-                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-base text-gray-900 bg-white w-full"
+                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-sm sm:text-base text-gray-900 bg-white w-full"
                 >
                   <option value="any">こだわらない</option>
                   <option value="nonSmokingOnly">禁煙のみ</option>
                   <option value="smokingOk">喫煙可でもよい</option>
                 </select>
               </label>
-              <label className="flex flex-col gap-1">
+              <label className="flex flex-col gap-0.5 sm:gap-1">
                 <span>Wi-Fi</span>
                 <select
                   value={wifiFilter}
                   onChange={(e) =>
                     setWifiFilter(e.target.value as AvailabilityFilter)
                   }
-                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-base text-gray-900 bg-white w-full"
+                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-sm sm:text-base text-gray-900 bg-white w-full"
                 >
                   <option value="any">すべて</option>
                   <option value="available">Wi-Fiありのみ</option>
                 </select>
               </label>
-              <label className="flex items-center gap-2">
+              <label className="flex items-center gap-1.5 sm:gap-2">
                 <input
                   type="checkbox"
                   checked={favoritesOnly}
                   onChange={(e) => setFavoritesOnly(e.target.checked)}
-                  className="w-4 h-4"
+                  className="w-3.5 h-3.5 sm:w-4 sm:h-4"
                 />
                 <span>お気に入りのお店のみ</span>
               </label>
@@ -2032,9 +2076,9 @@ export default function CafeMap() {
       </div>
 
       <div className="leaflet-bottom leaflet-left" style={{ zIndex: 1000 }}>
-        <div className="leaflet-control m-2">
+        <div className="leaflet-control m-1.5 sm:m-2">
           {isAddingCafe ? (
-            <div className="bg-white text-xs rounded shadow-lg border border-gray-300 px-3 py-2 max-w-[220px] flex flex-col gap-1">
+            <div className="bg-white text-[11px] sm:text-xs rounded shadow-lg border border-gray-300 px-2.5 py-1.5 sm:px-3 sm:py-2 max-w-[220px] flex flex-col gap-1">
               <div className="text-gray-800">
                 地図をタップしてお店の場所を選んでください
               </div>
@@ -2048,7 +2092,7 @@ export default function CafeMap() {
           ) : (
             <button
               onClick={startAddingCafe}
-              className="bg-white rounded-full shadow-lg border border-gray-300 px-3 h-10 flex items-center gap-1 text-sm font-semibold text-gray-900"
+              className="bg-white rounded-full shadow-lg border border-gray-300 px-2 h-7 sm:px-3 sm:h-10 flex items-center gap-1 text-xs sm:text-sm font-semibold text-gray-900"
             >
               ＋ お店を追加
             </button>
