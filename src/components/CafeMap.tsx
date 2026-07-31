@@ -61,6 +61,7 @@ const seedCafes: Cafe[] = [
 ];
 import { supabase } from "@/lib/supabaseClient";
 import { PIN_COLORS } from "@/lib/pinColors";
+import { cupPinSvgMarkup, CUP_PIN_VIEWBOX } from "@/lib/cupPinIcon";
 import { getReporterId } from "@/lib/reporterId";
 import { getFavorites, toggleFavorite } from "@/lib/favorites";
 import { getMapProvider, setMapProvider, type MapProvider } from "@/lib/mapProvider";
@@ -127,70 +128,17 @@ function getCafeUsageStyle(cafe: Cafe): CafeUsageStyle {
   return "independent";
 }
 
-// フチ・持ち手・プラグの線色。黒に近い色だと不気味に見えるため、
-// 珈琲を連想させる温かみのある焦茶色にする(視認性は保ったまま)
-const CUP_LINE_COLOR = "#6b4226";
-
-// 利用スタイルごとの内側アイコンの色。ヘッダーの凡例(💻🫘🌙)の実物に
-// 近い色を付け、白フチで縁取ってどのカップの色の上でもはっきり見える
-// ようにする
-const USAGE_STYLE_ICON_COLOR: Record<CafeUsageStyle, string> = {
-  chain: "",
-  coworking: "#4b5563",
-  independent: "#6b4226",
-  night: "#f59e0b",
-};
-
-// 利用スタイルごとの内側アイコン。チェーン店は外側のカップ型そのもので
-// 「気軽な1杯」を表せるため、あえて内側は無地のままにする
-function usageStyleIconHtml(usageStyle: CafeUsageStyle): string {
-  const color = USAGE_STYLE_ICON_COLOR[usageStyle];
-  if (usageStyle === "coworking") {
-    // ノートPC(画面＋台形のキーボード部分)。カップの内側に収まる
-    // サイズ・位置にする
-    return `<rect x="10" y="6" width="16" height="8" rx="1" fill="${color}" stroke="white" stroke-width="0.8"/><path d="M8 14h20l-1.6 2.4a1 1 0 0 1-.9.5H10.5a1 1 0 0 1-.9-.5L8 14z" fill="${color}" stroke="white" stroke-width="0.8"/>`;
-  }
-  if (usageStyle === "independent") {
-    // コーヒー豆(楕円＋中央の白い筋)
-    return `<ellipse cx="18" cy="11" rx="8" ry="6" fill="${color}" stroke="white" stroke-width="0.8" transform="rotate(-8 18 11)"/><path d="M11 11 Q18 7.5 25 11" stroke="white" stroke-width="1.6" fill="none" transform="rotate(-8 18 11)"/>`;
-  }
-  if (usageStyle === "night") {
-    // 三日月(1本のパスで描く塗りつぶしの三日月シルエット)
-    return `<g transform="translate(8.4,1.4) scale(0.8)"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="${color}" stroke="white" stroke-width="0.8"/></g>`;
-  }
-  return "";
-}
-
-// 表示サイズをviewBoxより小さくすることで、線の太さの比率を保ったまま
-// 全体を縮小・拡大する
-const CUP_PIN_VIEWBOX = 42;
-const CUP_PIN_DISPLAY_SIZE = 38;
+// 表示サイズをviewBoxより小さく/大きくすることで、線の太さの比率を
+// 保ったまま全体を縮小・拡大する
+const CUP_PIN_DISPLAY_SIZE = 42;
 const CUP_PIN_SCALE = CUP_PIN_DISPLAY_SIZE / CUP_PIN_VIEWBOX;
 
-// 円だけだと地図タイルの色(緑の公園、青の水面など)と紛れて見えにくいため、
-// カップ型のピン＋焦茶色のフチ＋影で背景色に関係なく視認できる形にする。
-// カプチーノカップのように「低め・横広がり」な形にし、カップ全体の色は
-// 混雑度の色(最優先で一目でわかるようにする)、内側の白いアイコンで
-// 利用スタイル(チェーン/コワーキング/個人経営/深夜)を表す。電源席の
-// 情報が確認できたお店だけ、先端を電源プラグの形にする(電源の有無が
-// 不明なお店にまで「電源あり」を示唆しないようにするため)
 function createCupPinIcon(
   statusColor: string,
   usageStyle: CafeUsageStyle,
   showOutletPlug: boolean
 ) {
-  const plugHtml = showOutletPlug
-    ? `
-    <rect x="13" y="19" width="10" height="9" rx="2.5" fill="${CUP_LINE_COLOR}"/>
-    <rect x="15.6" y="27" width="1.8" height="6" fill="${CUP_LINE_COLOR}"/>
-    <rect x="18.6" y="27" width="1.8" height="6" fill="${CUP_LINE_COLOR}"/>`
-    : "";
-  const html = `<svg width="${CUP_PIN_DISPLAY_SIZE}" height="${CUP_PIN_DISPLAY_SIZE}" viewBox="0 0 ${CUP_PIN_VIEWBOX} ${CUP_PIN_VIEWBOX}" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 1px 3px rgba(0,0,0,0.45));">
-    <path d="M4,5 Q4,3 6,3 L30,3 Q32,3 32,5 L32,9 L28,19 Q18,23 8,19 L4,9 Z" fill="${statusColor}" stroke="${CUP_LINE_COLOR}" stroke-width="1.5"/>
-    <ellipse cx="18" cy="19.5" rx="6" ry="1.6" fill="${CUP_LINE_COLOR}"/>
-    <path d="M31,8 Q39,8.5 39,13.5 Q39,18.5 31,19" fill="none" stroke="${CUP_LINE_COLOR}" stroke-width="1.5"/>
-    ${usageStyleIconHtml(usageStyle)}${plugHtml}
-  </svg>`;
+  const html = cupPinSvgMarkup(statusColor, usageStyle, showOutletPlug, CUP_PIN_DISPLAY_SIZE);
   // アンカー(ピンの指す先端)は、プラグがあればプラグの先端、
   // 無ければカップの底(丸い台座)にする
   const anchorY = showOutletPlug ? 33 : 21;
@@ -305,6 +253,34 @@ const LANDMARK_LABEL_SPLIT_OVERRIDES: Record<string, [string, string]> = {
   "landmark-shinjuku-78": ["ニューヨークグリル", "(パークハイアット東京)"],
   "landmark-shinjuku-79": ["BERG(ベルク)", "ルミネエスト新宿店"],
   "landmark-shinjuku-90": ["ウエルシア", "O-GUARD新宿店"],
+  "landmark-shinjuku-91": ["新宿大ガード", "東交差点"],
+  "landmark-shinjuku-92": ["新宿三丁目", "交差点"],
+  "landmark-shinjuku-93": ["新宿駅東口", "交差点"],
+  "landmark-shinjuku-94": ["新宿大ガード西", "交差点"],
+  "landmark-shinjuku-95": ["西新宿一丁目", "交差点"],
+  "landmark-shinjuku-96": ["新宿四丁目", "交差点"],
+  "landmark-shinjuku-97": ["新宿五丁目", "交差点"],
+  "landmark-shinjuku-98": ["新宿二丁目", "交差点"],
+  "landmark-shinjuku-99": ["歌舞伎町", "交差点"],
+  "landmark-shinjuku-100": ["新宿郵便局前", "交差点"],
+  "landmark-shinjuku-101": ["新宿区役所前", "交差点"],
+  "landmark-shinjuku-102": ["新宿五丁目東", "交差点"],
+  "landmark-shinjuku-103": ["新宿六丁目", "交差点"],
+  "landmark-shinjuku-104": ["角筈区民センター前", "交差点"],
+  "landmark-shinjuku-105": ["西新宿二丁目", "交差点"],
+  "landmark-shinjuku-106": ["熊野神社前", "交差点"],
+  "landmark-shinjuku-107": ["中央通り東", "交差点"],
+  "landmark-shinjuku-108": ["新宿西口ロータリー", "入口交差点"],
+  "landmark-shinjuku-109": ["新宿二丁目北", "交差点"],
+  "landmark-shinjuku-110": ["新宿三丁目北", "交差点"],
+  "landmark-shinjuku-111": ["新宿中央公園前", "交差点"],
+  "landmark-shinjuku-112": ["新宿中央公園北", "交差点"],
+  "landmark-shinjuku-113": ["新宿税務署前", "交差点"],
+  "landmark-shinjuku-114": ["新宿都税事務所前", "交差点"],
+  "landmark-shinjuku-115": ["新宿柳通り", "交差点"],
+  "landmark-shinjuku-116": ["新宿区役所通り", "交差点"],
+  "landmark-shinjuku-117": ["西新宿三丁目", "交差点"],
+  "landmark-shinjuku-118": ["新宿一丁目西", "交差点"],
 };
 
 function splitLandmarkLabel(
@@ -332,7 +308,10 @@ function letterIcon(letter: string) {
 // 駅=電車、建物=ビル、学校=卒業帽、銀行=¥、コンビニ=各社の頭文字、
 // 信号=信号機、その他=地図ピン のアイコン(実際のロゴは商標のため使わず、
 // 各社のブランドカラー+頭文字で見分けられるようにする)
-const LANDMARK_CATEGORY_ICON_HTML: Record<LandmarkCategory, string> = {
+const LANDMARK_CATEGORY_ICON_HTML: Record<
+  Exclude<LandmarkCategory, "traffic_signal">,
+  string
+> = {
   station_exit: svgIcon(
     '<path d="M12 2c-4.42 0-8 .5-8 4v9.5C4 17.43 5.57 19 7.5 19L6 20.5v.5h2.23l2-2H14l2 2h2v-.5L16.5 19c1.93 0 3.5-1.57 3.5-3.5V6c0-3.5-3.58-4-8-4zM7.5 17c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm3.5-7H6V6h5v4zm2 0V6h5v4h-5zm3.5 7c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>'
   ),
@@ -357,7 +336,10 @@ const LANDMARK_CATEGORY_ICON_HTML: Record<LandmarkCategory, string> = {
   ),
 };
 
-const LANDMARK_CATEGORY_COLOR: Record<LandmarkCategory, string> = {
+const LANDMARK_CATEGORY_COLOR: Record<
+  Exclude<LandmarkCategory, "traffic_signal">,
+  string
+> = {
   station_exit: "#2563eb",
   building: "#f97316",
   school: "#0ea5e9",
@@ -370,12 +352,38 @@ const LANDMARK_CATEGORY_COLOR: Record<LandmarkCategory, string> = {
   drugstore: "#0d9488",
 };
 
-const LANDMARK_ICONS: Record<LandmarkCategory, L.DivIcon> = Object.fromEntries(
-  (Object.keys(LANDMARK_CATEGORY_COLOR) as LandmarkCategory[]).map((category) => [
-    category,
-    createLandmarkIcon(LANDMARK_CATEGORY_COLOR[category], LANDMARK_CATEGORY_ICON_HTML[category]),
-  ])
-) as Record<LandmarkCategory, L.DivIcon>;
+// 信号機は横長のピル型(丸みを帯びた箱に緑・黄・オレンジの丸)にする。
+// 他のカテゴリのような丸バッジ+文字アイコンの形には合わないため、
+// 専用の見た目にする(下に小さなツノを付けて座標を指すのは他と共通)
+function createTrafficSignalIcon() {
+  const html = `<div style="position:relative;width:28px;height:20px;">
+    <svg width="28" height="15" viewBox="0 0 28 15" style="filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));">
+      <rect x="0.5" y="0.5" width="27" height="14" rx="7" fill="#c7cfe0" stroke="white" stroke-width="1.2"/>
+      <circle cx="7" cy="7.5" r="4.6" fill="#22c55e"/>
+      <circle cx="14" cy="7.5" r="4.6" fill="#eab308"/>
+      <circle cx="21" cy="7.5" r="4.6" fill="#f97316"/>
+    </svg>
+    <div style="position:absolute;left:50%;bottom:-4px;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #c7cfe0;"></div>
+  </div>`;
+  return L.divIcon({
+    className: "",
+    html,
+    iconSize: [28, 20],
+    iconAnchor: [14, 20],
+  });
+}
+
+const LANDMARK_ICONS: Record<LandmarkCategory, L.DivIcon> = {
+  ...(Object.fromEntries(
+    (Object.keys(LANDMARK_CATEGORY_COLOR) as Exclude<LandmarkCategory, "traffic_signal">[]).map(
+      (category) => [
+        category,
+        createLandmarkIcon(LANDMARK_CATEGORY_COLOR[category], LANDMARK_CATEGORY_ICON_HTML[category]),
+      ]
+    )
+  ) as Record<Exclude<LandmarkCategory, "traffic_signal">, L.DivIcon>),
+  traffic_signal: createTrafficSignalIcon(),
+};
 
 const USER_LOCATION_ICON = L.divIcon({
   className: "",
@@ -1991,12 +1999,22 @@ export default function CafeMap() {
                   <div className="text-[11px] sm:text-sm text-gray-500 mb-1 sm:mb-2">
                     📢 今の店内の様子を教えてください（リアルタイムの報告にご協力ください）
                   </div>
-                  {cafe.hoursInfo && (
+                  {(cafe.hoursInfo || cafe.closedDaysInfo) && (
                     <div className="text-[11px] sm:text-sm bg-indigo-50 border border-indigo-200 rounded p-1.5 sm:p-2 text-indigo-900 mb-1 sm:mb-2">
-                      <div className="font-semibold mb-0.5">
-                        ⏰ 営業時間（ネット調べ）
-                      </div>
-                      <div>{cafe.hoursInfo}</div>
+                      {cafe.hoursInfo && (
+                        <>
+                          <div className="font-semibold mb-0.5">
+                            ⏰ 営業時間（ネット調べ）
+                          </div>
+                          <div>{cafe.hoursInfo}</div>
+                        </>
+                      )}
+                      {cafe.closedDaysInfo && (
+                        <div className={cafe.hoursInfo ? "mt-1" : ""}>
+                          <span className="font-semibold">🚫 定休日: </span>
+                          {cafe.closedDaysInfo}
+                        </div>
+                      )}
                       <div className="text-indigo-400 mt-0.5">
                         ※最新でない場合があります
                       </div>

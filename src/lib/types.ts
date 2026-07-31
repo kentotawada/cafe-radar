@@ -55,6 +55,7 @@ export type LandmarkCategory =
   | "conveni_seven"
   | "conveni_lawson"
   | "conveni_familymart"
+  | "traffic_signal"
   | "restaurant"
   | "drugstore"
   | "other";

@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { isSupabaseConfigured } from "@/lib/supabaseClient";
 import { PIN_COLORS, PIN_LEGEND } from "@/lib/pinColors";
+import { cupPinSvgMarkup } from "@/lib/cupPinIcon";
 
 const CafeMap = dynamic(() => import("@/components/CafeMap"), { ssr: false });
 
@@ -44,7 +45,22 @@ export default function Home() {
           <span className="flex items-center gap-1">🫘 = 個人経営・おしゃれ</span>
           <span className="flex items-center gap-1">🌙 = 24時間・深夜営業</span>
           <span className="flex items-center gap-1">
-            🔌 プラグ付きピン = 電源席あり確認済み／プラグ無し = 電源情報未確認
+            <span
+              className="inline-block w-4 h-4 shrink-0"
+              dangerouslySetInnerHTML={{
+                __html: cupPinSvgMarkup(PIN_COLORS.quiet, "independent", true, 16),
+              }}
+            />
+            = 電源席あり確認済み
+          </span>
+          <span className="flex items-center gap-1">
+            <span
+              className="inline-block w-4 h-4 shrink-0"
+              dangerouslySetInnerHTML={{
+                __html: cupPinSvgMarkup(PIN_COLORS.quiet, "independent", false, 16),
+              }}
+            />
+            = 電源情報未確認
           </span>
         </div>
       </header>
