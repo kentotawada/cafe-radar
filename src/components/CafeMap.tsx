@@ -1871,6 +1871,14 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     return passesNonBoundsFilters(cafe);
   });
 
+  // 目印(駅出口・建物など)も、カフェのピンと同じ理由で表示範囲だけに絞る。
+  // 全エリア分(2000件超)を常時描画すると、特にスマホで地図の動きが重くなる
+  const visibleLandmarks = mapBounds
+    ? allLandmarks.filter((landmark) =>
+        mapBounds.pad(0.5).contains([landmark.lat, landmark.lng])
+      )
+    : allLandmarks;
+
   // リスト表示用: エリア検索で絞り込んでいなくても店舗が表示されるよう、
   // 地図の表示範囲(mapBounds)には連動させず、絞り込み条件を満たす
   // 全エリアの店舗を対象にする。エリア検索(絞り込み欄と同期)が選択されて
@@ -2452,7 +2460,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
           <Popup>現在地</Popup>
         </Marker>
       )}
-      {allLandmarks.map((landmark) => (
+      {visibleLandmarks.map((landmark) => (
         <Marker
           key={landmark.id}
           position={[landmark.lat, landmark.lng]}
