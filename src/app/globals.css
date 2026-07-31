@@ -87,22 +87,6 @@ body {
    実際に見えている範囲を示すdvh単位を使い、上限も低めに抑える */
 .cf-filter-panel-content {
   max-height: min(26dvh, 200px);
-  /* スクロールできることが一見してわかるよう、上下に影を出す。
-     続きがある側だけ影が出て、端まで見えたら自然に消える */
-  background:
-    linear-gradient(#fff 30%, rgba(255, 255, 255, 0)) center top,
-    linear-gradient(rgba(255, 255, 255, 0), #fff 70%) center bottom,
-    radial-gradient(farthest-side at 50% 0, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0))
-      center top,
-    radial-gradient(farthest-side at 50% 100%, rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0))
-      center bottom;
-  background-repeat: no-repeat;
-  background-size:
-    100% 20px,
-    100% 20px,
-    100% 8px,
-    100% 8px;
-  background-attachment: local, local, scroll, scroll;
 }
 @media (min-width: 640px) {
   .cf-filter-panel-content {

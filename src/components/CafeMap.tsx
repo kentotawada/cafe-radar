@@ -1066,7 +1066,7 @@ function ZoomTracker({ onChange }: { onChange: (zoom: number) => void }) {
   return null;
 }
 
-export default function CafeMap() {
+export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }) {
   const [reportsByCafe, setReportsByCafe] = useState<Record<string, Report[]>>({});
   const [factsByCafe, setFactsByCafe] = useState<Record<string, CafeFact[]>>({});
   const [verifiedOutletCafeIds, setVerifiedOutletCafeIds] = useState<Set<string>>(
@@ -1110,6 +1110,14 @@ export default function CafeMap() {
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(
     () => typeof window !== "undefined" && window.innerWidth >= 640
   );
+  // 絞り込み欄の中身がスクロールできるかどうかを、影だけでなく
+  // 「▼ もっと見る」のような文字でもはっきり伝えるための状態
+  const [filterHasMoreBelow, setFilterHasMoreBelow] = useState(false);
+  const updateFilterScrollState = (el: HTMLDivElement) => {
+    const hasOverflow = el.scrollHeight > el.clientHeight + 1;
+    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+    setFilterHasMoreBelow(hasOverflow && !atBottom);
+  };
   const [locateError, setLocateError] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
@@ -1117,11 +1125,32 @@ export default function CafeMap() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("recommended");
   const [selectedCafeId, setSelectedCafeId] = useState<string | null>(null);
   const [isListPanelOpen, setIsListPanelOpen] = useState(true);
-  // スマホは地図欄が狭く、店舗情報のポップアップを固定340pxで開くと
-  // 下のリスト欄と重なってしまうため、スマホでは上限を低めにする
-  const [popupMaxHeight] = useState(
-    () => (typeof window !== "undefined" && window.innerWidth < 640 ? 260 : 340)
-  );
+
+  // 店舗情報ポップアップの高さ上限。地図欄の実際の高さ(ヘッダーの
+  // 「ピンの説明」やリスト欄の展開状態で変わる)を実測して決めるので、
+  // どんな組み合わせでも下のリスト欄と重ならず、途中で切れて見えなく
+  // なることもない
+  const mapPanelRef = useRef<HTMLDivElement | null>(null);
+  const [popupMaxHeight, setPopupMaxHeight] = useState(340);
+  useEffect(() => {
+    const el = mapPanelRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const updatePopupMaxHeight = () => {
+      const isMobile = window.innerWidth < 640;
+      const chrome = isMobile ? 110 : 140; // ポップアップ自体の余白・閉じるボタン分
+      const cap = isMobile ? 300 : 340;
+      const next = Math.max(160, Math.min(cap, el.clientHeight - chrome));
+      setPopupMaxHeight(next);
+    };
+    updatePopupMaxHeight();
+    const observer = new ResizeObserver(updatePopupMaxHeight);
+    observer.observe(el);
+    return () => observer.disconnect();
+    // isListPanelOpenとlegendOpen(親のヘッダーで「ピンの説明」を
+    // 開閉した状態)も依存に入れる。どちらも地図欄の実際の高さを
+    // 変えるが、ヘッダー側の変化はResizeObserverだけでは検知が
+    // 遅れることがあるため、直接の依存にして確実に再計算する
+  }, [isListPanelOpen, legendOpen]);
 
   // エリア検索など、ユーザーが自分で地図の表示先を選んだ後に、
   // 遅れて返ってきた位置情報がそれを上書きしてしまわないようにする
@@ -1923,7 +1952,7 @@ export default function CafeMap() {
       </div>
 
       {/* 地図パネル。常に表示し、残りのスペースいっぱいに広がる */}
-      <div className="cf-map-panel">
+      <div className="cf-map-panel" ref={mapPanelRef}>
     <MapContainer
       center={mapFocus ?? SHINJUKU_CENTER}
       zoom={16}
@@ -1945,7 +1974,15 @@ export default function CafeMap() {
       />
 
       <div className="leaflet-top leaflet-right" style={{ zIndex: 1000 }}>
-        <div className="leaflet-control bg-white text-gray-900 rounded-lg shadow-lg border border-gray-300 m-1 sm:m-2 text-[10px] sm:text-sm w-24 sm:w-60">
+        <div
+          ref={(el) => {
+            if (el) {
+              L.DomEvent.disableScrollPropagation(el);
+              L.DomEvent.disableClickPropagation(el);
+            }
+          }}
+          className="leaflet-control bg-white text-gray-900 rounded-lg shadow-lg border border-gray-300 m-1 sm:m-2 text-[10px] sm:text-sm w-24 sm:w-60"
+        >
           <div className="w-full flex items-center justify-between px-1.5 py-0.5 sm:px-3 sm:py-2 font-semibold gap-1">
             <button
               onClick={() => setIsFilterPanelOpen((prev) => !prev)}
@@ -1967,7 +2004,13 @@ export default function CafeMap() {
             )}
           </div>
           {isFilterPanelOpen && (
-            <div className="cf-filter-panel-content flex flex-col gap-0.5 sm:gap-2 px-1.5 sm:px-3 pb-1 sm:pb-3 overflow-y-auto">
+            <div
+              ref={(el) => {
+                if (el) updateFilterScrollState(el);
+              }}
+              onScroll={(e) => updateFilterScrollState(e.currentTarget)}
+              className="cf-filter-panel-content flex flex-col gap-0.5 sm:gap-2 px-1.5 sm:px-3 pb-1 sm:pb-3 overflow-y-auto"
+            >
               <label className="flex flex-col gap-0.5 sm:gap-1">
                 <span>エリア検索</span>
                 <select
@@ -2057,6 +2100,11 @@ export default function CafeMap() {
                 />
                 <span>お気に入りのお店のみ</span>
               </label>
+            </div>
+          )}
+          {isFilterPanelOpen && filterHasMoreBelow && (
+            <div className="text-center text-[9px] sm:text-xs font-semibold text-blue-600 bg-blue-50 border-t border-blue-100 py-1">
+              ▼ スクロールで他の項目も見られます
             </div>
           )}
         </div>
@@ -2271,7 +2319,11 @@ export default function CafeMap() {
               cafe.id === selectedCafeId
             )}
           >
-            <Popup minWidth={210} maxHeight={popupMaxHeight}>
+            <Popup
+              key={Math.round(popupMaxHeight / 10)}
+              minWidth={210}
+              maxHeight={popupMaxHeight}
+            >
               <div className="flex flex-col gap-1 sm:gap-2 text-gray-900">
                 <div className="flex items-start justify-between gap-2">
                   <div className="font-bold text-sm sm:text-lg">{cafe.name}</div>

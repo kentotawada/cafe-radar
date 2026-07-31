@@ -115,7 +115,7 @@ export default function Home() {
         </div>
       </header>
       <div className="flex-1 relative">
-        <CafeMap />
+        <CafeMap legendOpen={showLegend} />
       </div>
     </div>
   );
