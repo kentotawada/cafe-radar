@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
-import type { Cafe } from "@/data/cafes";
+import { seedCafes, type Cafe } from "@/lib/seedCafes";
+import { hasOutlet } from "@/lib/cafeAmenities";
 import type { CafeFact, CafeFlag, Report } from "@/lib/types";
 
 const FLAG_HIDE_THRESHOLD = 3;
@@ -13,6 +14,11 @@ type Row = {
   flagCount: number;
   isConfirmed: boolean;
   isHidden: boolean;
+};
+
+type OutletReportRow = {
+  cafe: Cafe;
+  notes: string[];
 };
 
 function formatDateTime(iso: string | undefined): string {
@@ -99,6 +105,8 @@ export default function AdminPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [busyCafeId, setBusyCafeId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [outletReports, setOutletReports] = useState<OutletReportRow[] | null>(null);
+  const [busyOutletCafeId, setBusyOutletCafeId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!supabase) return;
@@ -160,6 +168,76 @@ export default function AdminPage() {
     setRows(computed);
   };
 
+  // 電源情報が未確認のお店に「電源席はどこですか？」の報告(メモ)がある
+  // 一覧を取得する。編集部調べ(静的な全エリアのカフェ)とユーザー追加店舗の
+  // 両方が対象。既に承認済み、または元から電源ありと判定できるお店は除く
+  const fetchOutletReports = async (): Promise<OutletReportRow[] | null> => {
+    if (!supabase) return null;
+
+    const [dynamicCafesRes, factsRes, verificationsRes] = await Promise.all([
+      supabase.from("cafes").select("*"),
+      supabase.from("cafe_facts").select("*"),
+      supabase.from("outlet_verifications").select("cafe_id"),
+    ]);
+
+    if (dynamicCafesRes.error || factsRes.error || verificationsRes.error) {
+      console.error(
+        dynamicCafesRes.error ?? factsRes.error ?? verificationsRes.error
+      );
+      return null;
+    }
+
+    const allCafes: Cafe[] = [
+      ...seedCafes,
+      ...((dynamicCafesRes.data as Cafe[] | null) ?? []),
+    ];
+    const facts = (factsRes.data as CafeFact[]) ?? [];
+    const verifiedIds = new Set(
+      ((verificationsRes.data as { cafe_id: string }[] | null) ?? []).map(
+        (row) => row.cafe_id
+      )
+    );
+
+    const cafesById = new Map(allCafes.map((cafe) => [cafe.id, cafe]));
+    const notesByCafe = new Map<string, string[]>();
+    for (const fact of facts) {
+      if (!fact.note) continue;
+      const cafe = cafesById.get(fact.cafe_id);
+      if (!cafe || hasOutlet(cafe, verifiedIds)) continue;
+      const list = notesByCafe.get(fact.cafe_id) ?? [];
+      if (!list.includes(fact.note)) list.push(fact.note);
+      notesByCafe.set(fact.cafe_id, list);
+    }
+
+    return [...notesByCafe.entries()]
+      .map(([cafeId, notes]) => {
+        const cafe = cafesById.get(cafeId);
+        return cafe ? { cafe, notes } : null;
+      })
+      .filter((row): row is OutletReportRow => row !== null);
+  };
+
+  const loadOutletReports = async () => {
+    const computed = await fetchOutletReports();
+    if (computed !== null) setOutletReports(computed);
+  };
+
+  const approveOutlet = async (cafeId: string) => {
+    if (!supabase) return;
+    setBusyOutletCafeId(cafeId);
+    setActionError(null);
+    const { error } = await supabase
+      .from("outlet_verifications")
+      .insert({ cafe_id: cafeId });
+    setBusyOutletCafeId(null);
+    if (error) {
+      console.error(error);
+      setActionError("承認に失敗しました");
+      return;
+    }
+    loadOutletReports();
+  };
+
   useEffect(() => {
     if (!session) return;
     fetchRows().then((computed) => {
@@ -168,6 +246,9 @@ export default function AdminPage() {
       } else {
         setRows(computed);
       }
+    });
+    fetchOutletReports().then((computed) => {
+      if (computed !== null) setOutletReports(computed);
     });
   }, [session]);
 
@@ -271,6 +352,48 @@ export default function AdminPage() {
         )}
         {rows === null && !loadError && (
           <p className="text-sm text-gray-500">読み込み中…</p>
+        )}
+
+        {outletReports !== null && (
+          <section className="mb-8">
+            <h2 className="font-semibold text-gray-900 mb-2">
+              電源情報の報告（{outletReports.length}件）
+            </h2>
+            <p className="text-xs text-gray-600 mb-3">
+              電源情報が未確認のお店に「電源席はどこですか？」の報告があったものです。承認すると、地図のピンにも電源プラグのマークが表示されるようになります。
+            </p>
+            {outletReports.length === 0 ? (
+              <p className="text-sm text-gray-500">承認待ちの報告はありません</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {outletReports.map(({ cafe, notes }) => (
+                  <li
+                    key={cafe.id}
+                    className="bg-white border border-blue-200 rounded-lg shadow-sm p-3 flex flex-col gap-1"
+                  >
+                    <div className="font-medium text-gray-900">{cafe.name}</div>
+                    <div className="text-xs text-gray-600">
+                      {cafe.address ?? "住所未登録"}
+                    </div>
+                    <ul className="text-xs text-gray-700 list-disc list-inside">
+                      {notes.map((note) => (
+                        <li key={note}>{note}</li>
+                      ))}
+                    </ul>
+                    <div className="mt-1">
+                      <button
+                        disabled={busyOutletCafeId === cafe.id}
+                        onClick={() => approveOutlet(cafe.id)}
+                        className="text-xs bg-blue-50 text-blue-800 border border-blue-300 rounded px-2 py-1 hover:bg-blue-100 disabled:opacity-50"
+                      >
+                        🔌 電源ありとして承認
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
         )}
 
         {rows !== null && (

@@ -12,53 +12,12 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import L from "leaflet";
-import { cafes as shinjukuCafes, type Cafe } from "@/data/cafes";
-import { cafes as shibuyaCafes } from "@/data/cafes-shibuya";
-import { cafes as ikebukuroCafes } from "@/data/cafes-ikebukuro";
-import { cafes as tokyoCafes } from "@/data/cafes-tokyo";
-import { cafes as uenoCafes } from "@/data/cafes-ueno";
-import { cafes as shinagawaCafes } from "@/data/cafes-shinagawa";
-import { cafes as shimbashiCafes } from "@/data/cafes-shimbashi";
-import { cafes as akihabaraCafes } from "@/data/cafes-akihabara";
-import { cafes as yurakuchoCafes } from "@/data/cafes-yurakucho";
-import { cafes as kandaCafes } from "@/data/cafes-kanda";
-import { cafes as takadanobabaCafes } from "@/data/cafes-takadanobaba";
-import { cafes as kichijojiCafes } from "@/data/cafes-kichijoji";
-import { cafes as ebisuCafes } from "@/data/cafes-ebisu";
-import { cafes as roppongiCafes } from "@/data/cafes-roppongi";
-import { cafes as akasakaCafes } from "@/data/cafes-akasaka";
-import { cafes as gotandaCafes } from "@/data/cafes-gotanda";
-import { cafes as iidabashiCafes } from "@/data/cafes-iidabashi";
-import { cafes as nakanoCafes } from "@/data/cafes-nakano";
-import { cafes as tachikawaCafes } from "@/data/cafes-tachikawa";
-import { cafes as ochanomizuCafes } from "@/data/cafes-ochanomizu";
+import { seedCafes, type Cafe } from "@/lib/seedCafes";
+import { hasOutlet } from "@/lib/cafeAmenities";
 import { landmarks as shinjukuLandmarks } from "@/data/landmarks-shinjuku";
 import { areas } from "@/data/areas";
 
 const allLandmarks: Landmark[] = [...shinjukuLandmarks];
-
-const seedCafes: Cafe[] = [
-  ...shinjukuCafes,
-  ...shibuyaCafes,
-  ...ikebukuroCafes,
-  ...tokyoCafes,
-  ...uenoCafes,
-  ...shinagawaCafes,
-  ...shimbashiCafes,
-  ...akihabaraCafes,
-  ...yurakuchoCafes,
-  ...kandaCafes,
-  ...takadanobabaCafes,
-  ...kichijojiCafes,
-  ...ebisuCafes,
-  ...roppongiCafes,
-  ...akasakaCafes,
-  ...gotandaCafes,
-  ...iidabashiCafes,
-  ...nakanoCafes,
-  ...tachikawaCafes,
-  ...ochanomizuCafes,
-];
 import { supabase } from "@/lib/supabaseClient";
 import { PIN_COLORS } from "@/lib/pinColors";
 import { cupPinSvgMarkup, CUP_PIN_VIEWBOX } from "@/lib/cupPinIcon";
@@ -482,13 +441,6 @@ function PopupScrollGuard() {
   return null;
 }
 
-// 編集部調べのテキストから簡易判定するヘルパー。バッジ表示と
-// 絞り込みフィルターの両方で同じ判定基準を使うために共通化する
-function hasOutlet(cafe: Cafe): boolean {
-  if (!cafe.outletInfo) return false;
-  return !/電源.*(なし|不可)|コンセント.*(なし|不可)/.test(cafe.outletInfo);
-}
-
 function isNonSmoking(cafe: Cafe): boolean {
   if (!cafe.smokingInfo) return false;
   return /全席禁煙|全店舗?禁煙|敷地内.*禁煙|喫煙(所|ブース)なし/.test(cafe.smokingInfo);
@@ -516,10 +468,14 @@ type QuickBadge = { key: string; emoji: string; label: string; className: string
 // ポップアップを開いてすぐ、電源・喫煙・騒がしさ・混雑度がひと目でわかるように
 // バッジを横一列で表示する。編集部調べのテキストからは正規表現で簡易判定し、
 // 騒がしさ・混雑度はユーザー報告の集計(stats)から判定する
-function getQuickBadges(cafe: Cafe, stats: CafeStats | null): QuickBadge[] {
+function getQuickBadges(
+  cafe: Cafe,
+  stats: CafeStats | null,
+  verifiedOutletCafeIds: Set<string>
+): QuickBadge[] {
   const badges: QuickBadge[] = [];
 
-  if (hasOutlet(cafe)) {
+  if (hasOutlet(cafe, verifiedOutletCafeIds)) {
     badges.push({
       key: "outlet",
       emoji: "🔌",
@@ -674,9 +630,17 @@ function statusColorForStats(stats: CafeStats | null) {
   return PIN_COLORS[pickMajority(stats.noiseCounts)];
 }
 
-function iconForCafe(cafe: Cafe, stats: CafeStats | null) {
+function iconForCafe(
+  cafe: Cafe,
+  stats: CafeStats | null,
+  verifiedOutletCafeIds: Set<string>
+) {
   const statusColor = statusColorForStats(stats);
-  return getCafePinIcon(statusColor, getCafeUsageStyle(cafe), hasOutlet(cafe));
+  return getCafePinIcon(
+    statusColor,
+    getCafeUsageStyle(cafe),
+    hasOutlet(cafe, verifiedOutletCafeIds)
+  );
 }
 
 function directionsUrl(cafe: Cafe, provider: MapProvider) {
@@ -940,6 +904,9 @@ function ZoomTracker({ onChange }: { onChange: (zoom: number) => void }) {
 export default function CafeMap() {
   const [reportsByCafe, setReportsByCafe] = useState<Record<string, Report[]>>({});
   const [factsByCafe, setFactsByCafe] = useState<Record<string, CafeFact[]>>({});
+  const [verifiedOutletCafeIds, setVerifiedOutletCafeIds] = useState<Set<string>>(
+    new Set()
+  );
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [errorByCafe, setErrorByCafe] = useState<Record<string, string>>({});
   const [noteByCafe, setNoteByCafe] = useState<Record<string, string>>({});
@@ -1161,6 +1128,61 @@ export default function CafeMap() {
             ...prev,
             [fact.cafe_id]: [fact, ...(prev[fact.cafe_id] ?? [])],
           }));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      client.removeChannel(channel);
+    };
+  }, []);
+
+  // 電源情報が未確認のお店について、ユーザーからの報告を管理者が承認した
+  // 一覧。承認されたお店はピンにも電源プラグのマークが付くようになる
+  useEffect(() => {
+    let isMounted = true;
+    const client = supabase;
+    if (!client) return;
+
+    async function loadVerifications() {
+      if (!client) return;
+      const { data, error } = await client.from("outlet_verifications").select("cafe_id");
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      if (isMounted) {
+        setVerifiedOutletCafeIds(
+          new Set((data as { cafe_id: string }[] | null)?.map((row) => row.cafe_id) ?? [])
+        );
+      }
+    }
+
+    loadVerifications();
+
+    const channel = client
+      .channel("outlet-verifications-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "outlet_verifications" },
+        (payload) => {
+          const row = payload.new as { cafe_id: string };
+          setVerifiedOutletCafeIds((prev) => new Set(prev).add(row.cafe_id));
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "outlet_verifications" },
+        (payload) => {
+          const row = payload.old as { cafe_id: string };
+          setVerifiedOutletCafeIds((prev) => {
+            const next = new Set(prev);
+            next.delete(row.cafe_id);
+            return next;
+          });
         }
       )
       .subscribe();
@@ -1838,12 +1860,12 @@ export default function CafeMap() {
         const outletSeatCountMedian = median(outletSeatCounts);
         const isDynamicCafe = dynamicCafeIds.has(cafe.id);
         const isUnconfirmed = isDynamicCafe && !hasIndependentActivity(cafe);
-        const quickBadges = getQuickBadges(cafe, stats);
+        const quickBadges = getQuickBadges(cafe, stats, verifiedOutletCafeIds);
         return (
           <Marker
             key={cafe.id}
             position={[cafe.lat, cafe.lng]}
-            icon={iconForCafe(cafe, stats)}
+            icon={iconForCafe(cafe, stats, verifiedOutletCafeIds)}
           >
             <Popup minWidth={210} maxHeight={340}>
               <div className="flex flex-col gap-1 sm:gap-2 text-gray-900">
@@ -2017,7 +2039,21 @@ export default function CafeMap() {
                       </div>
                     </div>
                   )}
-                  <div className="text-[11px] sm:text-sm text-gray-500 mb-1 sm:mb-2">
+                  {cafe.smokingInfo && (
+                    <div className="text-[11px] sm:text-sm bg-amber-50 border border-amber-200 rounded p-1.5 sm:p-2 text-amber-900 mb-1 sm:mb-2">
+                      <div className="font-semibold mb-0.5">
+                        🚬 喫煙情報（ネット調べ）
+                      </div>
+                      <div>{cafe.smokingInfo}</div>
+                      <div className="text-amber-400 mt-0.5">
+                        ※最新でない場合があります
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-2 sm:p-2.5">
+                  <div className="text-[11px] sm:text-sm text-orange-900 font-semibold mb-1 sm:mb-2">
                     📢 今の店内の様子を教えてください（リアルタイムの報告にご協力ください）
                   </div>
                   <div className="text-xs sm:text-sm font-semibold mb-1">混雑度</div>
@@ -2042,7 +2078,34 @@ export default function CafeMap() {
                       )
                     )}
                   </select>
-                  <div className="mt-1">
+                  <div className="mt-1.5 sm:mt-2">
+                    <div className="text-xs sm:text-sm font-semibold mb-1">騒がしさ</div>
+                    <select
+                      value={myReport?.noise_level ?? ""}
+                      disabled={submitting === cafe.id}
+                      onChange={(e) => {
+                        const level = e.target.value as NoiseLevel;
+                        if (!level) return;
+                        submitReport(
+                          cafe.id,
+                          myReport?.outlet_occupancy ?? "empty",
+                          myReport?.seating_occupancy ?? "empty",
+                          level
+                        );
+                      }}
+                      className="w-full text-sm sm:text-base border rounded px-2 py-0.5 sm:py-1 bg-white disabled:opacity-50"
+                    >
+                      <option value="" disabled>
+                        選択してください
+                      </option>
+                      {(Object.keys(NOISE_LABEL) as NoiseLevel[]).map((level) => (
+                        <option key={level} value={level}>
+                          {NOISE_LABEL[level]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="mt-1.5 sm:mt-2">
                     <div className="text-[11px] sm:text-sm text-gray-500 mb-1">
                       電源席はどこですか？（任意）
                     </div>
@@ -2101,85 +2164,50 @@ export default function CafeMap() {
                       </button>
                     </div>
                   </div>
+                  <div className="mt-1.5 sm:mt-2">
+                    <div className="text-[11px] sm:text-sm text-gray-500 mb-1">
+                      お店全体の座席数はだいたい何席くらい？（任意）
+                    </div>
+                    <div className="flex gap-1">
+                      <input
+                        type="number"
+                        min={1}
+                        value={seatCountByCafe[cafe.id] ?? ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setSeatCountByCafe((prev) => ({
+                            ...prev,
+                            [cafe.id]: value,
+                          }));
+                        }}
+                        placeholder="例: 20"
+                        className="w-full text-sm border rounded px-2 py-0.5 sm:py-1"
+                      />
+                      <button
+                        disabled={
+                          submitting === cafe.id ||
+                          !seatCountByCafe[cafe.id]?.trim()
+                        }
+                        onClick={() => submitSeatCount(cafe.id)}
+                        className="px-2 py-1 text-xs sm:text-sm rounded bg-blue-100 hover:bg-blue-200 disabled:opacity-50 whitespace-nowrap"
+                      >
+                        共有
+                      </button>
+                    </div>
+                  </div>
+
+                  {myReport && (
+                    <div className="text-[11px] sm:text-sm text-orange-700 mt-1.5 sm:mt-2">
+                      ✓ あなたの回答が反映されています
+                    </div>
+                  )}
+
+                  {errorByCafe[cafe.id] && (
+                    <div className="text-[11px] sm:text-sm text-red-500 mt-1.5 sm:mt-2">
+                      {errorByCafe[cafe.id]}
+                    </div>
+                  )}
                 </div>
-
-                <div>
-                  <div className="text-xs sm:text-sm font-semibold mb-1">騒がしさ</div>
-                  <select
-                    value={myReport?.noise_level ?? ""}
-                    disabled={submitting === cafe.id}
-                    onChange={(e) => {
-                      const level = e.target.value as NoiseLevel;
-                      if (!level) return;
-                      submitReport(
-                        cafe.id,
-                        myReport?.outlet_occupancy ?? "empty",
-                        myReport?.seating_occupancy ?? "empty",
-                        level
-                      );
-                    }}
-                    className="w-full text-sm sm:text-base border rounded px-2 py-0.5 sm:py-1 bg-white disabled:opacity-50"
-                  >
-                    <option value="" disabled>
-                      選択してください
-                    </option>
-                    {(Object.keys(NOISE_LABEL) as NoiseLevel[]).map((level) => (
-                      <option key={level} value={level}>
-                        {NOISE_LABEL[level]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <div className="text-[11px] sm:text-sm text-gray-500 mb-1">
-                    お店全体の座席数はだいたい何席くらい？（任意）
-                  </div>
-                  <div className="flex gap-1">
-                    <input
-                      type="number"
-                      min={1}
-                      value={seatCountByCafe[cafe.id] ?? ""}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        setSeatCountByCafe((prev) => ({
-                          ...prev,
-                          [cafe.id]: value,
-                        }));
-                      }}
-                      placeholder="例: 20"
-                      className="w-full text-sm border rounded px-2 py-0.5 sm:py-1"
-                    />
-                    <button
-                      disabled={
-                        submitting === cafe.id ||
-                        !seatCountByCafe[cafe.id]?.trim()
-                      }
-                      onClick={() => submitSeatCount(cafe.id)}
-                      className="px-2 py-1 text-xs sm:text-sm rounded bg-blue-100 hover:bg-blue-200 disabled:opacity-50 whitespace-nowrap"
-                    >
-                      共有
-                    </button>
-                  </div>
-                </div>
-
-                {myReport && (
-                  <div className="text-[11px] sm:text-sm text-gray-400">
-                    ✓ あなたの回答が反映されています
-                  </div>
-                )}
-
-                {errorByCafe[cafe.id] && (
-                  <div className="text-[11px] sm:text-sm text-red-500">
-                    {errorByCafe[cafe.id]}
-                  </div>
-                )}
-
-                {cafe.smokingInfo && (
-                  <div className="text-[10px] sm:text-xs text-gray-600 text-right border-t pt-1">
-                    🚬 {cafe.smokingInfo}（ネット調べ）
-                  </div>
-                )}
               </div>
             </Popup>
           </Marker>
