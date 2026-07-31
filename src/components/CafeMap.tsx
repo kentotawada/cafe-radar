@@ -131,20 +131,24 @@ function getCafeUsageStyle(cafe: Cafe): CafeUsageStyle {
 // 珈琲を連想させる温かみのある焦茶色にする(視認性は保ったまま)
 const CUP_LINE_COLOR = "#6b4226";
 
-// 利用スタイルごとの内側アイコン(白1色)。チェーン店は外側のカップ型
-// そのもので「気軽な1杯」を表せるため、あえて内側は無地のままにする
-function usageStyleIconHtml(usageStyle: CafeUsageStyle, statusColor: string): string {
+// 利用スタイルごとの内側アイコン(白1色+焦茶色のアクセント)。カップの
+// 色(混雑度の色)は明るい色になることもあるため、statusColorで「くり抜く」
+// トリックだとコントラスト不足で見えにくくなる。常にはっきり見えるよう、
+// 固定の焦茶色(CUP_LINE_COLOR)のアクセントを使い、アイコン自体も大きめに
+// する。チェーン店は外側のカップ型そのもので「気軽な1杯」を表せるため、
+// あえて内側は無地のままにする
+function usageStyleIconHtml(usageStyle: CafeUsageStyle): string {
   if (usageStyle === "coworking") {
-    // ノートPC(画面＋台形のキーボード部分)
-    return `<path d="M10 7h16v8H10z" fill="white"/><path d="M7 16h22l-1.6 2.6a1 1 0 0 1-.9.4H9.5a1 1 0 0 1-.9-.4L7 16z" fill="white"/>`;
+    // ノートPC(画面＋台形のキーボード部分)、大きめのシルエットで
+    return `<rect x="7" y="5" width="22" height="10" rx="1.2" fill="white"/><path d="M4 15h28l-2.2 3.2a1 1 0 0 1-.9.5H7.1a1 1 0 0 1-.9-.5L4 15z" fill="white"/>`;
   }
   if (usageStyle === "independent") {
-    // コーヒー豆(白い楕円＋中央の筋、筋はカップの色で切り抜いたように見せる)
-    return `<ellipse cx="18" cy="11" rx="7.5" ry="5.5" fill="white" transform="rotate(-8 18 11)"/><path d="M11.5 11 Q18 8 24.5 11" stroke="${statusColor}" stroke-width="1.4" fill="none" transform="rotate(-8 18 11)"/>`;
+    // コーヒー豆(大きめの白い楕円＋焦茶色の太い筋)
+    return `<ellipse cx="18" cy="11" rx="9" ry="6.5" fill="white" transform="rotate(-8 18 11)"/><path d="M10 11 Q18 7 26 11" stroke="${CUP_LINE_COLOR}" stroke-width="2" fill="none" transform="rotate(-8 18 11)"/>`;
   }
   if (usageStyle === "night") {
-    // 三日月(白い円から少しずらした円をカップの色でくり抜く)
-    return `<circle cx="18" cy="11" r="6" fill="white"/><circle cx="21.5" cy="8" r="5" fill="${statusColor}"/>`;
+    // 三日月(1本のパスで描く塗りつぶしの三日月シルエット)
+    return `<g transform="translate(8.4,1.4) scale(0.8)"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="white"/></g>`;
   }
   return "";
 }
@@ -161,16 +165,16 @@ function createCupPinIcon(statusColor: string, usageStyle: CafeUsageStyle) {
     <path d="M4,5 Q4,3 6,3 L30,3 Q32,3 32,5 L32,9 L28,19 Q18,23 8,19 L4,9 Z" fill="${statusColor}" stroke="${CUP_LINE_COLOR}" stroke-width="1.5"/>
     <ellipse cx="18" cy="19.5" rx="6" ry="1.6" fill="${CUP_LINE_COLOR}"/>
     <path d="M31,8 Q39,8.5 39,13.5 Q39,18.5 31,19" fill="none" stroke="${CUP_LINE_COLOR}" stroke-width="1.5"/>
-    ${usageStyleIconHtml(usageStyle, statusColor)}
-    <rect x="15.6" y="20" width="1.8" height="6" fill="${CUP_LINE_COLOR}"/>
-    <rect x="18.6" y="20" width="1.8" height="6" fill="${CUP_LINE_COLOR}"/>
-    <rect x="13" y="25" width="10" height="9" rx="2.5" fill="${CUP_LINE_COLOR}"/>
+    ${usageStyleIconHtml(usageStyle)}
+    <rect x="13" y="19" width="10" height="9" rx="2.5" fill="${CUP_LINE_COLOR}"/>
+    <rect x="15.6" y="27" width="1.8" height="6" fill="${CUP_LINE_COLOR}"/>
+    <rect x="18.6" y="27" width="1.8" height="6" fill="${CUP_LINE_COLOR}"/>
   </svg>`;
   return L.divIcon({
     className: "",
     html,
     iconSize: [42, 42],
-    iconAnchor: [18, 34],
+    iconAnchor: [18, 33],
     popupAnchor: [0, -30],
   });
 }
@@ -210,10 +214,76 @@ function createLandmarkIcon(color: string, innerHtml: string) {
   });
 }
 
-// 「サンドラッグ 新宿中央東口店」のように店名+支店名がスペース区切りに
-// なっている場合、1行目=店名・2行目=支店名ときれいに分けて表示する。
-// スペースが無い名前(建物名など)はそのまま1行として扱う
-function splitLandmarkLabel(name: string): { primary: string; secondary: string | null } {
+// 「ビックカメラ新宿東口店」のようにスペースが無い複合名は、自動判定
+// (文字数で強制改行)だと途中半端な位置で切れてしまうため、意味の
+// まとまり(店名/支店名、施設名/通称など)で1行目・2行目を手動で指定する。
+// スペース区切りの名前(「サンドラッグ 新宿中央東口店」等)は従来通り
+// スペース位置で自動的に分ける
+const LANDMARK_LABEL_SPLIT_OVERRIDES: Record<string, [string, string]> = {
+  "landmark-shinjuku-01": ["新宿駅", "西口"],
+  "landmark-shinjuku-02": ["新宿駅", "東口"],
+  "landmark-shinjuku-03": ["新宿駅", "南口"],
+  "landmark-shinjuku-04": ["新宿駅", "新南口"],
+  "landmark-shinjuku-05": ["東京都庁", "第一本庁舎"],
+  "landmark-shinjuku-06": ["モード学園", "コクーンタワー"],
+  "landmark-shinjuku-08": ["新宿三井", "ビルディング"],
+  "landmark-shinjuku-10": ["新宿センター", "ビル"],
+  "landmark-shinjuku-12": ["新宿マルイ", "本館"],
+  "landmark-shinjuku-13": ["ルミネエスト", "新宿"],
+  "landmark-shinjuku-15": ["京王百貨店", "新宿店"],
+  "landmark-shinjuku-16": ["ヨドバシカメラ", "新宿西口本店"],
+  "landmark-shinjuku-17": ["新宿高島屋", "タイムズスクエア"],
+  "landmark-shinjuku-20": ["新宿東宝ビル", "(ゴジラヘッド)"],
+  "landmark-shinjuku-21": ["京王プラザ", "ホテル"],
+  "landmark-shinjuku-22": ["パークハイアット東京", "(新宿パークタワー)"],
+  "landmark-shinjuku-24": ["新宿アイランド", "タワー"],
+  "landmark-shinjuku-26": ["損保ジャパン本社ビル", "(SOMPO美術館)"],
+  "landmark-shinjuku-28": ["十二社", "熊野神社"],
+  "landmark-shinjuku-29": ["東京都庁", "第二本庁舎"],
+  "landmark-shinjuku-30": ["新宿御苑", "(新宿門)"],
+  "landmark-shinjuku-32": ["新宿", "サブナード"],
+  "landmark-shinjuku-33": ["小田急百貨店新宿店", "(ハルク)"],
+  "landmark-shinjuku-34": ["新宿マルイ", "アネックス"],
+  "landmark-shinjuku-35": ["ビックカメラ", "新宿東口店"],
+  "landmark-shinjuku-38": ["東急歌舞伎町", "タワー"],
+  "landmark-shinjuku-39": ["紀伊國屋書店", "新宿本店"],
+  "landmark-shinjuku-40": ["新宿", "ゴールデン街"],
+  "landmark-shinjuku-41": ["新宿西口", "思い出横丁"],
+  "landmark-shinjuku-43": ["新宿区役所", "本庁舎"],
+  "landmark-shinjuku-45": ["ヨドバシカメラ", "マルチメディア新宿東口"],
+  "landmark-shinjuku-46": ["工学院大学", "新宿キャンパス"],
+  "landmark-shinjuku-49": ["新宿中村屋", "ビル"],
+  "landmark-shinjuku-51": ["三菱UFJ銀行", "新宿支店"],
+  "landmark-shinjuku-52": ["みずほ銀行", "新宿支店"],
+  "landmark-shinjuku-53": ["三井住友銀行", "新宿支店"],
+  "landmark-shinjuku-54": ["ドン・キホーテ", "新宿歌舞伎町店"],
+  "landmark-shinjuku-55": ["新宿", "ピカデリー"],
+  "landmark-shinjuku-57": ["ローソン", "新宿靖国通店"],
+  "landmark-shinjuku-58": ["セブンイレブン", "新宿3丁目店"],
+  "landmark-shinjuku-59": ["新宿駅東口", "交番"],
+  "landmark-shinjuku-60": ["新宿駅西口", "交番"],
+  "landmark-shinjuku-61": ["新宿大ガード", "東交差点"],
+  "landmark-shinjuku-63": ["東京都健康プラザ", "ハイジア"],
+  "landmark-shinjuku-64": ["伊勢丹", "メンズ館"],
+  "landmark-shinjuku-65": ["新宿三丁目", "交差点"],
+  "landmark-shinjuku-66": ["みらいおん像", "(心の絆・ライオンひろば)"],
+  "landmark-shinjuku-67": ["ファミリーマート", "西新宿地下歩道店"],
+  "landmark-shinjuku-68": ["みずほ銀行", "新宿西口支店"],
+  "landmark-shinjuku-69": ["ファミリーマート", "都営線新宿西口駅店"],
+  "landmark-shinjuku-73": ["岐阜屋", "(新宿西口思い出横丁)"],
+  "landmark-shinjuku-76": ["新宿中村屋", "(グランナ)"],
+  "landmark-shinjuku-77": ["タカノフルーツパーラー", "新宿本店"],
+  "landmark-shinjuku-78": ["ニューヨークグリル", "(パークハイアット東京)"],
+  "landmark-shinjuku-79": ["BERG(ベルク)", "ルミネエスト新宿店"],
+  "landmark-shinjuku-90": ["ウエルシア", "O-GUARD新宿店"],
+};
+
+function splitLandmarkLabel(
+  id: string,
+  name: string
+): { primary: string; secondary: string | null } {
+  const override = LANDMARK_LABEL_SPLIT_OVERRIDES[id];
+  if (override) return { primary: override[0], secondary: override[1] };
   const spaceIndex = name.indexOf(" ");
   if (spaceIndex === -1) return { primary: name, secondary: null };
   return {
@@ -365,21 +435,33 @@ function pickMajority<T extends string>(counts: Record<T, number>): T {
 // 付け直す」処理をするため、ポップアップ内のスクロール位置(scrollTop)が
 // 0に戻ってしまう。入力欄の数値を変える(スピンボタンクリック含む)たびに
 // 店舗情報が一番上にスクロールし直されるのはこれが原因。
-// popup.update()はReactのuseEffect(コミット後の次のタスク)で走るため、
-// setTimeoutで1タスク遅らせてからscrollTopを元に戻せば間に合う
-// (requestAnimationFrameは画面を描画していないタブだと発火しないことが
-// あるため、より確実なsetTimeoutを使う)
+// setTimeoutで遅らせて直すと、0に戻った状態が一瞬描画されてから
+// 元の位置に戻るため、ガクッと動いて見えてしまう。popup.update()は
+// このdiv自身のstyle/classを書き換えるので、MutationObserverで
+// それを検知してscrollTopを即座に(=描画される前に)書き戻すことで、
+// 画面上は一切動かないようにする
+const popupScrollGuardTargets = new WeakSet<HTMLElement>();
+const popupScrollGuardDesired = new WeakMap<HTMLElement, number>();
 function withPopupScrollPreserved(target: EventTarget | null, applyChange: () => void) {
   const scrollEl = (target as HTMLElement | null)?.closest(
     ".leaflet-popup-content"
   ) as HTMLElement | null;
-  const scrollTop = scrollEl?.scrollTop;
-  applyChange();
-  if (scrollEl && scrollTop !== undefined) {
-    setTimeout(() => {
-      scrollEl.scrollTop = scrollTop;
-    }, 0);
+  if (!scrollEl) {
+    applyChange();
+    return;
   }
+  popupScrollGuardDesired.set(scrollEl, scrollEl.scrollTop);
+  if (!popupScrollGuardTargets.has(scrollEl)) {
+    popupScrollGuardTargets.add(scrollEl);
+    const observer = new MutationObserver(() => {
+      const desired = popupScrollGuardDesired.get(scrollEl);
+      if (desired !== undefined && scrollEl.scrollTop !== desired) {
+        scrollEl.scrollTop = desired;
+      }
+    });
+    observer.observe(scrollEl, { attributes: true, attributeFilter: ["style", "class"] });
+  }
+  applyChange();
 }
 
 // 編集部調べのテキストから簡易判定するヘルパー。バッジ表示と
@@ -1706,7 +1788,7 @@ export default function CafeMap() {
           {mapZoom >= 17 && (
             <Tooltip permanent direction="top" offset={[0, -28]} className="landmark-tooltip">
               {(() => {
-                const { primary, secondary } = splitLandmarkLabel(landmark.name);
+                const { primary, secondary } = splitLandmarkLabel(landmark.id, landmark.name);
                 return secondary ? (
                   <>
                     {primary}
