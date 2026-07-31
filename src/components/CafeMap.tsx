@@ -2202,13 +2202,27 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
       <div className="leaflet-bottom leaflet-right" style={{ zIndex: 1000 }}>
         <div className="leaflet-control m-2 flex flex-col items-end gap-1">
           {locateError && (
-            <div className="bg-white text-xs text-red-600 rounded shadow-lg border border-gray-300 px-2 py-1.5 max-w-[260px] leading-relaxed">
-              {locateError}
+            <div className="bg-white text-xs text-red-600 rounded shadow-lg border border-gray-300 pl-2 pr-1 py-1.5 max-w-[260px] leading-relaxed flex items-start gap-1">
+              <span className="flex-1">{locateError}</span>
+              <button
+                onClick={() => setLocateError(null)}
+                aria-label="閉じる"
+                className="text-gray-400 hover:text-gray-600 px-1 shrink-0"
+              >
+                ×
+              </button>
             </div>
           )}
           {quickPickError && (
-            <div className="bg-white text-xs text-red-600 rounded shadow-lg border border-gray-300 px-2 py-1.5 max-w-[260px] leading-relaxed">
-              {quickPickError}
+            <div className="bg-white text-xs text-red-600 rounded shadow-lg border border-gray-300 pl-2 pr-1 py-1.5 max-w-[260px] leading-relaxed flex items-start gap-1">
+              <span className="flex-1">{quickPickError}</span>
+              <button
+                onClick={() => setQuickPickError(null)}
+                aria-label="閉じる"
+                className="text-gray-400 hover:text-gray-600 px-1 shrink-0"
+              >
+                ×
+              </button>
             </div>
           )}
           <button
