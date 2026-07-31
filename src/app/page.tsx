@@ -19,7 +19,7 @@ export default function Home() {
           <div>
             <h1 className="text-lg md:text-2xl font-bold">ノマドカフェレーダー</h1>
             <p className="text-xs md:text-sm text-gray-500">
-              電源席とうるささを、その場にいる人同士でリアルタイムに共有
+              カフェの混雑度・電源・Wi-Fiをリアルタイムでチェック
             </p>
           </div>
           <button
@@ -53,14 +53,38 @@ export default function Home() {
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs md:text-sm text-gray-500">
               <span>ピンの中のマーク:</span>
               <span className="flex items-center gap-1">無地 = チェーン店</span>
-              <span className="flex items-center gap-1">💻 = コワーキング併設</span>
-              <span className="flex items-center gap-1">🫘 = 個人経営・おしゃれ</span>
-              <span className="flex items-center gap-1">🌙 = 24時間・深夜営業</span>
               <span className="flex items-center gap-1">
                 <span
                   className="inline-block w-4 h-4 shrink-0"
                   dangerouslySetInnerHTML={{
-                    __html: cupPinSvgMarkup(PIN_COLORS.unknown, "independent", true, 16),
+                    __html: cupPinSvgMarkup(PIN_COLORS.unknown, "coworking", false, 16),
+                  }}
+                />
+                = コワーキング併設
+              </span>
+              <span className="flex items-center gap-1">
+                <span
+                  className="inline-block w-4 h-4 shrink-0"
+                  dangerouslySetInnerHTML={{
+                    __html: cupPinSvgMarkup(PIN_COLORS.unknown, "independent", false, 16),
+                  }}
+                />
+                = 個人経営・おしゃれ
+              </span>
+              <span className="flex items-center gap-1">
+                <span
+                  className="inline-block w-4 h-4 shrink-0"
+                  dangerouslySetInnerHTML={{
+                    __html: cupPinSvgMarkup(PIN_COLORS.unknown, "night", false, 16),
+                  }}
+                />
+                = 24時間・深夜営業
+              </span>
+              <span className="flex items-center gap-1">
+                <span
+                  className="inline-block w-4 h-4 shrink-0"
+                  dangerouslySetInnerHTML={{
+                    __html: cupPinSvgMarkup(PIN_COLORS.unknown, "chain", true, 16),
                   }}
                 />
                 = 電源席あり確認済み
@@ -69,7 +93,7 @@ export default function Home() {
                 <span
                   className="inline-block w-4 h-4 shrink-0"
                   dangerouslySetInnerHTML={{
-                    __html: cupPinSvgMarkup(PIN_COLORS.unknown, "independent", false, 16),
+                    __html: cupPinSvgMarkup(PIN_COLORS.unknown, "chain", false, 16),
                   }}
                 />
                 = 電源情報未確認

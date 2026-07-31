@@ -1985,9 +1985,6 @@ export default function CafeMap() {
                 )}
 
                 <div className="border-t pt-1.5 sm:pt-2">
-                  <div className="text-[11px] sm:text-sm text-gray-500 mb-1 sm:mb-2">
-                    📢 今の店内の様子を教えてください（リアルタイムの報告にご協力ください）
-                  </div>
                   {(cafe.hoursInfo || cafe.closedDaysInfo) && (
                     <div className="text-[11px] sm:text-sm bg-indigo-50 border border-indigo-200 rounded p-1.5 sm:p-2 text-indigo-900 mb-1 sm:mb-2">
                       {cafe.hoursInfo && (
@@ -2020,6 +2017,9 @@ export default function CafeMap() {
                       </div>
                     </div>
                   )}
+                  <div className="text-[11px] sm:text-sm text-gray-500 mb-1 sm:mb-2">
+                    📢 今の店内の様子を教えてください（リアルタイムの報告にご協力ください）
+                  </div>
                   <div className="text-xs sm:text-sm font-semibold mb-1">混雑度</div>
                   <select
                     value={myReport?.outlet_occupancy ?? ""}

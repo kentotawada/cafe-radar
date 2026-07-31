@@ -38,6 +38,12 @@ body {
   }
 }
 
+/* 一番下までスクロールしても、下の「続きがあります」フェードに文字が
+   隠れて読めなくなることがあるため、余白を多めに確保しておく */
+.leaflet-popup-content.leaflet-popup-scrolled {
+  padding-bottom: 2.5rem !important;
+}
+
 /* ポップアップの内容がmaxHeightを超えるとLeafletが.leaflet-popup-scrolled
    を付与しスクロール可能にするが、スクロールバーが目立たない端末(特に
    iOS Safari)では下に続きがあることに気づきにくい。フェードとテキストで
