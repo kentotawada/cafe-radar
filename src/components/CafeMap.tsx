@@ -24,6 +24,7 @@ import { cupPinSvgMarkup, CUP_PIN_VIEWBOX } from "@/lib/cupPinIcon";
 import { getReporterId } from "@/lib/reporterId";
 import { getFavorites, toggleFavorite } from "@/lib/favorites";
 import { getMapProvider, setMapProvider, type MapProvider } from "@/lib/mapProvider";
+import { useLang } from "@/lib/i18n";
 import type {
   CafeFact,
   CafeFlag,
@@ -826,16 +827,17 @@ function CafeDirectionsLink({ cafe }: { cafe: Cafe }) {
 }
 
 function AttributionInfoButton() {
+  const { t } = useLang();
   const [open, setOpen] = useState(false);
   return (
     <>
       <button
         onClick={() => setOpen(true)}
-        aria-label="このサイトについて"
-        title="このサイトについて"
+        aria-label={t("attribution.title")}
+        title={t("attribution.title")}
         className="bg-white/90 rounded-full shadow border border-gray-300 w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center text-xs sm:text-sm font-semibold text-gray-600 cursor-pointer"
       >
-        i
+        {t("attribution.button")}
       </button>
       {open &&
         createPortal(
@@ -848,7 +850,7 @@ function AttributionInfoButton() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="px-4 py-3 bg-gray-100 font-semibold text-gray-900">
-                このサイトについて
+                {t("attribution.title")}
               </div>
               <a
                 href="https://www.openstreetmap.org/copyright"
@@ -881,7 +883,7 @@ function AttributionInfoButton() {
                 onClick={() => setOpen(false)}
                 className="w-full px-4 py-3 font-semibold text-gray-700 cursor-pointer"
               >
-                × 閉じる
+                {t("attribution.close")}
               </button>
             </div>
           </div>,
@@ -894,6 +896,7 @@ function AttributionInfoButton() {
 // お店に紐づかない、アプリ全体へのお問い合わせフォーム。管理画面から
 // 内容を確認できる(お問い合わせ一覧は管理者のみ閲覧可)
 function InquiryButton() {
+  const { t } = useLang();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "done" | "error">(
@@ -930,11 +933,11 @@ function InquiryButton() {
     <>
       <button
         onClick={() => setOpen(true)}
-        aria-label="お問い合わせ"
-        title="お問い合わせ"
+        aria-label={t("inquiry.title")}
+        title={t("inquiry.title")}
         className="bg-white/90 rounded-full shadow border border-gray-300 h-6 px-2 sm:h-8 sm:px-3 flex items-center gap-1 text-[10px] sm:text-sm font-semibold text-gray-700 cursor-pointer"
       >
-        ✉ お問い合わせ
+        ✉ {t("inquiry.button")}
       </button>
       {open &&
         createPortal(
@@ -947,35 +950,35 @@ function InquiryButton() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="px-4 py-3 bg-gray-100 font-semibold text-gray-900">
-                お問い合わせ
+                {t("inquiry.title")}
               </div>
               <div className="p-4 flex flex-col gap-2">
                 {status === "done" ? (
-                  <p className="text-sm text-green-700">
-                    送信しました。ありがとうございます。
-                  </p>
+                  <p className="text-sm text-green-700">{t("inquiry.done")}</p>
                 ) : (
                   <>
                     <p className="text-xs text-gray-600">
-                      ご意見・ご要望・不具合報告など、店舗に関係のない内容はこちらからどうぞ。
+                      {t("inquiry.description")}
                     </p>
                     <textarea
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       maxLength={1000}
                       rows={4}
-                      placeholder="内容を入力してください"
+                      placeholder={t("inquiry.placeholder")}
                       className="border border-gray-400 rounded px-2 py-1.5 text-sm text-gray-900 bg-white resize-none"
                     />
                     {status === "error" && (
-                      <p className="text-xs text-red-600">送信に失敗しました</p>
+                      <p className="text-xs text-red-600">{t("inquiry.error")}</p>
                     )}
                     <button
                       onClick={handleSubmit}
                       disabled={status === "submitting" || !message.trim()}
                       className="bg-blue-600 text-white rounded px-3 py-2 text-sm font-semibold hover:bg-blue-700 disabled:opacity-50"
                     >
-                      {status === "submitting" ? "送信中…" : "送信する"}
+                      {status === "submitting"
+                        ? t("inquiry.submitting")
+                        : t("inquiry.submit")}
                     </button>
                   </>
                 )}
@@ -984,7 +987,7 @@ function InquiryButton() {
                 onClick={handleClose}
                 className="w-full px-4 py-3 font-semibold text-gray-700 cursor-pointer border-t"
               >
-                × 閉じる
+                {t("inquiry.close")}
               </button>
             </div>
           </div>,
@@ -1067,6 +1070,7 @@ function ZoomTracker({ onChange }: { onChange: (zoom: number) => void }) {
 }
 
 export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }) {
+  const { t } = useLang();
   const [reportsByCafe, setReportsByCafe] = useState<Record<string, Report[]>>({});
   const [factsByCafe, setFactsByCafe] = useState<Record<string, CafeFact[]>>({});
   const [verifiedOutletCafeIds, setVerifiedOutletCafeIds] = useState<Set<string>>(
@@ -1854,7 +1858,10 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
             onClick={() => setIsListPanelOpen((prev) => !prev)}
             className="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-gray-900"
           >
-            <span>{listCafes.length}件のお店</span>
+            <span>
+              {listCafes.length}
+              {t("list.count")}
+            </span>
             <span>{isListPanelOpen ? "▼" : "▲"}</span>
           </button>
           {isListPanelOpen && (
@@ -1864,7 +1871,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                 onChange={(e) => handleAreaSearch(e.target.value)}
                 className="text-xs sm:text-sm border border-gray-300 rounded px-2 py-1 bg-white text-gray-700"
               >
-                <option value="">エリア: すべて</option>
+                <option value="">{t("list.areaAll")}</option>
                 {areas.map((area) => (
                   <option key={area.id} value={area.name}>
                     {area.name}
@@ -1876,13 +1883,14 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                 onChange={(e) => setSortOrder(e.target.value as SortOrder)}
                 className="text-xs sm:text-sm border border-gray-300 rounded px-2 py-1 bg-white text-gray-700"
               >
-                <option value="recommended">おすすめ順</option>
+                <option value="recommended">{t("list.sortRecommended")}</option>
                 <option value="distance" disabled={!userPosition}>
-                  現在地から近い順{!userPosition ? "(現在地未取得)" : ""}
+                  {t("list.sortDistance")}
+                  {!userPosition ? t("list.sortDistanceUnavailable") : ""}
                 </option>
-                <option value="seats">席数が多い順</option>
-                <option value="occupancy">空いている順</option>
-                <option value="noise">静かな順</option>
+                <option value="seats">{t("list.sortSeats")}</option>
+                <option value="occupancy">{t("list.sortOccupancy")}</option>
+                <option value="noise">{t("list.sortNoise")}</option>
               </select>
             </div>
           )}
@@ -1921,7 +1929,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                       {cafe.name}
                     </div>
                     <div className="text-xs text-gray-500">
-                      {cafe.address ?? "住所未登録"}
+                      {cafe.address ?? t("list.noAddress")}
                     </div>
                   </div>
                   {distance !== null && (
@@ -1988,7 +1996,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
               onClick={() => setIsFilterPanelOpen((prev) => !prev)}
               className="flex items-center gap-1 flex-1 min-w-0"
             >
-              <span>絞り込み</span>
+              <span>{t("filter.toggle")}</span>
               <span>{isFilterPanelOpen ? "▲" : "▼"}</span>
             </button>
             {isAnyFilterActive && (
@@ -1999,7 +2007,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                 }}
                 className="text-blue-600 text-[9px] sm:text-xs font-semibold underline shrink-0"
               >
-                解除
+                {t("filter.reset")}
               </button>
             )}
           </div>
@@ -2012,13 +2020,13 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
               className="cf-filter-panel-content flex flex-col gap-0.5 sm:gap-2 px-1.5 sm:px-3 pb-1 sm:pb-3 overflow-y-auto"
             >
               <label className="flex flex-col gap-0.5 sm:gap-1">
-                <span>エリア検索</span>
+                <span>{t("filter.area")}</span>
                 <select
                   value={areaQuery}
                   onChange={(e) => handleAreaSearch(e.target.value)}
                   className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-sm text-gray-900 bg-white w-full"
                 >
-                  <option value="">選択してください</option>
+                  <option value="">{t("filter.areaPlaceholder")}</option>
                   {areas.map((area) => (
                     <option key={area.id} value={area.name}>
                       {area.name}
@@ -2027,7 +2035,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                 </select>
               </label>
               <label className="flex flex-col gap-0.5 sm:gap-1">
-                <span>電源席</span>
+                <span>{t("filter.outlet")}</span>
                 <select
                   value={outletFilter}
                   onChange={(e) =>
@@ -2035,12 +2043,12 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                   }
                   className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-sm text-gray-900 bg-white w-full"
                 >
-                  <option value="any">すべて</option>
-                  <option value="available">空きありのみ</option>
+                  <option value="any">{t("filter.any")}</option>
+                  <option value="available">{t("filter.availableOnly")}</option>
                 </select>
               </label>
               <label className="flex flex-col gap-0.5 sm:gap-1">
-                <span>一般席</span>
+                <span>{t("filter.seating")}</span>
                 <select
                   value={seatingFilter}
                   onChange={(e) =>
@@ -2048,24 +2056,24 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                   }
                   className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-sm text-gray-900 bg-white w-full"
                 >
-                  <option value="any">すべて</option>
-                  <option value="available">空きありのみ</option>
+                  <option value="any">{t("filter.any")}</option>
+                  <option value="available">{t("filter.availableOnly")}</option>
                 </select>
               </label>
               <label className="flex flex-col gap-0.5 sm:gap-1">
-                <span>静かさ</span>
+                <span>{t("filter.noise")}</span>
                 <select
                   value={noiseFilter}
                   onChange={(e) => setNoiseFilter(e.target.value as NoiseFilter)}
                   className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-sm text-gray-900 bg-white w-full"
                 >
-                  <option value="any">こだわらない</option>
-                  <option value="quietOnly">静かな店のみ</option>
-                  <option value="excludeLoud">うるさい店を除く</option>
+                  <option value="any">{t("filter.noiseAny")}</option>
+                  <option value="quietOnly">{t("filter.quietOnly")}</option>
+                  <option value="excludeLoud">{t("filter.excludeLoud")}</option>
                 </select>
               </label>
               <label className="flex flex-col gap-0.5 sm:gap-1">
-                <span>喫煙</span>
+                <span>{t("filter.smoking")}</span>
                 <select
                   value={smokingFilter}
                   onChange={(e) =>
@@ -2073,13 +2081,13 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                   }
                   className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-sm text-gray-900 bg-white w-full"
                 >
-                  <option value="any">こだわらない</option>
-                  <option value="nonSmokingOnly">禁煙のみ</option>
-                  <option value="smokingOk">喫煙可でもよい</option>
+                  <option value="any">{t("filter.smokingAny")}</option>
+                  <option value="nonSmokingOnly">{t("filter.nonSmokingOnly")}</option>
+                  <option value="smokingOk">{t("filter.smokingOk")}</option>
                 </select>
               </label>
               <label className="flex flex-col gap-0.5 sm:gap-1">
-                <span>Wi-Fi</span>
+                <span>{t("filter.wifi")}</span>
                 <select
                   value={wifiFilter}
                   onChange={(e) =>
@@ -2087,8 +2095,8 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                   }
                   className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-sm text-gray-900 bg-white w-full"
                 >
-                  <option value="any">すべて</option>
-                  <option value="available">Wi-Fiありのみ</option>
+                  <option value="any">{t("filter.any")}</option>
+                  <option value="available">{t("filter.wifiAvailableOnly")}</option>
                 </select>
               </label>
               <label className="flex items-center gap-1.5 sm:gap-2">
@@ -2098,13 +2106,13 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                   onChange={(e) => setFavoritesOnly(e.target.checked)}
                   className="w-3.5 h-3.5 sm:w-4 sm:h-4"
                 />
-                <span>お気に入りのお店のみ</span>
+                <span>{t("filter.favoritesOnly")}</span>
               </label>
             </div>
           )}
           {isFilterPanelOpen && filterHasMoreBelow && (
             <div className="text-center text-[9px] sm:text-xs font-semibold text-blue-600 bg-blue-50 border-t border-blue-100 py-1">
-              ▼ スクロールで他の項目も見られます
+              {t("filter.scrollHint")}
             </div>
           )}
         </div>
@@ -2172,14 +2180,12 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
         <div className="leaflet-control m-1.5 sm:m-2">
           {isAddingCafe ? (
             <div className="bg-white text-[11px] sm:text-xs rounded shadow-lg border border-gray-300 px-2.5 py-1.5 sm:px-3 sm:py-2 max-w-[220px] flex flex-col gap-1">
-              <div className="text-gray-800">
-                地図をタップしてお店の場所を選んでください
-              </div>
+              <div className="text-gray-800">{t("addCafe.tapHint")}</div>
               <button
                 onClick={cancelAddingCafe}
                 className="self-start px-2 py-1 rounded bg-gray-100 hover:bg-gray-200"
               >
-                キャンセル
+                {t("addCafe.cancel")}
               </button>
             </div>
           ) : (
@@ -2187,7 +2193,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
               onClick={startAddingCafe}
               className="bg-white rounded-full shadow-lg border border-gray-300 px-2 h-7 sm:px-3 sm:h-10 flex items-center gap-1 text-xs sm:text-sm font-semibold text-gray-900"
             >
-              ＋ お店を追加
+              {t("addCafe.button")}
             </button>
           )}
         </div>
@@ -2204,26 +2210,30 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
         >
           <Popup minWidth={220} autoClose={false} closeOnClick={false}>
             <div className="flex flex-col gap-2 text-gray-900">
-              <div className="font-bold text-base">この場所にお店を追加</div>
+              <div className="font-bold text-base">{t("addCafe.title")}</div>
               <div>
-                <div className="text-xs text-gray-500 mb-1">店名（必須）</div>
+                <div className="text-xs text-gray-500 mb-1">
+                  {t("addCafe.nameLabel")}
+                </div>
                 <input
                   type="text"
                   maxLength={60}
                   value={newCafeName}
                   onChange={(e) => setNewCafeName(e.target.value)}
-                  placeholder="例: ○○珈琲店 △△店"
+                  placeholder={t("addCafe.namePlaceholder")}
                   className="w-full text-base border rounded px-2 py-1"
                 />
               </div>
               <div>
-                <div className="text-xs text-gray-500 mb-1">住所（任意）</div>
+                <div className="text-xs text-gray-500 mb-1">
+                  {t("addCafe.addressLabel")}
+                </div>
                 <input
                   type="text"
                   maxLength={100}
                   value={newCafeAddress}
                   onChange={(e) => setNewCafeAddress(e.target.value)}
-                  placeholder="わかれば入力（経路案内の精度が上がります）"
+                  placeholder={t("addCafe.addressPlaceholder")}
                   className="w-full text-base border rounded px-2 py-1"
                 />
               </div>
@@ -2236,7 +2246,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                 rel="noopener noreferrer"
                 className="text-xs text-blue-600 underline"
               >
-                登録前にGoogleマップで実在確認する
+                {t("addCafe.verifyOnGoogleMaps")}
               </a>
               <div className="flex gap-2">
                 <button
@@ -2244,13 +2254,13 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                   onClick={submitNewCafe}
                   className="px-2 py-1 text-xs rounded bg-blue-100 hover:bg-blue-200 disabled:opacity-50"
                 >
-                  この場所に登録する
+                  {t("addCafe.submit")}
                 </button>
                 <button
                   onClick={cancelAddingCafe}
                   className="px-2 py-1 text-xs rounded bg-gray-100 hover:bg-gray-200"
                 >
-                  キャンセル
+                  {t("addCafe.cancel")}
                 </button>
               </div>
               {addCafeError && (
