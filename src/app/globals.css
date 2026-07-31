@@ -72,6 +72,18 @@ body {
   min-width: 0;
 }
 
+/* 絞り込みパネルの展開部分の高さ上限。スマホのSafariはvh単位が
+   アドレスバーの表示状態で揺れてリスト欄と重なることがあるため、
+   実際に見えている範囲を示すdvh単位を使い、上限も低めに抑える */
+.cf-filter-panel-content {
+  max-height: min(26dvh, 200px);
+}
+@media (min-width: 640px) {
+  .cf-filter-panel-content {
+    max-height: min(60dvh, 420px);
+  }
+}
+
 /* リストで店舗をタップした時、地図上のどのピンかひと目でわかるように、
    サイズを大きくするだけでなく足元に広がるパルスリングを付ける */
 .cf-pin-pulse-ring {

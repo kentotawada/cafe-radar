@@ -1180,6 +1180,25 @@ export default function CafeMap() {
     }
   };
 
+  const isAnyFilterActive =
+    areaQuery !== "" ||
+    outletFilter !== "any" ||
+    seatingFilter !== "any" ||
+    noiseFilter !== "any" ||
+    smokingFilter !== "any" ||
+    wifiFilter !== "any" ||
+    favoritesOnly;
+
+  const resetFilters = () => {
+    setAreaQuery("");
+    setOutletFilter("any");
+    setSeatingFilter("any");
+    setNoiseFilter("any");
+    setSmokingFilter("any");
+    setWifiFilter("any");
+    setFavoritesOnly(false);
+  };
+
   useEffect(() => {
     let isMounted = true;
     const client = supabase;
@@ -1910,25 +1929,35 @@ export default function CafeMap() {
       />
 
       <div className="leaflet-top leaflet-right" style={{ zIndex: 1000 }}>
-        <div className="leaflet-control bg-white text-gray-900 rounded-lg shadow-lg border border-gray-300 m-1.5 sm:m-2 text-[11px] sm:text-sm w-28 sm:w-60">
-          <button
-            onClick={() => setIsFilterPanelOpen((prev) => !prev)}
-            className="w-full flex items-center justify-between px-1.5 sm:px-3 py-1 sm:py-2 font-semibold"
-          >
-            <span>絞り込み</span>
-            <span>{isFilterPanelOpen ? "▲" : "▼"}</span>
-          </button>
-          {isFilterPanelOpen && (
-            <div
-              className="flex flex-col gap-0.5 sm:gap-2 px-1.5 sm:px-3 pb-1.5 sm:pb-3 overflow-y-auto"
-              style={{ maxHeight: "min(42vh, 340px)" }}
+        <div className="leaflet-control bg-white text-gray-900 rounded-lg shadow-lg border border-gray-300 m-1 sm:m-2 text-[10px] sm:text-sm w-24 sm:w-60">
+          <div className="w-full flex items-center justify-between px-1.5 py-0.5 sm:px-3 sm:py-2 font-semibold gap-1">
+            <button
+              onClick={() => setIsFilterPanelOpen((prev) => !prev)}
+              className="flex items-center gap-1 flex-1 min-w-0"
             >
+              <span>絞り込み</span>
+              <span>{isFilterPanelOpen ? "▲" : "▼"}</span>
+            </button>
+            {isAnyFilterActive && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  resetFilters();
+                }}
+                className="text-blue-600 text-[9px] sm:text-xs font-semibold underline shrink-0"
+              >
+                解除
+              </button>
+            )}
+          </div>
+          {isFilterPanelOpen && (
+            <div className="cf-filter-panel-content flex flex-col gap-0.5 sm:gap-2 px-1.5 sm:px-3 pb-1 sm:pb-3 overflow-y-auto">
               <label className="flex flex-col gap-0.5 sm:gap-1">
                 <span>エリア検索</span>
                 <select
                   value={areaQuery}
                   onChange={(e) => handleAreaSearch(e.target.value)}
-                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-sm sm:text-base text-gray-900 bg-white w-full"
+                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-sm text-gray-900 bg-white w-full"
                 >
                   <option value="">選択してください</option>
                   {areas.map((area) => (
@@ -1945,7 +1974,7 @@ export default function CafeMap() {
                   onChange={(e) =>
                     setOutletFilter(e.target.value as AvailabilityFilter)
                   }
-                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-sm sm:text-base text-gray-900 bg-white w-full"
+                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-sm text-gray-900 bg-white w-full"
                 >
                   <option value="any">すべて</option>
                   <option value="available">空きありのみ</option>
@@ -1958,7 +1987,7 @@ export default function CafeMap() {
                   onChange={(e) =>
                     setSeatingFilter(e.target.value as AvailabilityFilter)
                   }
-                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-sm sm:text-base text-gray-900 bg-white w-full"
+                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-sm text-gray-900 bg-white w-full"
                 >
                   <option value="any">すべて</option>
                   <option value="available">空きありのみ</option>
@@ -1969,7 +1998,7 @@ export default function CafeMap() {
                 <select
                   value={noiseFilter}
                   onChange={(e) => setNoiseFilter(e.target.value as NoiseFilter)}
-                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-sm sm:text-base text-gray-900 bg-white w-full"
+                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-sm text-gray-900 bg-white w-full"
                 >
                   <option value="any">こだわらない</option>
                   <option value="quietOnly">静かな店のみ</option>
@@ -1983,7 +2012,7 @@ export default function CafeMap() {
                   onChange={(e) =>
                     setSmokingFilter(e.target.value as SmokingFilter)
                   }
-                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-sm sm:text-base text-gray-900 bg-white w-full"
+                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-sm text-gray-900 bg-white w-full"
                 >
                   <option value="any">こだわらない</option>
                   <option value="nonSmokingOnly">禁煙のみ</option>
@@ -1997,7 +2026,7 @@ export default function CafeMap() {
                   onChange={(e) =>
                     setWifiFilter(e.target.value as AvailabilityFilter)
                   }
-                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-sm sm:text-base text-gray-900 bg-white w-full"
+                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-sm text-gray-900 bg-white w-full"
                 >
                   <option value="any">すべて</option>
                   <option value="available">Wi-Fiありのみ</option>
