@@ -692,6 +692,19 @@ function computeStats(reports: Report[]): CafeStats | null {
   };
 }
 
+// 過去の報告の中から、「今」と同じ曜日・近い時間帯(前後2時間)のものだけ
+// 抜き出す。ライブの報告が無い時間帯でも、傾向から予測を出すために使う
+function filterSimilarTimeSlot(reports: Report[], now: Date): Report[] {
+  const targetDay = now.getDay();
+  const targetHour = now.getHours();
+  return reports.filter((report) => {
+    const d = new Date(report.created_at);
+    if (d.getDay() !== targetDay) return false;
+    const diff = Math.abs(d.getHours() - targetHour);
+    return Math.min(diff, 24 - diff) <= 2;
+  });
+}
+
 type NoteGroup = {
   text: string;
   count: number;
@@ -1374,6 +1387,38 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     };
   }, []);
 
+  // 直近の報告が無いお店でも、過去の同じ曜日・時間帯の報告傾向から
+  // 「予測」を出せるように、期間を絞らず全報告を取得しておく
+  const [historicalReportsByCafe, setHistoricalReportsByCafe] = useState<
+    Record<string, Report[]>
+  >({});
+  useEffect(() => {
+    let isMounted = true;
+    const client = supabase;
+    if (!client) return;
+
+    async function loadHistoricalReports() {
+      if (!client) return;
+      const { data, error } = await client.from("reports").select("*");
+      if (error) {
+        console.error(error);
+        return;
+      }
+      const grouped: Record<string, Report[]> = {};
+      for (const report of (data as Report[]) ?? []) {
+        (grouped[report.cafe_id] ??= []).push(report);
+      }
+      if (isMounted) setHistoricalReportsByCafe(grouped);
+    }
+
+    loadHistoricalReports();
+    const interval = setInterval(loadHistoricalReports, 10 * 60000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
   // 電源席の場所やだいたいの座席数は、混雑度と違って時間が経っても
   // 変わらない情報なので、時間の窓を設けずにずっと保持する
   useEffect(() => {
@@ -1825,6 +1870,18 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     const raw = reportsByCafe[cafe.id] ?? [];
     statsByCafe[cafe.id] = computeStats(raw);
     myReportByCafe[cafe.id] = raw.find((r) => r.reporter_id === reporterId);
+  }
+
+  // ライブの報告が無いお店だけ、過去の同じ曜日・時間帯の傾向から予測を出す
+  const now = new Date();
+  const predictedStatsByCafe: Record<string, CafeStats | null> = {};
+  for (const cafe of allCafes) {
+    if (statsByCafe[cafe.id]) continue;
+    const historical = historicalReportsByCafe[cafe.id];
+    if (!historical || historical.length === 0) continue;
+    predictedStatsByCafe[cafe.id] = computeStats(
+      filterSimilarTimeSlot(historical, now)
+    );
   }
 
   const isFiltering =
@@ -2597,6 +2654,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
       ))}
       {visibleCafes.map((cafe) => {
         const stats = statsByCafe[cafe.id];
+        const predictedStats = predictedStatsByCafe[cafe.id];
         const myReport = myReportByCafe[cafe.id];
         const isFavorite = favorites.has(cafe.id);
         const facts = factsByCafe[cafe.id] ?? [];
@@ -2719,6 +2777,31 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                         <div className="text-[11px] sm:text-sm text-gray-500 mt-1">
                           最終更新: {formatRelativeTime(stats.latestAt)}（
                           {stats.totalReporters}人の報告）
+                        </div>
+                      </div>
+                    );
+                  })()
+                ) : predictedStats ? (
+                  (() => {
+                    const outletPct = weightedPercent(
+                      predictedStats.outletOccupancyCounts,
+                      OCCUPANCY_SCORE,
+                      predictedStats.totalReporters
+                    );
+                    const seatingPct = weightedPercent(
+                      predictedStats.seatingOccupancyCounts,
+                      OCCUPANCY_SCORE,
+                      predictedStats.totalReporters
+                    );
+                    const overallPct = Math.round((outletPct + seatingPct) / 2);
+                    return (
+                      <div className="text-xs sm:text-base border border-dashed border-gray-300 rounded p-1.5 sm:p-2">
+                        <div className="font-semibold text-gray-500">
+                          📊 予測混雑度: {overallPct}%
+                        </div>
+                        <div className="text-[11px] sm:text-sm text-gray-400 mt-1">
+                          今の報告はまだありません。過去の同じ曜日・時間帯の傾向(
+                          {predictedStats.totalReporters}件)からの参考値です
                         </div>
                       </div>
                     );
