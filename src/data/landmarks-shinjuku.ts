@@ -93,4 +93,13 @@ export const landmarks: Landmark[] = [
   { id: "landmark-shinjuku-88", name: "トモズ 新宿住友ビル店", lat: 35.6912, lng: 139.6939, category: "drugstore" },
   { id: "landmark-shinjuku-89", name: "トモズ 新宿二丁目店", lat: 35.6885, lng: 139.7038, category: "drugstore" },
   { id: "landmark-shinjuku-90", name: "ウエルシアO-GUARD新宿店", lat: 35.6975, lng: 139.6975, category: "drugstore" },
+  { id: "landmark-shinjuku-91", name: "新宿駅東口交差点", lat: 35.6907, lng: 139.7005, category: "traffic_signal" },
+  { id: "landmark-shinjuku-92", name: "新宿大ガード西交差点", lat: 35.6938, lng: 139.697, category: "traffic_signal" },
+  { id: "landmark-shinjuku-93", name: "西新宿一丁目交差点", lat: 35.688, lng: 139.6985, category: "traffic_signal" },
+  { id: "landmark-shinjuku-94", name: "新宿四丁目交差点", lat: 35.6877, lng: 139.7046, category: "traffic_signal" },
+  { id: "landmark-shinjuku-95", name: "新宿五丁目交差点", lat: 35.6934, lng: 139.7048, category: "traffic_signal" },
+  { id: "landmark-shinjuku-96", name: "新宿二丁目交差点", lat: 35.6903, lng: 139.7075, category: "traffic_signal" },
+  { id: "landmark-shinjuku-97", name: "歌舞伎町交差点", lat: 35.6941, lng: 139.702, category: "traffic_signal" },
+  { id: "landmark-shinjuku-98", name: "新宿郵便局前交差点", lat: 35.6907, lng: 139.6975, category: "traffic_signal" },
+  { id: "landmark-shinjuku-99", name: "新宿区役所前交差点", lat: 35.6942, lng: 139.7033, category: "traffic_signal" },
 ];

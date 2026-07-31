@@ -276,6 +276,15 @@ const LANDMARK_LABEL_SPLIT_OVERRIDES: Record<string, [string, string]> = {
   "landmark-shinjuku-78": ["ニューヨークグリル", "(パークハイアット東京)"],
   "landmark-shinjuku-79": ["BERG(ベルク)", "ルミネエスト新宿店"],
   "landmark-shinjuku-90": ["ウエルシア", "O-GUARD新宿店"],
+  "landmark-shinjuku-91": ["新宿駅東口", "交差点"],
+  "landmark-shinjuku-92": ["新宿大ガード西", "交差点"],
+  "landmark-shinjuku-93": ["西新宿一丁目", "交差点"],
+  "landmark-shinjuku-94": ["新宿四丁目", "交差点"],
+  "landmark-shinjuku-95": ["新宿五丁目", "交差点"],
+  "landmark-shinjuku-96": ["新宿二丁目", "交差点"],
+  "landmark-shinjuku-97": ["歌舞伎町", "交差点"],
+  "landmark-shinjuku-98": ["新宿郵便局前", "交差点"],
+  "landmark-shinjuku-99": ["新宿区役所前", "交差点"],
 };
 
 function splitLandmarkLabel(
