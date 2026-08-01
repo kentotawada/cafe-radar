@@ -35,3 +35,23 @@ export function nearestAreaName(lat: number, lng: number): string {
   }
   return bestName;
 }
+
+// 最寄り駅(areas.ts)からの直線距離を、CafeMapのformatWalkBadgeと同じ
+// 分速80mの目安で徒歩分数に換算する。OGP説明文の「徒歩○分」のように、
+// ユーザーの現在地に頼らずサーバー側だけで求められる値が必要な場面で使う
+export function nearestStationWalkMinutes(lat: number, lng: number): number {
+  const R = 6371000;
+  let bestMeters = Infinity;
+  for (const area of areas) {
+    const dLat = ((area.lat - lat) * Math.PI) / 180;
+    const dLng = ((area.lng - lng) * Math.PI) / 180;
+    const lat1 = (lat * Math.PI) / 180;
+    const lat2 = (area.lat * Math.PI) / 180;
+    const h =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+    const meters = 2 * R * Math.asin(Math.sqrt(h));
+    if (meters < bestMeters) bestMeters = meters;
+  }
+  return Math.max(1, Math.ceil(bestMeters / 80));
+}

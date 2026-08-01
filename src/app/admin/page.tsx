@@ -548,9 +548,32 @@ export default function AdminPage() {
                     key={inquiry.id}
                     className="bg-white border border-gray-300 rounded-lg shadow-sm p-3 flex flex-col gap-1"
                   >
-                    <div className="text-xs text-gray-400">
-                      {formatDateTime(inquiry.created_at)}
+                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                      <span>{formatDateTime(inquiry.created_at)}</span>
+                      {inquiry.category && (
+                        <span className="bg-amber-100 text-amber-800 rounded-full px-2 py-0.5 font-semibold">
+                          {inquiry.category === "listing"
+                            ? "店舗掲載について"
+                            : inquiry.category === "media"
+                            ? "データ利用・取材について"
+                            : "一般的なご意見"}
+                        </span>
+                      )}
                     </div>
+                    {(inquiry.name || inquiry.email) && (
+                      <div className="text-xs text-gray-600">
+                        {inquiry.name && <span>{inquiry.name}</span>}
+                        {inquiry.name && inquiry.email && <span> ・ </span>}
+                        {inquiry.email && (
+                          <a
+                            href={`mailto:${inquiry.email}`}
+                            className="text-blue-600 underline"
+                          >
+                            {inquiry.email}
+                          </a>
+                        )}
+                      </div>
+                    )}
                     <div className="text-sm text-gray-700 whitespace-pre-wrap">
                       {inquiry.message}
                     </div>

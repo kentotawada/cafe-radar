@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
+import InstallPromptBanner from "@/components/InstallPromptBanner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -12,13 +14,28 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const ADSENSE_ID = process.env.NEXT_PUBLIC_ADSENSE_ID;
+
 export const metadata: Metadata = {
-  title: "カフェレーダー",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "カフェレーダー",
+    template: "%s | カフェレーダー",
+  },
   description: "カフェの混雑度・電源・Wi-Fiをリアルタイムでチェック",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "カフェレーダー",
+  },
+  openGraph: {
+    siteName: "カフェレーダー",
+    locale: "ja_JP",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
   },
 };
 
@@ -33,10 +50,23 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="ja"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <InstallPromptBanner />
+        {/* AdSenseの審査が通り、パブリッシャーIDが設定されるまではスクリプトを
+            読み込まない(未審査サイトへの広告配信はポリシー違反になるため) */}
+        {ADSENSE_ID && (
+          <Script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_ID}`}
+            crossOrigin="anonymous"
+            strategy="afterInteractive"
+          />
+        )}
+      </body>
     </html>
   );
 }

@@ -1,9 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { lookupCafeById, nearestAreaName } from "@/lib/lookupCafe";
+import {
+  lookupCafeById,
+  nearestAreaName,
+  nearestStationWalkMinutes,
+} from "@/lib/lookupCafe";
 import { supabase } from "@/lib/supabaseClient";
+import { hasOutlet } from "@/lib/cafeAmenities";
 import FavoriteToggleButton from "@/components/FavoriteToggleButton";
+import ShareButtons from "@/components/ShareButtons";
+import AlternativeOptionsBlock from "@/components/AlternativeOptionsBlock";
+import AdBanner from "@/components/AdBanner";
+import Footer from "@/components/Footer";
 import {
   computeStats,
   filterSimilarTimeSlot,
@@ -42,10 +51,14 @@ export async function generateMetadata({
   const { id } = await params;
   const cafe = await lookupCafeById(id);
   if (!cafe) {
-    return { title: "お店が見つかりません | カフェレーダー" };
+    return { title: "お店が見つかりません" };
   }
   const area = nearestAreaName(cafe.lat, cafe.lng).replace("駅", "");
-  const title = `【${area}】${cafe.name} - 電源・Wi-Fi情報 | カフェレーダー`;
+  const walkMinutes = nearestStationWalkMinutes(cafe.lat, cafe.lng);
+
+  // <title>・検索結果向けの説明文は、エリア名や実際の営業情報を含めた
+  // 詳しい文言のままにする(既存のSEO向け実装を踏襲)
+  const title = `【${area}】${cafe.name} - 電源・Wi-Fi情報`;
   const descriptionParts = [
     cafe.address,
     cafe.outletInfo,
@@ -55,10 +68,27 @@ export async function generateMetadata({
   const description =
     descriptionParts.join(" / ") || "カフェレーダーで見つけたお店です。";
 
+  // SNSシェア時のog:title/og:descriptionは指定のフォーマットに固定する
+  // (店舗名を主役にした共通コピーで、統一感のあるシェア表示にするため)
+  const ogTitle = `【${cafe.name}】電源・Wi-Fi・混雑状況 | カフェレーダー`;
+  const ogDescription = `電源の有無やリアルタイム混雑度、作業環境の口コミをチェック。徒歩${walkMinutes}分。`;
+  const canonicalPath = `/cafe/${cafe.id}`;
+
   return {
     title,
     description,
-    openGraph: { title, description },
+    alternates: { canonical: canonicalPath },
+    openGraph: {
+      title: ogTitle,
+      description: ogDescription,
+      url: canonicalPath,
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: ogTitle,
+      description: ogDescription,
+    },
   };
 }
 
@@ -84,6 +114,13 @@ export default async function CafeDetailPage({ params }: PageProps) {
     : computeStats(filterSimilarTimeSlot(allReports, now));
 
   const badges = getQuickBadges(cafe, liveStats, new Set());
+
+  // 「電源なし」「混雑気味」の代替案ブロックをどちらの理由で出すか判定する。
+  // 電源席の混雑はライブ報告があるときだけ判定できる(無ければ「なし」扱い)
+  const noOutlet = !hasOutlet(cafe, new Set());
+  const outletFull = liveStats
+    ? liveStats.outletOccupancyCounts.full > liveStats.totalReporters / 2
+    : false;
 
   const infoRows = [
     { emoji: "⏰", label: "営業時間", value: cafe.hoursInfo },
@@ -137,32 +174,25 @@ export default async function CafeDetailPage({ params }: PageProps) {
 
           <div className="px-5 py-4 flex flex-col gap-3">
             {liveStats ? (
-              (() => {
-                const outletFull =
-                  liveStats.outletOccupancyCounts.full >
-                  liveStats.totalReporters / 2;
-                return (
-                  <div
-                    className={`rounded-lg p-3 border ${
-                      outletFull
-                        ? "bg-red-50 border-red-200"
-                        : "bg-green-50 border-green-200"
-                    }`}
-                  >
-                    <div
-                      className={`text-sm font-bold ${
-                        outletFull ? "text-red-700" : "text-green-700"
-                      }`}
-                    >
-                      🪑 現在の混雑状況
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      最終更新: {formatRelativeTime(liveStats.latestAt, now)}(
-                      {liveStats.totalReporters}人の報告)
-                    </div>
-                  </div>
-                );
-              })()
+              <div
+                className={`rounded-lg p-3 border ${
+                  outletFull
+                    ? "bg-red-50 border-red-200"
+                    : "bg-green-50 border-green-200"
+                }`}
+              >
+                <div
+                  className={`text-sm font-bold ${
+                    outletFull ? "text-red-700" : "text-green-700"
+                  }`}
+                >
+                  🪑 現在の混雑状況
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  最終更新: {formatRelativeTime(liveStats.latestAt, now)}(
+                  {liveStats.totalReporters}人の報告)
+                </div>
+              </div>
             ) : predictedStats ? (
               <div className="rounded-lg p-3 border border-dashed border-gray-300 bg-gray-50">
                 <div className="text-sm font-bold text-gray-500">
@@ -212,9 +242,20 @@ export default async function CafeDetailPage({ params }: PageProps) {
                 地図で見る
               </Link>
             </div>
+
+            <ShareButtons title={`【${cafe.name}】電源・Wi-Fi・混雑状況 | カフェレーダー`} />
           </div>
         </div>
+
+        <AlternativeOptionsBlock
+          areaName={area.replace("駅", "")}
+          noOutlet={noOutlet}
+          crowded={outletFull}
+        />
+
+        <AdBanner slot="cafe-detail-main" />
       </main>
+      <Footer />
     </div>
   );
 }

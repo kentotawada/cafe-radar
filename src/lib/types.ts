@@ -52,11 +52,18 @@ export type InfoCorrection = {
   created_at: string;
 };
 
-// 店舗に紐づかない、アプリ全体へのお問い合わせ
+// 店舗に紐づかない、アプリ全体へのお問い合わせ。/contact ページ(店舗掲載・
+// データ利用/取材の依頼)と、アプリ内の簡易お問い合わせボタンの両方がこの
+// テーブルに書き込む。name/email/categoryは/contact経由の時だけ入る
+export type InquiryCategory = "general" | "listing" | "media";
+
 export type Inquiry = {
   id: string;
   reporter_id: string | null;
   message: string;
+  name: string | null;
+  email: string | null;
+  category: InquiryCategory | null;
   created_at: string;
 };
 

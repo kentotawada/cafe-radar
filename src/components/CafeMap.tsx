@@ -14,6 +14,7 @@ import {
 import L from "leaflet";
 import { seedCafes, type Cafe } from "@/lib/seedCafes";
 import { hasOutlet } from "@/lib/cafeAmenities";
+import AdBanner from "@/components/AdBanner";
 import {
   dedupeByReporter,
   pickMajority,
@@ -2117,7 +2118,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
         )}
         {isListPanelOpen && (
         <div className="flex flex-col gap-2 p-2">
-          {listCafes.map((cafe) => {
+          {listCafes.flatMap((cafe, index) => {
             const stats = statsByCafe[cafe.id];
             const statusColor = statusColorForStats(stats);
             const badges = getQuickBadges(cafe, stats, verifiedOutletCafeIds);
@@ -2126,7 +2127,10 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
               ? distanceMeters(userPosition, [cafe.lat, cafe.lng])
               : null;
             const isSelected = cafe.id === selectedCafeId;
-            return (
+            // インフィード広告: 3番目・6番目のカードの直後に挿入する
+            const showAdAfter =
+              (index === 2 || index === 5) && index < listCafes.length - 1;
+            const card = (
               <div
                 key={cafe.id}
                 ref={(el) => {
@@ -2202,6 +2206,15 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                 )}
               </div>
             );
+            return showAdAfter
+              ? [
+                  card,
+                  <AdBanner
+                    key={`ad-after-${cafe.id}`}
+                    slot="cafe-list-infeed"
+                  />,
+                ]
+              : [card];
           })}
         </div>
         )}
