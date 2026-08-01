@@ -24,6 +24,8 @@ import {
   isLateNight,
   getQuickBadges,
   filterSimilarTimeSlot,
+  pickMajorityFromList,
+  inferPowerSupplyTier,
 } from "@/lib/cafeStats";
 import { landmarks as shinjukuLandmarks } from "@/data/landmarks-shinjuku";
 import { landmarks as shibuyaLandmarks } from "@/data/landmarks-shibuya";
@@ -62,7 +64,9 @@ import type {
   LandmarkCategory,
   NoiseLevel,
   OccupancyLevel,
+  PowerSupplyTier,
   Report,
+  WifiSpeed,
 } from "@/lib/types";
 
 const allLandmarks: Landmark[] = [
@@ -1004,6 +1008,15 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   const [noiseFilter, setNoiseFilter] = useState<NoiseFilter>("any");
   const [smokingFilter, setSmokingFilter] = useState<SmokingFilter>("any");
   const [wifiFilter, setWifiFilter] = useState<AvailabilityFilter>("any");
+  const [powerSupplyFilter, setPowerSupplyFilter] = useState<
+    "any" | PowerSupplyTier
+  >("any");
+  const [wifiSpeedFilter, setWifiSpeedFilter] = useState<"any" | WifiSpeed>(
+    "any"
+  );
+  const [webMeetingFilter, setWebMeetingFilter] = useState<"any" | "ok" | "ng">(
+    "any"
+  );
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [mapFocus, setMapFocus] = useState<[number, number] | null>(null);
   const [areaQuery, setAreaQuery] = useState("");
@@ -1136,6 +1149,9 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     noiseFilter !== "any" ||
     smokingFilter !== "any" ||
     wifiFilter !== "any" ||
+    powerSupplyFilter !== "any" ||
+    wifiSpeedFilter !== "any" ||
+    webMeetingFilter !== "any" ||
     favoritesOnly;
 
   const resetFilters = () => {
@@ -1145,6 +1161,9 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     setNoiseFilter("any");
     setSmokingFilter("any");
     setWifiFilter("any");
+    setPowerSupplyFilter("any");
+    setWifiSpeedFilter("any");
+    setWebMeetingFilter("any");
     setFavoritesOnly(false);
   };
 
@@ -1608,6 +1627,50 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     }
   };
 
+  const submitWifiSpeed = async (cafeId: string, wifiSpeed: WifiSpeed) => {
+    if (!supabase) {
+      setErrorByCafe((prev) => ({
+        ...prev,
+        [cafeId]: "Supabase未設定のため保存できません",
+      }));
+      return;
+    }
+    setSubmitting(cafeId);
+    setErrorByCafe((prev) => ({ ...prev, [cafeId]: "" }));
+    const { error } = await supabase
+      .from("cafe_facts")
+      .insert({ cafe_id: cafeId, reporter_id: reporterId, wifi_speed: wifiSpeed });
+    setSubmitting(null);
+    if (error) {
+      console.error(error);
+      setErrorByCafe((prev) => ({ ...prev, [cafeId]: "共有に失敗しました" }));
+    }
+  };
+
+  const submitWebMeetingOk = async (cafeId: string, webMeetingOk: boolean) => {
+    if (!supabase) {
+      setErrorByCafe((prev) => ({
+        ...prev,
+        [cafeId]: "Supabase未設定のため保存できません",
+      }));
+      return;
+    }
+    setSubmitting(cafeId);
+    setErrorByCafe((prev) => ({ ...prev, [cafeId]: "" }));
+    const { error } = await supabase
+      .from("cafe_facts")
+      .insert({
+        cafe_id: cafeId,
+        reporter_id: reporterId,
+        web_meeting_ok: webMeetingOk,
+      });
+    setSubmitting(null);
+    if (error) {
+      console.error(error);
+      setErrorByCafe((prev) => ({ ...prev, [cafeId]: "共有に失敗しました" }));
+    }
+  };
+
   const handleToggleFavorite = (cafeId: string) => {
     setFavorites(toggleFavorite(cafeId));
   };
@@ -1699,6 +1762,24 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     return outletSeatCountMedian / seatCountMedian;
   }
 
+  // Wi-Fiの速度・WEB会議可否は、みんなの投稿を単純多数決で集計する
+  function wifiSpeedMajority(cafe: Cafe): WifiSpeed | null {
+    const facts = factsByCafe[cafe.id] ?? [];
+    const votes = dedupeByReporter(facts.filter((f) => f.wifi_speed != null)).map(
+      (f) => f.wifi_speed as WifiSpeed
+    );
+    return pickMajorityFromList(votes);
+  }
+
+  function webMeetingMajority(cafe: Cafe): boolean | null {
+    const facts = factsByCafe[cafe.id] ?? [];
+    const votes = dedupeByReporter(
+      facts.filter((f) => f.web_meeting_ok != null)
+    ).map((f) => (f.web_meeting_ok ? "ok" : "ng"));
+    const majority = pickMajorityFromList(votes);
+    return majority === null ? null : majority === "ok";
+  }
+
   const allCafes = [...seedCafes, ...dynamicCafes].filter(
     (cafe) => !dynamicCafeIds.has(cafe.id) || distinctFlagCount(cafe.id) < FLAG_HIDE_THRESHOLD
   );
@@ -1729,6 +1810,9 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     noiseFilter !== "any" ||
     smokingFilter !== "any" ||
     wifiFilter !== "any" ||
+    powerSupplyFilter !== "any" ||
+    wifiSpeedFilter !== "any" ||
+    webMeetingFilter !== "any" ||
     favoritesOnly;
 
   // 絞り込み条件の判定(地図の表示範囲チェックは別途行うため、ここには含めない)
@@ -1768,6 +1852,24 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     if (smokingFilter === "nonSmokingOnly" && !isNonSmoking(cafe)) return false;
     if (smokingFilter === "smokingOk" && !isSmokingOk(cafe)) return false;
     if (wifiFilter === "available" && !hasWifi(cafe)) return false;
+    if (
+      powerSupplyFilter !== "any" &&
+      inferPowerSupplyTier(cafe) !== powerSupplyFilter
+    ) {
+      return false;
+    }
+    if (
+      wifiSpeedFilter !== "any" &&
+      wifiSpeedMajority(cafe) !== wifiSpeedFilter
+    ) {
+      return false;
+    }
+    if (webMeetingFilter !== "any") {
+      const majority = webMeetingMajority(cafe);
+      if (majority === null) return false;
+      if (webMeetingFilter === "ok" && !majority) return false;
+      if (webMeetingFilter === "ng" && majority) return false;
+    }
     return true;
   }
 
@@ -1997,6 +2099,22 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
             </div>
           )}
         </div>
+        {isListPanelOpen && listCafes.length === 0 && (
+          <div className="flex flex-col items-center gap-2 p-6 text-center">
+            <div className="text-2xl">🔍</div>
+            <div className="text-sm text-gray-500">
+              {t("list.empty")}
+            </div>
+            {isFiltering && (
+              <button
+                onClick={resetFilters}
+                className="text-sm text-blue-600 underline"
+              >
+                {t("list.emptyResetFilters")}
+              </button>
+            )}
+          </div>
+        )}
         {isListPanelOpen && (
         <div className="flex flex-col gap-2 p-2">
           {listCafes.map((cafe) => {
@@ -2228,6 +2346,50 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                 >
                   <option value="any">{t("filter.any")}</option>
                   <option value="available">{t("filter.wifiAvailableOnly")}</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-0.5 sm:gap-1">
+                <span>{t("filter.powerSupply")}</span>
+                <select
+                  value={powerSupplyFilter}
+                  onChange={(e) =>
+                    setPowerSupplyFilter(
+                      e.target.value as "any" | PowerSupplyTier
+                    )
+                  }
+                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-sm text-gray-900 bg-white w-full"
+                >
+                  <option value="any">{t("filter.any")}</option>
+                  <option value="all">{t("filter.powerSupplyAll")}</option>
+                  <option value="counter">{t("filter.powerSupplyCounter")}</option>
+                  <option value="few">{t("filter.powerSupplyFew")}</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-0.5 sm:gap-1">
+                <span>{t("filter.wifiSpeed")}</span>
+                <select
+                  value={wifiSpeedFilter}
+                  onChange={(e) =>
+                    setWifiSpeedFilter(e.target.value as "any" | WifiSpeed)
+                  }
+                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-sm text-gray-900 bg-white w-full"
+                >
+                  <option value="any">{t("filter.any")}</option>
+                  <option value="fast">{t("filter.wifiSpeedFast")}</option>
+                  <option value="standard">{t("filter.wifiSpeedStandard")}</option>
+                </select>
+              </label>
+              <label className="flex flex-col gap-0.5 sm:gap-1">
+                <span>{t("filter.webMeeting")}</span>
+                <select
+                  value={webMeetingFilter}
+                  onChange={(e) =>
+                    setWebMeetingFilter(e.target.value as "any" | "ok" | "ng")
+                  }
+                  className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-sm text-gray-900 bg-white w-full"
+                >
+                  <option value="any">{t("filter.any")}</option>
+                  <option value="ok">{t("filter.webMeetingOk")}</option>
                 </select>
               </label>
               <label className="flex items-center gap-1.5 sm:gap-2">
@@ -2530,6 +2692,21 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
           facts.filter((f) => f.outlet_seat_count != null)
         ).map((f) => f.outlet_seat_count as number);
         const outletSeatCountMedian = median(outletSeatCounts);
+        const wifiSpeedVotes = dedupeByReporter(
+          facts.filter((f) => f.wifi_speed != null)
+        );
+        const wifiSpeedResult = pickMajorityFromList(
+          wifiSpeedVotes.map((f) => f.wifi_speed as WifiSpeed)
+        );
+        const webMeetingVotes = dedupeByReporter(
+          facts.filter((f) => f.web_meeting_ok != null)
+        );
+        const webMeetingResult =
+          webMeetingVotes.length > 0
+            ? pickMajorityFromList(
+                webMeetingVotes.map((f) => (f.web_meeting_ok ? "ok" : "ng"))
+              )
+            : null;
         const isDynamicCafe = dynamicCafeIds.has(cafe.id);
         const isUnconfirmed = isDynamicCafe && !hasIndependentActivity(cafe);
         const quickBadges = getQuickBadges(cafe, stats, verifiedOutletCafeIds);
@@ -2701,7 +2878,9 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
 
                 {(noteGroups.length > 0 ||
                   seatCountMedian !== null ||
-                  outletSeatCountMedian !== null) && (
+                  outletSeatCountMedian !== null ||
+                  wifiSpeedResult !== null ||
+                  webMeetingResult !== null) && (
                   <div className="text-[11px] sm:text-sm bg-gray-50 rounded p-1.5 sm:p-2 flex flex-col gap-1">
                     {seatCountMedian !== null && (
                       <div className="text-gray-700">
@@ -2713,6 +2892,27 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                       <div className="text-gray-700">
                         🔌 電源席数の目安: 約{outletSeatCountMedian}席（
                         {outletSeatCounts.length}人の報告）
+                      </div>
+                    )}
+                    {wifiSpeedResult !== null && (
+                      <div className="text-gray-700">
+                        📶 Wi-Fi速度の傾向:{" "}
+                        {
+                          {
+                            fast: "速い",
+                            standard: "普通",
+                            restricted: "遅い/制限あり",
+                            none: "Wi-Fiなし",
+                          }[wifiSpeedResult]
+                        }
+                        （{wifiSpeedVotes.length}人の報告）
+                      </div>
+                    )}
+                    {webMeetingResult !== null && (
+                      <div className="text-gray-700">
+                        💻 WEB会議・通話:{" "}
+                        {webMeetingResult === "ok" ? "OKの声が多い" : "NGの声が多い"}
+                        （{webMeetingVotes.length}人の報告）
                       </div>
                     )}
                     {noteGroups.length > 0 && (
@@ -2967,6 +3167,50 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                         className="px-2 py-1 text-xs sm:text-sm rounded bg-blue-100 hover:bg-blue-200 disabled:opacity-50 whitespace-nowrap"
                       >
                         共有
+                      </button>
+                    </div>
+                  </div>
+                  <div className="mt-1.5 sm:mt-2">
+                    <div className="text-[11px] sm:text-sm text-gray-500 mb-1">
+                      Wi-Fiの速度は？（任意・みんなで集めています）
+                    </div>
+                    <select
+                      value=""
+                      disabled={submitting === cafe.id}
+                      onChange={(e) => {
+                        const value = e.target.value as WifiSpeed;
+                        if (!value) return;
+                        submitWifiSpeed(cafe.id, value);
+                      }}
+                      className="w-full text-sm border rounded px-2 py-0.5 sm:py-1 bg-white disabled:opacity-50"
+                    >
+                      <option value="" disabled>
+                        選択してください
+                      </option>
+                      <option value="fast">速い(動画も快適)</option>
+                      <option value="standard">普通</option>
+                      <option value="restricted">遅い/時間制限あり</option>
+                      <option value="none">Wi-Fiなし</option>
+                    </select>
+                  </div>
+                  <div className="mt-1.5 sm:mt-2">
+                    <div className="text-[11px] sm:text-sm text-gray-500 mb-1">
+                      WEB会議・通話をしても大丈夫？（任意・みんなで集めています）
+                    </div>
+                    <div className="flex gap-1">
+                      <button
+                        disabled={submitting === cafe.id}
+                        onClick={() => submitWebMeetingOk(cafe.id, true)}
+                        className="flex-1 px-2 py-1 text-xs sm:text-sm rounded bg-green-100 hover:bg-green-200 disabled:opacity-50"
+                      >
+                        👍 大丈夫
+                      </button>
+                      <button
+                        disabled={submitting === cafe.id}
+                        onClick={() => submitWebMeetingOk(cafe.id, false)}
+                        className="flex-1 px-2 py-1 text-xs sm:text-sm rounded bg-red-100 hover:bg-red-200 disabled:opacity-50"
+                      >
+                        🙅 NG
                       </button>
                     </div>
                   </div>

@@ -1,5 +1,8 @@
 export type NoiseLevel = "quiet" | "normal" | "noisy" | "loud";
 export type OccupancyLevel = "empty" | "sparse" | "moderate" | "full";
+export type WifiSpeed = "fast" | "standard" | "restricted" | "none";
+// 電源席の配置。編集部調べのテキストから推測する(実測ではないので目安)
+export type PowerSupplyTier = "all" | "counter" | "few" | "none";
 
 // カフェの利用シーン・滞在スタイルによる分類(店名から推定、編集部調べ)。
 // チェーン=気軽に入れる・短時間利用、コワーキング=フルタイム作業向け、
@@ -25,6 +28,10 @@ export type CafeFact = {
   note: string | null;
   seat_count: number | null;
   outlet_seat_count: number | null;
+  // Wi-Fiの速度・WEB会議可否は編集部調べのデータが無いため、
+  // みんなの投稿で少しずつ集めていく新項目
+  wifi_speed: WifiSpeed | null;
+  web_meeting_ok: boolean | null;
   created_at: string;
 };
 

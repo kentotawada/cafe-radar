@@ -38,9 +38,17 @@ create table if not exists cafe_facts (
   note text,
   seat_count integer,
   outlet_seat_count integer,
+  -- Wi-Fiの速度・WEB会議可否は編集部調べのデータが無いため、
+  -- みんなの投稿で少しずつ集めていく新項目
+  wifi_speed text check (wifi_speed in ('fast', 'standard', 'restricted', 'none')),
+  web_meeting_ok boolean,
   created_at timestamptz not null default now(),
   constraint cafe_facts_has_content check (
-    note is not null or seat_count is not null or outlet_seat_count is not null
+    note is not null
+    or seat_count is not null
+    or outlet_seat_count is not null
+    or wifi_speed is not null
+    or web_meeting_ok is not null
   )
 );
 

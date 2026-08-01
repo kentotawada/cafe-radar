@@ -1,6 +1,12 @@
 import type { Cafe } from "@/lib/seedCafes";
 import { hasOutlet } from "@/lib/cafeAmenities";
-import type { CafeStats, NoiseLevel, OccupancyLevel, Report } from "@/lib/types";
+import type {
+  CafeStats,
+  NoiseLevel,
+  OccupancyLevel,
+  PowerSupplyTier,
+  Report,
+} from "@/lib/types";
 
 // CafeMapのバッジ表示・絞り込みフィルターと、店舗ごとの共有ページ
 // (src/app/cafe/[id])の両方で同じ判定基準を使うための共通化
@@ -24,6 +30,40 @@ export function pickMajority<T extends string>(counts: Record<T, number>): T {
   return (Object.keys(counts) as T[]).reduce((a, b) =>
     counts[b] > counts[a] ? b : a
   );
+}
+
+// Wi-Fi速度・WEB会議可否など、みんなの投稿を単純多数決で集計する時に使う
+export function pickMajorityFromList<T extends string>(items: T[]): T | null {
+  if (items.length === 0) return null;
+  const counts = new Map<T, number>();
+  for (const item of items) counts.set(item, (counts.get(item) ?? 0) + 1);
+  let best = items[0];
+  let bestCount = 0;
+  for (const [item, count] of counts) {
+    if (count > bestCount) {
+      best = item;
+      bestCount = count;
+    }
+  }
+  return best;
+}
+
+// 電源席の配置(全席/カウンターのみ/わずか/なし)を、編集部調べの
+// outletInfoテキストから正規表現で推測する。実測ではなくあくまで目安
+export function inferPowerSupplyTier(cafe: Cafe): PowerSupplyTier | null {
+  if (!cafe.outletInfo) return null;
+  if (!hasOutlet(cafe)) return "none";
+  const text = cafe.outletInfo;
+  if (/全席|全店舗|全テーブル|全カウンター|ほぼ全/.test(text)) return "all";
+  if (
+    /(カウンター|窓際)[^。、]*(のみ|だけ)|入口付近の(カウンター席|カウンター)のみ/.test(
+      text
+    )
+  ) {
+    return "counter";
+  }
+  if (/一部|数席|わずか|要確認|程度|2席|3席|4席|5席/.test(text)) return "few";
+  return null;
 }
 
 export function computeStats(reports: Report[]): CafeStats | null {
@@ -124,6 +164,15 @@ export function getQuickBadges(
       emoji: "🔌",
       label: "電源あり",
       className: "bg-blue-100 text-blue-800",
+    });
+  }
+
+  if (inferPowerSupplyTier(cafe) === "all") {
+    badges.push({
+      key: "powersupply-all",
+      emoji: "🔌",
+      label: "全席電源(推測)",
+      className: "bg-blue-50 text-blue-700",
     });
   }
 
