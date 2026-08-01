@@ -100,14 +100,13 @@ const FLAG_HIDE_THRESHOLD = 3;
 
 // MapTilerタイルへの切り替えを試したところ、本番環境でページが
 // クラッシュする不具合が発生したため、原因調査が終わるまでCARTO
-// Voyagerに固定する(MAPTILER_KEYの設定有無に関わらずCARTOを使う)
+// Voyagerに固定する(MAPTILER_KEYの設定有無に関わらずCARTOを使う)。
+// 国土地理院タイルへの切り替えも試したが、レティナ(高解像度)画像に
+// 対応しておらずスマホでぼやけて見づらくなったため元に戻した。低ズーム時に
+// 区名がローマ字表記になる問題は、別の解決策が見つかるまで保留する
 const MAPTILER_KEY: string | undefined = undefined;
-// CARTO Voyagerは低ズーム時に区名などのラベルがローマ字表記に切り替わる
-// ため、国土地理院(地理院タイル)の淡色地図に変更する。APIキー不要・
-// 常に日本語表記で、利用にはタイル画像内ではなく地図上への出典表示が必須
-// (https://maps.gsi.go.jp/development/ichiran.html)
-const TILE_URL = "https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png";
-const TILE_MAX_ZOOM = 18;
+const TILE_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+const TILE_MAX_ZOOM = 20;
 
 const SHINJUKU_CENTER: [number, number] = [35.6905, 139.7005];
 const STALE_MINUTES = 30;
@@ -288,12 +287,16 @@ function createClusterIcon(cluster: L.MarkerCluster) {
 // 合わずに見づらくなるため、単色のSVGアイコンを使う
 function createLandmarkIcon(color: string, innerHtml: string) {
   // 丸バッジの下に小さな三角のツノを付け、その先端が実際の座標(建物の
-  // 位置)を指すようにする。バッジ本体は建物の真上に浮くように見える
+  // 位置)を指すようにする。バッジ本体は建物の真上に浮くように見える。
+  // カフェのピンと重なって見づらいという声を受け、先端(実座標)を軸に
+  // 全体を縮小する(transform-originを先端に合わせるので、位置はずれない)
   const html = `<div style="position:relative;width:24px;height:30px;">
-    <div style="width:24px;height:24px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;">
-      ${innerHtml}
+    <div style="transform:scale(0.72);transform-origin:50% 100%;">
+      <div style="width:24px;height:24px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;">
+        ${innerHtml}
+      </div>
+      <div style="position:absolute;left:50%;bottom:-4px;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid ${color};"></div>
     </div>
-    <div style="position:absolute;left:50%;bottom:-4px;transform:translateX(-50%);width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid ${color};"></div>
   </div>`;
   return L.divIcon({
     className: "",
@@ -2254,6 +2257,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
       center={mapFocus ?? SHINJUKU_CENTER}
       zoom={16}
       style={{ position: "absolute", inset: 0 }}
+      attributionControl={false}
     >
       <RecenterOnLocate position={mapFocus} />
       <MapBoundsTracker onChange={setMapBounds} />
@@ -2265,8 +2269,8 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
       />
       <TileLayer
         url={TILE_URL}
+        subdomains={MAPTILER_KEY ? undefined : "abcd"}
         maxZoom={TILE_MAX_ZOOM}
-        attribution='<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener noreferrer">国土地理院</a>'
       />
 
       <div className="leaflet-top leaflet-right" style={{ zIndex: 1000 }}>
