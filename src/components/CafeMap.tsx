@@ -100,7 +100,12 @@ const FLAG_HIDE_THRESHOLD = 3;
 // クラッシュする不具合が発生したため、原因調査が終わるまでCARTO
 // Voyagerに固定する(MAPTILER_KEYの設定有無に関わらずCARTOを使う)
 const MAPTILER_KEY: string | undefined = undefined;
-const TILE_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+// CARTO Voyagerは低ズーム時に区名などのラベルがローマ字表記に切り替わる
+// ため、国土地理院(地理院タイル)の淡色地図に変更する。APIキー不要・
+// 常に日本語表記で、利用にはタイル画像内ではなく地図上への出典表示が必須
+// (https://maps.gsi.go.jp/development/ichiran.html)
+const TILE_URL = "https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png";
+const TILE_MAX_ZOOM = 18;
 
 const SHINJUKU_CENTER: [number, number] = [35.6905, 139.7005];
 const STALE_MINUTES = 30;
@@ -2242,7 +2247,6 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
       center={mapFocus ?? SHINJUKU_CENTER}
       zoom={16}
       style={{ position: "absolute", inset: 0 }}
-      attributionControl={false}
     >
       <RecenterOnLocate position={mapFocus} />
       <MapBoundsTracker onChange={setMapBounds} />
@@ -2254,8 +2258,8 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
       />
       <TileLayer
         url={TILE_URL}
-        subdomains={MAPTILER_KEY ? undefined : "abcd"}
-        maxZoom={20}
+        maxZoom={TILE_MAX_ZOOM}
+        attribution='<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener noreferrer">国土地理院</a>'
       />
 
       <div className="leaflet-top leaflet-right" style={{ zIndex: 1000 }}>
@@ -2681,7 +2685,10 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
           <Popup>現在地</Popup>
         </Marker>
       )}
-      {visibleLandmarks.map((landmark) => (
+      {/* 目印は全エリアで2000件超あり、ズームアウト時にmapBoundsが広い
+          範囲を含むと数百件同時に描画されて地図の動きが重くなる。街区が
+          見える程度まで拡大した時だけ描画する(縮小時は不要な情報でもある) */}
+      {mapZoom >= 15 && visibleLandmarks.map((landmark) => (
         <Marker
           key={landmark.id}
           position={[landmark.lat, landmark.lng]}
