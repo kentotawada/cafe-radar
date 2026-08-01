@@ -12,6 +12,7 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import L from "leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
 import { seedCafes, type Cafe } from "@/lib/seedCafes";
 import { hasOutlet } from "@/lib/cafeAmenities";
 import AdBanner from "@/components/AdBanner";
@@ -259,6 +260,21 @@ function getCafePinIcon(
 }
 
 const PENDING_CAFE_ICON = createCupPinIcon(PIN_COLORS.unknown, "independent", false);
+
+// ズームアウトすると同時に描画されるピンの数が数百件になり、地図の動きが
+// 重くなるため、近いピンを1つのクラスターバッジにまとめる。見た目は
+// 他のバッジ(createLandmarkIcon)と揃え、ブランドカラーの丸バッジにする
+function createClusterIcon(cluster: L.MarkerCluster) {
+  const count = cluster.getChildCount();
+  const size = count < 10 ? 34 : count < 50 ? 42 : 50;
+  const fontSize = count < 100 ? 13 : 11;
+  const html = `<div style="width:${size}px;height:${size}px;border-radius:50%;background:#2563eb;border:3px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;color:#ffffff;font-weight:700;font-size:${fontSize}px;">${count}</div>`;
+  return L.divIcon({
+    html,
+    className: "",
+    iconSize: L.point(size, size),
+  });
+}
 
 // 不動産サイトの周辺環境地図のように、色付きの丸バッジ+シンプルな
 // 白1色のイラスト(アイコン)にする。絵文字は色がバラバラで背景色と
@@ -2690,6 +2706,12 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
           )}
         </Marker>
       ))}
+      <MarkerClusterGroup
+        maxClusterRadius={60}
+        showCoverageOnHover={false}
+        spiderfyOnMaxZoom
+        iconCreateFunction={createClusterIcon}
+      >
       {visibleCafes.map((cafe) => {
         const stats = statsByCafe[cafe.id];
         const predictedStats = predictedStatsByCafe[cafe.id];
@@ -3247,6 +3269,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
           </Marker>
         );
       })}
+      </MarkerClusterGroup>
     </MapContainer>
       </div>
     </div>

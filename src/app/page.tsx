@@ -18,8 +18,10 @@ function HomeContent() {
     <div className="flex flex-col flex-1 h-screen">
       <header className="border-b px-3 py-1.5 sm:px-4 sm:py-3">
         <div className="flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-base sm:text-lg md:text-2xl font-bold">{t("app.title")}</h1>
+          <div className="min-w-0 shrink-0">
+            <h1 className="text-base sm:text-lg md:text-2xl font-bold whitespace-nowrap">
+              {t("app.title")}
+            </h1>
             <p className="hidden sm:block text-xs md:text-sm text-gray-500">
               {t("app.subtitle")}
             </p>
@@ -115,20 +117,9 @@ function HomeContent() {
                 {t("legend.outletUnknown")}
               </span>
             </div>
-            <div className="sm:hidden flex flex-wrap gap-3">
-              <Link href="/privacy" className="block text-xs text-gray-400 underline">
-                {t("privacy.link")}
-              </Link>
-              <Link href="/contact" className="block text-xs text-gray-400 underline">
-                お問い合わせ
-              </Link>
-              <Link href="/business" className="block text-xs text-gray-400 underline">
-                店舗掲載・法人の方はこちら
-              </Link>
-            </div>
           </div>
         )}
-        <div className="hidden sm:flex gap-3 mt-1">
+        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
           <Link href="/privacy" className="text-xs md:text-sm text-gray-400 underline">
             {t("privacy.link")}
           </Link>
