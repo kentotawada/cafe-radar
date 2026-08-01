@@ -121,6 +121,17 @@ function distanceMeters(
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
+// 分速80m(一般的な徒歩速度の目安)で徒歩分数に換算する。
+// 「徒歩6分(約450m)」のようなバッジ表示に使う
+function formatWalkBadge(distance: number): string {
+  const walkMinutes = Math.max(1, Math.ceil(distance / 80));
+  const distanceLabel =
+    distance < 1000
+      ? `${Math.round(distance)}m`
+      : `${(distance / 1000).toFixed(1)}km`;
+  return `徒歩${walkMinutes}分(約${distanceLabel})`;
+}
+
 // カフェのデータには「どのエリアか」を示す項目が無いため、areas.tsの
 // 各駅の座標との距離が一番近い駅をそのカフェの所属エリアとみなす。
 // リストのエリア選択(絞り込み欄のエリア検索と同期)で使う
@@ -1012,7 +1023,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   const [quickPickError, setQuickPickError] = useState<string | null>(null);
   // リスト内で該当のお店のカードまでスクロールするために、カードのDOM要素を
   // 覚えておく(件数が多いのでrefはstateではなくMapで管理する)
-  const listItemRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+  const listItemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
   const [mapZoom, setMapZoom] = useState(16);
   const [sortOrder, setSortOrder] = useState<SortOrder>("recommended");
@@ -1992,23 +2003,34 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
             const stats = statsByCafe[cafe.id];
             const statusColor = statusColorForStats(stats);
             const badges = getQuickBadges(cafe, stats, verifiedOutletCafeIds);
+            const isFavorite = favorites.has(cafe.id);
             const distance = userPosition
               ? distanceMeters(userPosition, [cafe.lat, cafe.lng])
               : null;
             const isSelected = cafe.id === selectedCafeId;
             return (
-              <button
+              <div
                 key={cafe.id}
                 ref={(el) => {
                   if (el) listItemRefs.current.set(cafe.id, el);
                   else listItemRefs.current.delete(cafe.id);
                 }}
+                role="button"
+                tabIndex={0}
                 onClick={() => {
                   setSelectedCafeId(cafe.id);
                   setMapFocus([cafe.lat, cafe.lng]);
                   hasManualFocusRef.current = true;
                 }}
-                className={`text-left bg-white border rounded-lg shadow-sm p-3 flex flex-col gap-1 ${
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setSelectedCafeId(cafe.id);
+                    setMapFocus([cafe.lat, cafe.lng]);
+                    hasManualFocusRef.current = true;
+                  }
+                }}
+                className={`text-left bg-white border rounded-lg shadow-sm p-3 flex flex-col gap-1 cursor-pointer ${
                   isSelected
                     ? "border-blue-500 ring-2 ring-blue-200"
                     : "border-gray-200 hover:border-blue-300"
@@ -2028,12 +2050,25 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                     </div>
                   </div>
                   {distance !== null && (
-                    <div className="text-xs text-gray-500 shrink-0">
-                      {distance < 1000
-                        ? `${Math.round(distance)}m`
-                        : `${(distance / 1000).toFixed(1)}km`}
+                    <div className="text-[10px] sm:text-xs font-semibold text-blue-700 bg-blue-50 rounded-full px-2 py-0.5 shrink-0">
+                      🚶 {formatWalkBadge(distance)}
                     </div>
                   )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleFavorite(cafe.id);
+                    }}
+                    aria-label={
+                      isFavorite ? "お気に入りから解除" : "お気に入りに追加"
+                    }
+                    title={isFavorite ? "お気に入りから解除" : "お気に入りに追加"}
+                    className={`shrink-0 text-lg leading-none ${
+                      isFavorite ? "text-yellow-500" : "text-gray-300"
+                    }`}
+                  >
+                    ★
+                  </button>
                 </div>
                 {badges.length > 0 && (
                   <div className="flex flex-wrap gap-1">
@@ -2047,7 +2082,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                     ))}
                   </div>
                 )}
-              </button>
+              </div>
             );
           })}
         </div>

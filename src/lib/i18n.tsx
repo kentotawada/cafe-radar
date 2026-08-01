@@ -66,6 +66,7 @@ const dictionary = {
     "quickPick.button": "近くの空席候補",
     "quickPick.notFound": "近くに条件に合うお店が見つかりませんでした",
 
+    "favorites.navLink": "★ お気に入り",
     "favorites.share": "共有する",
     "favorites.shareTitle": "お気に入りカフェ",
     "favorites.copied": "リンクをコピーしました",
@@ -161,6 +162,7 @@ const dictionary = {
     "quickPick.button": "Find nearby seat",
     "quickPick.notFound": "No matching cafes found nearby",
 
+    "favorites.navLink": "★ Favorites",
     "favorites.share": "Share",
     "favorites.shareTitle": "Favorite cafes",
     "favorites.copied": "Link copied",

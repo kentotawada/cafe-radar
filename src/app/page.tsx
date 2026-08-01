@@ -25,6 +25,12 @@ function HomeContent() {
             </p>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <Link
+              href="/favorites"
+              className="text-xs md:text-sm text-gray-600 border border-gray-300 rounded-full px-2.5 py-0.5 sm:px-3 sm:py-1 hover:bg-gray-50"
+            >
+              {t("favorites.navLink")}
+            </Link>
             <button
               onClick={() => setLang(lang === "ja" ? "en" : "ja")}
               className="text-xs md:text-sm text-gray-600 border border-gray-300 rounded-full px-2.5 py-0.5 sm:px-3 sm:py-1 hover:bg-gray-50"
