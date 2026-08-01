@@ -7,6 +7,7 @@ import { isSupabaseConfigured } from "@/lib/supabaseClient";
 import { PIN_COLORS, PIN_LEGEND } from "@/lib/pinColors";
 import { cupPinSvgMarkup } from "@/lib/cupPinIcon";
 import { LangProvider, useLang, type TranslationKey } from "@/lib/i18n";
+import MyReporterBadge from "@/components/MyReporterBadge";
 
 const CafeMap = dynamic(() => import("@/components/CafeMap"), { ssr: false });
 
@@ -26,7 +27,8 @@ function HomeContent() {
               {t("app.subtitle")}
             </p>
           </div>
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center flex-wrap justify-end gap-1.5 sm:gap-2 shrink-0">
+            <MyReporterBadge />
             <Link
               href="/favorites"
               className="text-xs md:text-sm text-gray-600 border border-gray-300 rounded-full px-2.5 py-0.5 sm:px-3 sm:py-1 hover:bg-gray-50"

@@ -9,6 +9,7 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import { hasOutlet } from "@/lib/cafeAmenities";
 import FavoriteToggleButton from "@/components/FavoriteToggleButton";
+import CafeCreatureIcon from "@/components/CafeCreatureIcon";
 import ShareButtons from "@/components/ShareButtons";
 import AlternativeOptionsBlock from "@/components/AlternativeOptionsBlock";
 import AdBanner from "@/components/AdBanner";
@@ -152,9 +153,12 @@ export default async function CafeDetailPage({ params }: PageProps) {
               </span>
               <FavoriteToggleButton cafeId={cafe.id} />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 leading-snug">
-              {cafe.name}
-            </h1>
+            <div className="flex items-center gap-3">
+              <CafeCreatureIcon cafeId={cafe.id} size={52} />
+              <h1 className="text-2xl font-bold text-gray-900 leading-snug">
+                {cafe.name}
+              </h1>
+            </div>
             {cafe.address && (
               <div className="text-sm text-gray-500">{cafe.address}</div>
             )}
