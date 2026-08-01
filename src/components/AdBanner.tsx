@@ -6,17 +6,21 @@ type AdBannerProps = {
   /** 管理画面や計測で枠を区別するためのラベル(表示はしない) */
   slot: string;
   className?: string;
+  /** レイアウトシフト防止のため確保する高さ。地図ポップアップのような
+   * 狭い場所では小さめの値を渡す(デフォルトは通常の記事下枠向け) */
+  minHeight?: number;
 };
 
 const ADSENSE_ID = process.env.NEXT_PUBLIC_ADSENSE_ID;
-// レイアウトシフト(CLS)を起こさないよう、広告が読み込まれる前から
-// 常にこの高さを確保しておく。実際のAdSense枠の高さとおおよそ揃える
-const AD_MIN_HEIGHT = 100;
 
 // 審査前・開発環境・広告ブロッカー使用時は「スポンサー枠」のプレース
 // ホルダーを表示し、AdSenseが実際に配信できる時だけ本物の広告に差し替える。
 // どちらの状態でも同じ高さを確保するのでCLSは発生しない
-export default function AdBanner({ slot, className = "" }: AdBannerProps) {
+export default function AdBanner({
+  slot,
+  className = "",
+  minHeight: AD_MIN_HEIGHT = 100,
+}: AdBannerProps) {
   const insRef = useRef<HTMLModElement>(null);
   const [showPlaceholder, setShowPlaceholder] = useState(true);
 

@@ -3240,6 +3240,8 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                     </div>
                   )}
                 </div>
+
+                <AdBanner slot="cafe-popup" minHeight={56} className="mt-1" />
               </div>
             </Popup>
           </Marker>
