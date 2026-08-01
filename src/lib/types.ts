@@ -52,9 +52,10 @@ export type InfoCorrection = {
   created_at: string;
 };
 
-// 店舗に紐づかない、アプリ全体へのお問い合わせ。/contact ページ(店舗掲載・
-// データ利用/取材の依頼)と、アプリ内の簡易お問い合わせボタンの両方がこの
-// テーブルに書き込む。name/email/categoryは/contact経由の時だけ入る
+// 店舗に紐づかない、アプリ全体へのお問い合わせ。/contact ページ(一般のご意見・
+// データ利用/取材の依頼)、/business ページ(店舗掲載・法人向け)、アプリ内の
+// 簡易お問い合わせボタンの3つがこのテーブルに書き込む。name/email/category/
+// store_nameは/contact・/business経由の時だけ入る(store_nameは/business限定)
 export type InquiryCategory = "general" | "listing" | "media";
 
 export type Inquiry = {
@@ -64,6 +65,7 @@ export type Inquiry = {
   name: string | null;
   email: string | null;
   category: InquiryCategory | null;
+  store_name: string | null;
   created_at: string;
 };
 

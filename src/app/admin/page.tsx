@@ -560,6 +560,11 @@ export default function AdminPage() {
                         </span>
                       )}
                     </div>
+                    {inquiry.store_name && (
+                      <div className="text-xs font-semibold text-gray-800">
+                        🏪 {inquiry.store_name}
+                      </div>
+                    )}
                     {(inquiry.name || inquiry.email) && (
                       <div className="text-xs text-gray-600">
                         {inquiry.name && <span>{inquiry.name}</span>}

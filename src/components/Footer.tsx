@@ -17,6 +17,9 @@ export default function Footer() {
           <Link href="/contact" className="hover:text-gray-700 underline">
             お問い合わせ
           </Link>
+          <Link href="/business" className="hover:text-gray-700 underline">
+            店舗掲載・法人の方はこちら
+          </Link>
         </div>
         <p className="text-gray-400">© {new Date().getFullYear()} カフェレーダー</p>
       </div>

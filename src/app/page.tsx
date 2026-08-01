@@ -115,12 +115,15 @@ function HomeContent() {
                 {t("legend.outletUnknown")}
               </span>
             </div>
-            <div className="sm:hidden flex gap-3">
+            <div className="sm:hidden flex flex-wrap gap-3">
               <Link href="/privacy" className="block text-xs text-gray-400 underline">
                 {t("privacy.link")}
               </Link>
               <Link href="/contact" className="block text-xs text-gray-400 underline">
                 お問い合わせ
+              </Link>
+              <Link href="/business" className="block text-xs text-gray-400 underline">
+                店舗掲載・法人の方はこちら
               </Link>
             </div>
           </div>
@@ -131,6 +134,9 @@ function HomeContent() {
           </Link>
           <Link href="/contact" className="text-xs md:text-sm text-gray-400 underline">
             お問い合わせ
+          </Link>
+          <Link href="/business" className="text-xs md:text-sm text-gray-400 underline">
+            店舗掲載・法人の方はこちら
           </Link>
         </div>
       </header>
