@@ -2,10 +2,38 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { lookupCafeById, nearestAreaName } from "@/lib/lookupCafe";
+import { supabase } from "@/lib/supabaseClient";
+import {
+  computeStats,
+  filterSimilarTimeSlot,
+  getQuickBadges,
+} from "@/lib/cafeStats";
+import type { Report } from "@/lib/types";
 
 type PageProps = {
   params: Promise<{ id: string }>;
 };
+
+const STALE_MINUTES = 30;
+
+async function loadReports(cafeId: string): Promise<Report[]> {
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("reports")
+    .select("*")
+    .eq("cafe_id", cafeId);
+  return (data as Report[]) ?? [];
+}
+
+function formatRelativeTime(iso: string, now: Date): string {
+  const minutes = Math.max(
+    0,
+    Math.round((now.getTime() - new Date(iso).getTime()) / 60000)
+  );
+  if (minutes < 1) return "たった今";
+  if (minutes < 60) return `${minutes}分前`;
+  return `${Math.round(minutes / 60)}時間前`;
+}
 
 export async function generateMetadata({
   params,
@@ -43,45 +71,144 @@ export default async function CafeDetailPage({ params }: PageProps) {
     cafe.address ?? `${cafe.lat},${cafe.lng}`
   )}`;
 
+  const allReports = await loadReports(cafe.id);
+  const now = new Date();
+  const staleCutoff = now.getTime() - STALE_MINUTES * 60000;
+  const liveReports = allReports.filter(
+    (r) => new Date(r.created_at).getTime() >= staleCutoff
+  );
+  const liveStats = computeStats(liveReports);
+  const predictedStats = liveStats
+    ? null
+    : computeStats(filterSimilarTimeSlot(allReports, now));
+
+  const badges = getQuickBadges(cafe, liveStats, new Set());
+
+  const infoRows = [
+    { emoji: "⏰", label: "営業時間", value: cafe.hoursInfo },
+    { emoji: "📅", label: "定休日", value: cafe.closedDaysInfo },
+    { emoji: "🔌", label: "電源", value: cafe.outletInfo },
+    { emoji: "📶", label: "Wi-Fi", value: cafe.wifiInfo },
+    { emoji: "🚬", label: "喫煙", value: cafe.smokingInfo },
+    { emoji: "🪑", label: "席数", value: cafe.seatCountInfo },
+  ].filter((row): row is { emoji: string; label: string; value: string } =>
+    Boolean(row.value)
+  );
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="border-b bg-white px-4 py-3">
-        <Link href="/" className="text-sm text-blue-600 underline">
+        <Link
+          href="/"
+          className="text-sm text-blue-600 underline flex items-center gap-1"
+        >
           ← カフェレーダーに戻る
         </Link>
       </header>
-      <main className="p-4 max-w-xl mx-auto">
-        <div className="bg-white border border-gray-200 rounded-lg p-4 flex flex-col gap-2">
-          <div className="text-xs text-gray-400">{area}周辺</div>
-          <h1 className="text-lg font-bold text-gray-900">{cafe.name}</h1>
-          {cafe.address && (
-            <div className="text-sm text-gray-500">{cafe.address}</div>
-          )}
-          <div className="flex flex-col gap-1 text-sm text-gray-700 mt-2">
-            {cafe.hoursInfo && <div>⏰ 営業時間: {cafe.hoursInfo}</div>}
-            {cafe.closedDaysInfo && <div>📅 定休日: {cafe.closedDaysInfo}</div>}
-            {cafe.outletInfo && <div>🔌 電源: {cafe.outletInfo}</div>}
-            {cafe.wifiInfo && <div>📶 Wi-Fi: {cafe.wifiInfo}</div>}
-            {cafe.smokingInfo && <div>🚬 喫煙: {cafe.smokingInfo}</div>}
-            {cafe.seatCountInfo && <div>🪑 席数: {cafe.seatCountInfo}</div>}
+      <main className="p-4 max-w-xl mx-auto flex flex-col gap-3">
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-50 to-white px-5 pt-5 pb-4 flex flex-col gap-2">
+            <span className="self-start text-xs font-semibold text-blue-700 bg-blue-100 rounded-full px-2.5 py-1">
+              📍 {area}周辺
+            </span>
+            <h1 className="text-2xl font-bold text-gray-900 leading-snug">
+              {cafe.name}
+            </h1>
+            {cafe.address && (
+              <div className="text-sm text-gray-500">{cafe.address}</div>
+            )}
+            {badges.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {badges.map((badge) => (
+                  <span
+                    key={badge.key}
+                    className={`text-xs px-2 py-1 rounded-full font-semibold ${badge.className}`}
+                  >
+                    {badge.emoji} {badge.label}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
-          <a
-            href={directionsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-blue-600 underline mt-2"
-          >
-            経路案内(Googleマップ)
-          </a>
-          <div className="text-xs text-gray-400 mt-2">
-            最新の混雑状況・電源席の口コミはカフェレーダーの地図でご確認ください
+
+          <div className="px-5 py-4 flex flex-col gap-3">
+            {liveStats ? (
+              (() => {
+                const outletFull =
+                  liveStats.outletOccupancyCounts.full >
+                  liveStats.totalReporters / 2;
+                return (
+                  <div
+                    className={`rounded-lg p-3 border ${
+                      outletFull
+                        ? "bg-red-50 border-red-200"
+                        : "bg-green-50 border-green-200"
+                    }`}
+                  >
+                    <div
+                      className={`text-sm font-bold ${
+                        outletFull ? "text-red-700" : "text-green-700"
+                      }`}
+                    >
+                      🪑 現在の混雑状況
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      最終更新: {formatRelativeTime(liveStats.latestAt, now)}(
+                      {liveStats.totalReporters}人の報告)
+                    </div>
+                  </div>
+                );
+              })()
+            ) : predictedStats ? (
+              <div className="rounded-lg p-3 border border-dashed border-gray-300 bg-gray-50">
+                <div className="text-sm font-bold text-gray-500">
+                  📊 予測混雑度(参考値)
+                </div>
+                <div className="text-xs text-gray-400 mt-1">
+                  今の報告はまだありません。過去の同じ曜日・時間帯の傾向(
+                  {predictedStats.totalReporters}件)からの参考値です
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-gray-400">
+                まだ混雑度の報告がありません
+              </div>
+            )}
+
+            {infoRows.length > 0 && (
+              <div className="flex flex-col divide-y divide-gray-100 border border-gray-100 rounded-lg overflow-hidden">
+                {infoRows.map((row) => (
+                  <div
+                    key={row.label}
+                    className="flex items-start gap-3 px-3 py-2 text-sm"
+                  >
+                    <span className="shrink-0">{row.emoji}</span>
+                    <span className="shrink-0 text-gray-400 w-16">
+                      {row.label}
+                    </span>
+                    <span className="text-gray-700">{row.value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex gap-2 mt-1">
+              <a
+                href={directionsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 text-center text-sm border border-gray-300 rounded-lg px-3 py-2 text-gray-700 hover:bg-gray-50"
+              >
+                経路案内
+              </a>
+              <Link
+                href="/"
+                className="flex-1 text-center text-sm bg-blue-600 text-white rounded-lg px-3 py-2 hover:bg-blue-700"
+              >
+                地図で見る
+              </Link>
+            </div>
           </div>
-          <Link
-            href="/"
-            className="text-sm bg-blue-600 text-white rounded px-3 py-2 text-center mt-1"
-          >
-            地図で混雑状況を見る
-          </Link>
         </div>
       </main>
     </div>

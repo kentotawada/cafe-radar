@@ -14,6 +14,17 @@ import {
 import L from "leaflet";
 import { seedCafes, type Cafe } from "@/lib/seedCafes";
 import { hasOutlet } from "@/lib/cafeAmenities";
+import {
+  dedupeByReporter,
+  pickMajority,
+  computeStats,
+  isNonSmoking,
+  isSmokingOk,
+  hasWifi,
+  isLateNight,
+  getQuickBadges,
+  filterSimilarTimeSlot,
+} from "@/lib/cafeStats";
 import { landmarks as shinjukuLandmarks } from "@/data/landmarks-shinjuku";
 import { landmarks as shibuyaLandmarks } from "@/data/landmarks-shibuya";
 import { landmarks as ikebukuroLandmarks } from "@/data/landmarks-ikebukuro";
@@ -156,7 +167,6 @@ const CHAIN_NAME_PATTERNS: RegExp[] = [
   /ド・クリエ/,
   /ルノアール/,
 ];
-const NIGHT_NAME_PATTERNS = /24\s*時間|24H|深夜|オールナイト/i;
 const COWORKING_NAME_PATTERNS = /コワーキング|co-?working/i;
 
 function getCafeUsageStyle(cafe: Cafe): CafeUsageStyle {
@@ -474,27 +484,6 @@ function formatRelativeTime(iso: string): string {
 }
 
 // 同じ人が何度も投稿しても、集計にはその人の最新の1件だけを使う
-function dedupeByReporter<T extends { reporter_id: string | null; id: string }>(
-  items: T[]
-): T[] {
-  const seen = new Set<string>();
-  const result: T[] = [];
-  for (const item of items) {
-    const key = item.reporter_id ?? item.id;
-    if (!seen.has(key)) {
-      seen.add(key);
-      result.push(item);
-    }
-  }
-  return result;
-}
-
-function pickMajority<T extends string>(counts: Record<T, number>): T {
-  return (Object.keys(counts) as T[]).reduce((a, b) =>
-    counts[b] > counts[a] ? b : a
-  );
-}
-
 // react-leafletはPopupの中身(props.children)が変わるたびにLeafletの
 // popup.update()を呼ぶが、これが内部で一瞬「高さを外して再計測→
 // 付け直す」処理をするため、ポップアップ内のスクロール位置(scrollTop)が
@@ -541,168 +530,6 @@ function PopupScrollGuard() {
     };
   }, [map]);
   return null;
-}
-
-function isNonSmoking(cafe: Cafe): boolean {
-  if (!cafe.smokingInfo) return false;
-  return /全席禁煙|全店舗?禁煙|敷地内.*禁煙|喫煙(所|ブース)なし/.test(cafe.smokingInfo);
-}
-
-function isSmokingOk(cafe: Cafe): boolean {
-  if (!cafe.smokingInfo) return false;
-  return /喫煙(ブース|室|目的室|席)|喫煙可|分煙/.test(cafe.smokingInfo);
-}
-
-function hasWifi(cafe: Cafe): boolean {
-  if (!cafe.wifiInfo) return false;
-  return !/Wi-?Fi.*(なし|不可)/i.test(cafe.wifiInfo);
-}
-
-function isLateNight(cafe: Cafe): boolean {
-  return Boolean(
-    NIGHT_NAME_PATTERNS.test(cafe.name) ||
-      (cafe.hoursInfo && NIGHT_NAME_PATTERNS.test(cafe.hoursInfo))
-  );
-}
-
-type QuickBadge = { key: string; emoji: string; label: string; className: string };
-
-// ポップアップを開いてすぐ、電源・喫煙・騒がしさ・混雑度がひと目でわかるように
-// バッジを横一列で表示する。編集部調べのテキストからは正規表現で簡易判定し、
-// 騒がしさ・混雑度はユーザー報告の集計(stats)から判定する
-function getQuickBadges(
-  cafe: Cafe,
-  stats: CafeStats | null,
-  verifiedOutletCafeIds: Set<string>
-): QuickBadge[] {
-  const badges: QuickBadge[] = [];
-
-  if (hasOutlet(cafe, verifiedOutletCafeIds)) {
-    badges.push({
-      key: "outlet",
-      emoji: "🔌",
-      label: "電源あり",
-      className: "bg-blue-100 text-blue-800",
-    });
-  }
-
-  if (isNonSmoking(cafe)) {
-    badges.push({
-      key: "nonsmoking",
-      emoji: "🚭",
-      label: "禁煙",
-      className: "bg-green-100 text-green-800",
-    });
-  }
-  if (isSmokingOk(cafe)) {
-    badges.push({
-      key: "smoking",
-      emoji: "🚬",
-      label: "喫煙可",
-      className: "bg-gray-200 text-gray-700",
-    });
-  }
-
-  if (hasWifi(cafe)) {
-    badges.push({
-      key: "wifi",
-      emoji: "📶",
-      label: "Wi-Fiあり",
-      className: "bg-sky-100 text-sky-800",
-    });
-  }
-
-  if (cafe.seatCountInfo) {
-    badges.push({
-      key: "seatcount",
-      emoji: "🪑",
-      label: cafe.seatCountInfo,
-      className: "bg-amber-100 text-amber-800",
-    });
-  }
-
-  if (isLateNight(cafe)) {
-    badges.push({
-      key: "latenight",
-      emoji: "🌙",
-      label: "24時間/深夜営業",
-      className: "bg-indigo-100 text-indigo-800",
-    });
-  }
-
-  if (stats) {
-    if (pickMajority(stats.noiseCounts) === "loud") {
-      badges.push({
-        key: "noisy",
-        emoji: "🔊",
-        label: "うるさめ",
-        className: "bg-purple-100 text-purple-800",
-      });
-    }
-    const outletFull = pickMajority(stats.outletOccupancyCounts) === "full";
-    const seatingFull = pickMajority(stats.seatingOccupancyCounts) === "full";
-    if (outletFull || seatingFull) {
-      badges.push({
-        key: "crowded",
-        emoji: "🈵",
-        label: "混雑気味",
-        className: "bg-red-100 text-red-800",
-      });
-    }
-  }
-
-  return badges;
-}
-
-function computeStats(reports: Report[]): CafeStats | null {
-  const deduped = dedupeByReporter(reports);
-  if (deduped.length === 0) return null;
-
-  const noiseCounts: Record<NoiseLevel, number> = {
-    quiet: 0,
-    normal: 0,
-    noisy: 0,
-    loud: 0,
-  };
-  const outletOccupancyCounts: Record<OccupancyLevel, number> = {
-    empty: 0,
-    sparse: 0,
-    moderate: 0,
-    full: 0,
-  };
-  const seatingOccupancyCounts: Record<OccupancyLevel, number> = {
-    empty: 0,
-    sparse: 0,
-    moderate: 0,
-    full: 0,
-  };
-
-  for (const report of deduped) {
-    noiseCounts[report.noise_level] += 1;
-    outletOccupancyCounts[report.outlet_occupancy] += 1;
-    seatingOccupancyCounts[report.seating_occupancy] += 1;
-  }
-
-  return {
-    totalReporters: deduped.length,
-    outletOccupancyCounts,
-    seatingOccupancyCounts,
-    noiseCounts,
-    latestAt: deduped[0].created_at,
-  };
-}
-
-// 過去の報告の中から、「今」と同じ曜日・近い時間帯(前後2時間)のものだけ
-// 抜き出す。ライブの報告が無い時間帯でも、傾向から予測を出すために使う
-function filterSimilarTimeSlot(reports: Report[], now: Date): Report[] {
-  const targetDay = now.getDay();
-  const targetHour = now.getHours();
-  return reports.filter((report) => {
-    const d = new Date(report.created_at);
-    if (d.getDay() !== targetDay) return false;
-    const diff = Math.abs(d.getHours() - targetHour);
-    return Math.min(diff, 24 - diff) <= 2;
-  });
 }
 
 type NoteGroup = {
@@ -2464,11 +2291,11 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
           )}
           <button
             onClick={() => setIsReportFabOpen((prev) => !prev)}
-            className="bg-white rounded-full shadow-lg border border-gray-300 w-10 h-10 flex items-center justify-center text-lg"
+            className="bg-white rounded-full shadow-lg border border-gray-300 h-9 sm:h-10 px-3 flex items-center gap-1 text-xs sm:text-sm font-semibold text-gray-900"
             aria-label={t("quickReport.fab")}
             title={t("quickReport.fab")}
           >
-            📢
+            📢 {t("quickReport.fab")}
           </button>
           <button
             onClick={handleQuickPick}
