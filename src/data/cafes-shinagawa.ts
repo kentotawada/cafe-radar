@@ -3,55 +3,74 @@ import type { Cafe } from "./cafes";
 // 店名・住所はウェブ検索で実在店舗を確認済み（2026年7月時点、各公式サイト・食べログ等）。
 // 座標は住所から推定した目安地点です。経路・写真検索は店名+住所のテキストで
 // Googleマップに渡しているため、座標が多少ずれていても案内自体は正確です。
+//
+// smokingInfo/wifiInfo/seatCountInfo/hoursInfo/closedDaysInfoは2026年8月、
+// 各チェーンの公式店舗ページ・食べログ等で個別に確認して追加した。確認できな
+// かった項目は空欄のままにしている(推測では埋めていない)。
+//
+// 【要確認】以下は閉店の兆候が強いため、新規項目を追加せず既存情報のままに
+// してある:
+// - shinagawa-16(フレッシュネスバーガー 品川グランパサージュ店): 食べログ
+//   【閉店】表示
+// - shinagawa-28(cote cour エキュート品川店): エキュート品川の現行テナント
+//   一覧94店に掲載なし、旧URLは404
+// - shinagawa-32(カッフェクラシカ エキュート品川店): 4travel.jpで閉鎖を明記
+// - shinagawa-37(スワンカフェ品川港南店): 食べログ閉店表示、運営元の店舗
+//   一覧にも掲載なし
+//
+// 【やや不確か・要再確認】以下は情報源はあるが確度が下がる: shinagawa-15
+// (日曜休業が恒久措置か一時的措置か未確定)、shinagawa-33(閉店・移転時期
+// 未確認とのステータス表示あり)、shinagawa-45(所在階が情報源により相違、
+// 公式レストラン一覧に掲載なし)
 export const cafes: Cafe[] = [
-  { id: "shinagawa-01", name: "マクドナルド 品川港南口店", address: "東京都港区港南2-5-3 オリックス品川ビル1F", lat: 35.6260, lng: 139.7411, outletInfo: "入口側カウンター10席で電源使用可" },
-  { id: "shinagawa-02", name: "バーミヤン 品川グランドコモンズ店", address: "東京都港区港南2-16-2 太陽生命品川ビル3F", lat: 35.6238, lng: 139.7425, outletInfo: "各席に2口コンセントあり" },
-  { id: "shinagawa-03", name: "スターバックス コーヒー JR東海 品川駅店", address: "東京都港区港南2丁目 JR品川駅構内(港南口)", lat: 35.6282, lng: 139.7392, outletInfo: "東西自由通路側カウンター8席のみ電源あり" },
-  { id: "shinagawa-04", name: "スターバックス コーヒー JR東海 品川駅ラチ内店", address: "東京都港区高輪3-26-27 JR品川駅構内(改札内)", lat: 35.6286, lng: 139.7389, outletInfo: "改札内店は電源付き座席7席あり" },
-  { id: "shinagawa-05", name: "スターバックス コーヒー 品川インターシティ店", address: "東京都港区港南2-15-2 品川インターシティ", lat: 35.6244, lng: 139.7423, outletInfo: "窓側カウンター10席に電源、競争率高め" },
-  { id: "shinagawa-06", name: "タリーズコーヒー 品川インターシティ店", address: "東京都港区港南2-15-2 品川インターシティA棟2F", lat: 35.6244, lng: 139.7423, outletInfo: "窓側テーブル席に電源コンセント多数" },
-  { id: "shinagawa-07", name: "ドトールコーヒーショップ アレア品川店", address: "東京都港区港南1-9-36 アレア品川2F", lat: 35.6260, lng: 139.7402, outletInfo: "奥のカウンターと仕切りデスクに電源あり" },
-  { id: "shinagawa-08", name: "エクセルシオール カフェ 品川イーストワンタワー店", address: "東京都港区港南2-16-1 品川イーストワンタワー2F", lat: 35.6237, lng: 139.7423, outletInfo: "カウンター席中心に電源席が複数あり" },
-  { id: "shinagawa-09", name: "サンマルクカフェ 品川インターシティ店", address: "東京都港区港南2-15-2 品川インターシティS&R棟2F", lat: 35.6244, lng: 139.7423, outletInfo: "窓側カウンター約25席・48口の電源" },
-  { id: "shinagawa-10", name: "喫茶室ルノアール 品川高輪口店", address: "東京都港区高輪3-25-22 高輪カネオビル1F", lat: 35.6271, lng: 139.7375, outletInfo: "電源コンセントあり、Wi-Fiも複数種" },
-  { id: "shinagawa-11", name: "喫茶室ルノアール 品川港南口店", address: "東京都港区港南2-3-29 シーゲンビル1F", lat: 35.6266, lng: 139.7408, outletInfo: "大テーブル・カウンター・壁面に電源あり" },
-  { id: "shinagawa-12", name: "PRONTO 品川店", address: "東京都港区港南1-8-27 日新ビル1F", lat: 35.6262, lng: 139.7405 },
-  { id: "shinagawa-13", name: "PRONTO 品川高輪店", address: "東京都港区高輪3-25-23 品川横丁", lat: 35.6271, lng: 139.7375, outletInfo: "専用コンセントなし、店員に相談で使える場合も" },
-  { id: "shinagawa-14", name: "PRONTO 品川インターシティ店", address: "東京都港区港南2-15-2 品川インターシティB棟B1F", lat: 35.6244, lng: 139.7423, outletInfo: "電源・Wi-Fiとも利用可、充電に便利" },
-  { id: "shinagawa-15", name: "È PRONTO 品川シーズンテラス店", address: "東京都港区港南1-2-70 品川シーズンテラス", lat: 35.6235, lng: 139.7458, outletInfo: "テーブルに電源あり、打ち合わせにも利用可" },
+  { id: "shinagawa-01", name: "マクドナルド 品川港南口店", address: "東京都港区港南2-5-3 オリックス品川ビル1F", lat: 35.6260, lng: 139.7411, outletInfo: "入口側カウンター10席で電源使用可", smokingInfo: "全店舗禁煙方針、喫煙ルームなし(2014年8月より全店舗全席禁煙)", wifiInfo: "無料Wi-Fiあり(00_MCD-FREE-WIFI、全店舗共通サービス)", seatCountInfo: "54席", hoursInfo: "6:30〜23:00", closedDaysInfo: "年中無休" },
+  { id: "shinagawa-02", name: "バーミヤン 品川グランドコモンズ店", address: "東京都港区港南2-16-2 太陽生命品川ビル3F", lat: 35.6238, lng: 139.7425, outletInfo: "各席に2口コンセントあり", smokingInfo: "全席禁煙(すかいらーくグループは2019年9月より全店舗敷地内禁煙)", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "133席", hoursInfo: "10:00〜23:00", closedDaysInfo: "年中無休" },
+  { id: "shinagawa-03", name: "スターバックス コーヒー JR東海 品川駅店", address: "東京都港区港南2丁目 JR品川駅構内(港南口)", lat: 35.6282, lng: 139.7392, outletInfo: "東西自由通路側カウンター8席のみ電源あり", smokingInfo: "全店舗禁煙方針、喫煙室なし", wifiInfo: "無料Wi-Fiあり(at_STARBUCKS_Wi2ほか、docomo・Wi2 300も利用可)", seatCountInfo: "50席", hoursInfo: "平日6:30〜22:00、土日祝7:00〜22:00", closedDaysInfo: "不定休" },
+  { id: "shinagawa-04", name: "スターバックス コーヒー JR東海 品川駅ラチ内店", address: "東京都港区高輪3-26-27 JR品川駅構内(改札内)", lat: 35.6286, lng: 139.7389, outletInfo: "改札内店は電源付き座席7席あり", smokingInfo: "全店舗禁煙方針、喫煙室なし", wifiInfo: "Wi-Fiあり(Softbank Wi-Fiスポット)", hoursInfo: "6:30〜21:30", closedDaysInfo: "不定休" },
+  { id: "shinagawa-05", name: "スターバックス コーヒー 品川インターシティ店", address: "東京都港区港南2-15-2 品川インターシティ", lat: 35.6244, lng: 139.7423, outletInfo: "窓側カウンター10席に電源、競争率高め", smokingInfo: "禁煙(全店舗禁煙方針、喫煙室なし)", wifiInfo: "無料Wi-Fiあり(at_STARBUCKS_Wi2ほか)", seatCountInfo: "35席", hoursInfo: "平日7:00〜21:00、土日祝8:00〜20:00", closedDaysInfo: "不定休" },
+  { id: "shinagawa-06", name: "タリーズコーヒー 品川インターシティ店", address: "東京都港区港南2-15-2 品川インターシティA棟2F", lat: 35.6244, lng: 139.7423, outletInfo: "窓側テーブル席に電源コンセント多数", smokingInfo: "店内禁煙", seatCountInfo: "56席", hoursInfo: "平日7:00〜21:00、土8:00〜19:00、日祝9:00〜19:00", closedDaysInfo: "定休日なし" },
+  { id: "shinagawa-07", name: "ドトールコーヒーショップ アレア品川店", address: "東京都港区港南1-9-36 アレア品川2F", lat: 35.6260, lng: 139.7402, outletInfo: "奥のカウンターと仕切りデスクに電源あり", smokingInfo: "全席禁煙(107席すべて禁煙席)", wifiInfo: "無料Wi-Fiあり(FREE Wi-Fi)", seatCountInfo: "107席(全席禁煙)", hoursInfo: "平日6:30〜21:00、土7:30〜20:00、日祝8:00〜20:00", closedDaysInfo: "定休日なし" },
+  { id: "shinagawa-08", name: "エクセルシオール カフェ 品川イーストワンタワー店", address: "東京都港区港南2-16-1 品川イーストワンタワー2F", lat: 35.6237, lng: 139.7423, outletInfo: "カウンター席中心に電源席が複数あり", smokingInfo: "全席禁煙(喫煙席0席)", wifiInfo: "無料Wi-Fiあり(FREE Wi-Fi)", seatCountInfo: "76席(全席禁煙)", hoursInfo: "平日7:00〜22:00(LO21:30)、土日祝8:00〜21:00", closedDaysInfo: "年中無休" },
+  { id: "shinagawa-09", name: "サンマルクカフェ 品川インターシティ店", address: "東京都港区港南2-15-2 品川インターシティS&R棟2F", lat: 35.6244, lng: 139.7423, outletInfo: "窓側カウンター約25席・48口の電源", smokingInfo: "喫煙ブースあり(分煙)", seatCountInfo: "52席", hoursInfo: "7:00〜22:00", closedDaysInfo: "年中無休" },
+  { id: "shinagawa-10", name: "喫茶室ルノアール 品川高輪口店", address: "東京都港区高輪3-25-22 高輪カネオビル1F", lat: 35.6271, lng: 139.7375, outletInfo: "電源コンセントあり、Wi-Fiも複数種", smokingInfo: "分煙(禁煙75席、加熱式たばこ喫煙エリア32席、紙巻きたばこ用喫煙ブースあり)", wifiInfo: "無料Wi-Fiあり(Renoir Miyama Wi-Fi、Wi2、au Wi-Fi SPOT、BBモバイルポイント)", seatCountInfo: "禁煙75席+加熱式たばこ喫煙32席", hoursInfo: "7:30〜22:00(モーニングは開店〜12:00)" },
+  { id: "shinagawa-11", name: "喫茶室ルノアール 品川港南口店", address: "東京都港区港南2-3-29 シーゲンビル1F", lat: 35.6266, lng: 139.7408, outletInfo: "大テーブル・カウンター・壁面に電源あり", smokingInfo: "分煙(禁煙席50席・加熱式たばこ専用喫煙席24席)、別途紙巻きたばこ専用喫煙ブースあり", wifiInfo: "無料Wi-Fiあり(Renoir Miyama Wi-Fi、Wi2、au Wi-Fi SPOT、BBモバイルポイント)", seatCountInfo: "全74席(禁煙50・加熱式たばこ専用24)、別途喫煙ブースあり", hoursInfo: "平日7:00〜22:00、土曜8:00〜22:00、日祝8:00〜20:00" },
+  { id: "shinagawa-12", name: "PRONTO 品川店", address: "東京都港区港南1-8-27 日新ビル1F", lat: 35.6262, lng: 139.7405, smokingInfo: "分煙(禁煙席/加熱式たばこ専用席/喫煙ブース)", wifiInfo: "PRONTO FREE Wi-Fiあり", seatCountInfo: "76席", hoursInfo: "月〜金7:00〜17:29(モーニング〜10:00)、17:30〜23:00", closedDaysInfo: "土日祝" },
+  { id: "shinagawa-13", name: "PRONTO 品川高輪店", address: "東京都港区高輪3-25-23 品川横丁", lat: 35.6271, lng: 139.7375, outletInfo: "専用コンセントなし、店員に相談で使える場合も", smokingInfo: "全席禁煙(喫煙ブースあり)", wifiInfo: "PRONTO FREE Wi-Fiあり", seatCountInfo: "77席", hoursInfo: "月〜水7:00〜22:30、木・金7:00〜23:00、土日10:00〜18:00", closedDaysInfo: "年中無休" },
+  { id: "shinagawa-14", name: "PRONTO 品川インターシティ店", address: "東京都港区港南2-15-2 品川インターシティB棟B1F", lat: 35.6244, lng: 139.7423, outletInfo: "電源・Wi-Fiとも利用可、充電に便利", smokingInfo: "分煙(禁煙席/加熱式たばこ専用席/喫煙ブース)", wifiInfo: "PRONTO FREE Wi-Fiあり(チェーン共通)", seatCountInfo: "101席", hoursInfo: "月〜金7:00〜23:00、土日10:00〜18:00", closedDaysInfo: "年中無休" },
+  { id: "shinagawa-15", name: "È PRONTO 品川シーズンテラス店", address: "東京都港区港南1-2-70 品川シーズンテラス", lat: 35.6235, lng: 139.7458, outletInfo: "テーブルに電源あり、打ち合わせにも利用可", smokingInfo: "分煙(禁煙席/加熱式たばこ専用席)", wifiInfo: "PRONTO FREE Wi-Fiあり", seatCountInfo: "75席", hoursInfo: "月〜金7:30〜21:00(LO20:30)、土11:00〜18:00(LO17:30)", closedDaysInfo: "日曜(施設側『当面の間休業』表記、恒久措置か要再確認)" },
   { id: "shinagawa-16", name: "フレッシュネスバーガー 品川グランパサージュ店", address: "東京都港区港南2-16-3 品川グランドセントラルタワーB1F", lat: 35.6238, lng: 139.7427, outletInfo: "窓際カウンター10席に各2口コンセント" },
-  { id: "shinagawa-17", name: "モスバーガー アトレ品川店", address: "東京都港区港南2-18-1 アトレ品川3F", lat: 35.6280, lng: 139.7396 },
-  { id: "shinagawa-18", name: "ブルーボトルコーヒー 品川カフェ", address: "東京都港区港南2-18-1 アトレ品川3F", lat: 35.6280, lng: 139.7396, outletInfo: "コンセントなし、充電は他店を推奨" },
-  { id: "shinagawa-19", name: "ディーン&デルーカ マーケットストア 品川", address: "東京都港区港南2-18-1 アトレ品川", lat: 35.6280, lng: 139.7395, outletInfo: "窓際カウンター席に電源コンセントあり" },
-  { id: "shinagawa-20", name: "ザ・シティ・ベーカリー 品川", address: "東京都港区港南2-18-1 アトレ品川", lat: 35.6280, lng: 139.7395 },
-  { id: "shinagawa-21", name: "AW55 アトレ品川店", address: "東京都港区港南2-18-1 アトレ品川4F", lat: 35.6280, lng: 139.7396 },
-  { id: "shinagawa-22", name: "サラベス 品川店", address: "東京都港区港南2-18-1 アトレ品川4F", lat: 35.6280, lng: 139.7396 },
-  { id: "shinagawa-23", name: "Guzman y Gomez FOOD&TIME 品川店", address: "東京都港区港南2-18-1 アトレ品川", lat: 35.6280, lng: 139.7396, outletInfo: "窓側カウンター席に電源コンセントあり" },
-  { id: "shinagawa-24", name: "サンジェルマン アトレ品川店", address: "東京都港区港南2-18-1 アトレ品川", lat: 35.6280, lng: 139.7395 },
-  { id: "shinagawa-25", name: "アンテナ アメリカ アトレ品川店", address: "東京都港区港南2-18-1 アトレ品川3F", lat: 35.6280, lng: 139.7396 },
-  { id: "shinagawa-26", name: "PAUL 品川駅店", address: "東京都港区高輪3-26-27 エキュート品川1F", lat: 35.6286, lng: 139.7389 },
-  { id: "shinagawa-27", name: "サザコーヒー エキュート品川店", address: "東京都港区高輪3-26-27 エキュート品川1F", lat: 35.6286, lng: 139.7389 },
+  { id: "shinagawa-17", name: "モスバーガー アトレ品川店", address: "東京都港区港南2-18-1 アトレ品川3F", lat: 35.6280, lng: 139.7396, smokingInfo: "全席禁煙", seatCountInfo: "124席", hoursInfo: "10:00〜22:00(LO21:15)", closedDaysInfo: "不定休(アトレ品川の営業日に準ずる)" },
+  { id: "shinagawa-18", name: "ブルーボトルコーヒー 品川カフェ", address: "東京都港区港南2-18-1 アトレ品川3F", lat: 35.6280, lng: 139.7396, outletInfo: "コンセントなし、充電は他店を推奨", smokingInfo: "全席禁煙", wifiInfo: "Wi-Fiあり", seatCountInfo: "27席(テーブル8・カウンター19)", hoursInfo: "平日8:00〜22:00、土日祝10:00〜22:00", closedDaysInfo: "年中無休" },
+  { id: "shinagawa-19", name: "ディーン&デルーカ マーケットストア 品川", address: "東京都港区港南2-18-1 アトレ品川", lat: 35.6280, lng: 139.7395, outletInfo: "窓際カウンター席に電源コンセントあり", smokingInfo: "全席禁煙", hoursInfo: "マーケット10:00〜22:00、エスプレッソバー平日7:00〜22:00(LO21:45)・土日祝8:00〜22:00(LO21:45)" },
+  { id: "shinagawa-20", name: "ザ・シティ・ベーカリー 品川", address: "東京都港区港南2-18-1 アトレ品川", lat: 35.6280, lng: 139.7395, smokingInfo: "全席禁煙", seatCountInfo: "80席", hoursInfo: "ベーカリー&カフェ7:00〜22:00、レストラン&バー月〜土11:00〜23:00(LO22:00)・日祝11:00〜22:00(LO21:00)", closedDaysInfo: "不定休(アトレ品川に準ずる)" },
+  { id: "shinagawa-21", name: "AW55 アトレ品川店", address: "東京都港区港南2-18-1 アトレ品川4F", lat: 35.6280, lng: 139.7396, smokingInfo: "全席禁煙", wifiInfo: "Wi-Fiあり", seatCountInfo: "総席数68席", hoursInfo: "月〜土11:00〜23:00、日11:00〜22:00", closedDaysInfo: "施設(アトレ品川)に準ずる、2月・8月第3月曜はビル定期点検で休業" },
+  { id: "shinagawa-22", name: "サラベス 品川店", address: "東京都港区港南2-18-1 アトレ品川4F", lat: 35.6280, lng: 139.7396, smokingInfo: "全席禁煙", seatCountInfo: "全82席(テーブル74・バー8)", hoursInfo: "月〜土9:30〜22:30、日・祝9:30〜22:00(LO閉店30分前)", closedDaysInfo: "無休" },
+  { id: "shinagawa-23", name: "Guzman y Gomez FOOD&TIME 品川店", address: "東京都港区港南2-18-1 アトレ品川", lat: 35.6280, lng: 139.7396, outletInfo: "窓側カウンター席に電源コンセントあり", smokingInfo: "全席禁煙(別フロアに喫煙室あり)", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "フードコート共用102席", hoursInfo: "10:00〜22:00(LO21:15)", closedDaysInfo: "不定休(施設アトレ品川に準ずる)" },
+  { id: "shinagawa-24", name: "サンジェルマン アトレ品川店", address: "東京都港区港南2-18-1 アトレ品川", lat: 35.6280, lng: 139.7395, smokingInfo: "全席禁煙", hoursInfo: "平日8:00〜22:00、土日祝10:00〜22:00(LO21:30)" },
+  { id: "shinagawa-25", name: "アンテナ アメリカ アトレ品川店", address: "東京都港区港南2-18-1 アトレ品川3F", lat: 35.6280, lng: 139.7396, smokingInfo: "全席禁煙", seatCountInfo: "4席(フードコート内)", hoursInfo: "10:00〜22:00", closedDaysInfo: "元旦・1月2日、施設休業日" },
+  { id: "shinagawa-26", name: "PAUL 品川駅店", address: "東京都港区高輪3-26-27 エキュート品川1F", lat: 35.6286, lng: 139.7389, smokingInfo: "分煙(禁煙席15席)", seatCountInfo: "45席(うち禁煙15席)", hoursInfo: "月〜土8:00〜22:00、日・祝8:00〜20:30", closedDaysInfo: "施設(エキュート品川)に準ずる" },
+  { id: "shinagawa-27", name: "サザコーヒー エキュート品川店", address: "東京都港区高輪3-26-27 エキュート品川1F", lat: 35.6286, lng: 139.7389, smokingInfo: "全席禁煙", seatCountInfo: "カウンター10席", hoursInfo: "月〜土7:00〜22:00、日・祝8:00〜20:30" },
   { id: "shinagawa-28", name: "cote cour エキュート品川店", address: "東京都港区高輪3-26-27 エキュート品川1F", lat: 35.6286, lng: 139.7389 },
-  { id: "shinagawa-29", name: "タミルズ エキュート品川店", address: "東京都港区高輪3-26-27 エキュート品川サウス", lat: 35.6286, lng: 139.7390, outletInfo: "カウンター席に電源コンセントあり" },
-  { id: "shinagawa-30", name: "常陸野ブルーイング品川 Beer&Cafe", address: "東京都港区高輪3-26-27 エキュート品川2F", lat: 35.6286, lng: 139.7390 },
-  { id: "shinagawa-31", name: "バル マルシェ コダマ エキュート品川店", address: "東京都港区高輪3-26-27 エキュート品川1F", lat: 35.6286, lng: 139.7389 },
+  { id: "shinagawa-29", name: "タミルズ エキュート品川店", address: "東京都港区高輪3-26-27 エキュート品川サウス", lat: 35.6286, lng: 139.7390, outletInfo: "カウンター席に電源コンセントあり", hoursInfo: "月〜土7:00〜23:00(LO22:00)、日・祝7:00〜22:00(LO21:00)" },
+  { id: "shinagawa-30", name: "常陸野ブルーイング品川 Beer&Cafe", address: "東京都港区高輪3-26-27 エキュート品川2F", lat: 35.6286, lng: 139.7390, hoursInfo: "月〜金10:00〜22:00(LO21:30)、土10:00〜21:00(LO20:30)、日・祝10:00〜20:30(LO20:00)", closedDaysInfo: "エキュート品川に準ずる" },
+  { id: "shinagawa-31", name: "バル マルシェ コダマ エキュート品川店", address: "東京都港区高輪3-26-27 エキュート品川1F", lat: 35.6286, lng: 139.7389, smokingInfo: "全席禁煙", wifiInfo: "Wi-Fiなし", seatCountInfo: "全18席(カウンター・テラス席含む)", hoursInfo: "月〜土8:00〜21:30、日8:00〜19:30", closedDaysInfo: "年中無休" },
   { id: "shinagawa-32", name: "カッフェクラシカ エキュート品川店", address: "東京都港区高輪3-26-27 エキュート品川2F", lat: 35.6286, lng: 139.7390 },
-  { id: "shinagawa-33", name: "BECK'S COFFEE SHOP 品川駅店", address: "東京都港区高輪3-26-27 JR品川駅構内(北改札付近)", lat: 35.6288, lng: 139.7388, outletInfo: "窓側カウンター8席、各1口の電源あり" },
-  { id: "shinagawa-34", name: "Caffe LAT.25° 品川駅店", address: "東京都港区高輪3-26-27 JR品川駅構内(新幹線乗換口付近)", lat: 35.6284, lng: 139.7385 },
-  { id: "shinagawa-35", name: "GOOD MORNING CAFE 品川シーズンテラス", address: "東京都港区港南1-2-70 品川シーズンテラス2F", lat: 35.6235, lng: 139.7458, outletInfo: "電源あり、Wi-Fiも利用可" },
-  { id: "shinagawa-36", name: "ブロッサム アンド ブーケ デリカフェ 品川シーズンテラス店", address: "東京都港区港南1-2-70 品川シーズンテラス", lat: 35.6235, lng: 139.7458, outletInfo: "入口左手カウンター4ヶ所に1口コンセント" },
+  { id: "shinagawa-33", name: "BECK'S COFFEE SHOP 品川駅店", address: "東京都港区高輪3-26-27 JR品川駅構内(北改札付近)", lat: 35.6288, lng: 139.7388, outletInfo: "窓側カウンター8席、各1口の電源あり", smokingInfo: "全席禁煙、喫煙ブースあり", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "32席", hoursInfo: "平日6:15〜21:00、土日祝7:00〜20:00" },
+  { id: "shinagawa-34", name: "Caffe LAT.25° 品川駅店", address: "東京都港区高輪3-26-27 JR品川駅構内(新幹線乗換口付近)", lat: 35.6284, lng: 139.7385, smokingInfo: "全席禁煙", hoursInfo: "6:00〜22:00", closedDaysInfo: "年中無休" },
+  { id: "shinagawa-35", name: "GOOD MORNING CAFE 品川シーズンテラス", address: "東京都港区港南1-2-70 品川シーズンテラス2F", lat: 35.6235, lng: 139.7458, outletInfo: "電源あり、Wi-Fiも利用可", smokingInfo: "全席禁煙、施設内に喫煙所あり", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "約100席(20〜30名用個室あり)", hoursInfo: "月〜水11:30〜21:00、木・金11:30〜22:00、土日祝11:00〜21:00", closedDaysInfo: "無休(品川シーズンテラス休館日を除く)" },
+  { id: "shinagawa-36", name: "ブロッサム アンド ブーケ デリカフェ 品川シーズンテラス店", address: "東京都港区港南1-2-70 品川シーズンテラス", lat: 35.6235, lng: 139.7458, outletInfo: "入口左手カウンター4ヶ所に1口コンセント", smokingInfo: "全席禁煙", seatCountInfo: "14席(カウンターのみ)", hoursInfo: "平日7:30〜20:00、土曜11:00〜18:00", closedDaysInfo: "日曜・祝日" },
   { id: "shinagawa-37", name: "スワンカフェ品川港南店", address: "東京都港区港南2-13-26 ヤマト港南ビル2F", lat: 35.6250, lng: 139.7416 },
-  { id: "shinagawa-38", name: "RHYTHMOS カフェ&バー", address: "東京都港区港南2-16-1 品川イーストワンタワー ストリングスホテル", lat: 35.6237, lng: 139.7423 },
-  { id: "shinagawa-39", name: "Coffee Stand .OTTEN", address: "東京都港区港南1-8-35", lat: 35.6261, lng: 139.7404, outletInfo: "電源・Wi-Fiあり、作業向きの環境" },
-  { id: "shinagawa-40", name: "麻布茶房 ウィング高輪店", address: "東京都港区高輪4-10-18 京急ショッピングプラザ ウィング高輪WEST", lat: 35.6290, lng: 139.7368 },
-  { id: "shinagawa-41", name: "オーバカナル 高輪店", address: "東京都港区高輪4-10-8 京急第7ビル1F", lat: 35.6288, lng: 139.7370 },
-  { id: "shinagawa-42", name: "コーヒーラウンジ マウナケア(品川プリンスホテル)", address: "東京都港区高輪4-10-30 品川プリンスホテル メインタワー2F", lat: 35.6295, lng: 139.7360, outletInfo: "電源コンセントあり、Wi-Fiも利用可" },
-  { id: "shinagawa-43", name: "ACCEA CAFE 品川プリンスホテル店", address: "東京都港区高輪4-10-30 品川プリンスホテル アネックスタワー2F", lat: 35.6295, lng: 139.7361, outletInfo: "全席に電源完備、Wi-Fi無料で作業向け" },
-  { id: "shinagawa-44", name: "品川キッチン(フードコート)", address: "東京都港区高輪4-10-30 品川プリンスホテル アネックスタワー2F", lat: 35.6295, lng: 139.7361 },
-  { id: "shinagawa-45", name: "カフェ・ド・シネマ", address: "東京都港区高輪4-10-30 品川プリンスホテル エグゼクティブタワー3F", lat: 35.6296, lng: 139.7359 },
-  { id: "shinagawa-46", name: "ナチュラルカフェ&レストラン 椨の木", address: "東京都港区高輪4-9-16 東京療院新館1F", lat: 35.6285, lng: 139.7372 },
-  { id: "shinagawa-47", name: "46番地", address: "東京都港区高輪4-13-7", lat: 35.6300, lng: 139.7355 },
-  { id: "shinagawa-48", name: "カフェガレージ", address: "東京都港区高輪4-24-44", lat: 35.6308, lng: 139.7344 },
+  { id: "shinagawa-38", name: "RHYTHMOS カフェ&バー", address: "東京都港区港南2-16-1 品川イーストワンタワー ストリングスホテル", lat: 35.6237, lng: 139.7423, smokingInfo: "全面禁煙(26階ロビーに喫煙室あり)", seatCountInfo: "41席", hoursInfo: "ティータイム6:30〜17:00、アフタヌーンティー14:00〜18:30(LO16:30)、食事11:30〜22:00(LO21:00)、バータイム日〜火17:00〜24:00(LO23:00)・水〜土17:00〜24:30(LO23:30)", closedDaysInfo: "年中無休" },
+  { id: "shinagawa-39", name: "Coffee Stand .OTTEN", address: "東京都港区港南1-8-35", lat: 35.6261, lng: 139.7404, outletInfo: "電源・Wi-Fiあり、作業向きの環境", smokingInfo: "全席禁煙", hoursInfo: "平日8:30〜19:30(LO19:00)", closedDaysInfo: "土曜・日曜・祝日" },
+  { id: "shinagawa-40", name: "麻布茶房 ウィング高輪店", address: "東京都港区高輪4-10-18 京急ショッピングプラザ ウィング高輪WEST", lat: 35.6290, lng: 139.7368, smokingInfo: "全席禁煙", seatCountInfo: "62席", hoursInfo: "平日・祝前日11:00〜20:00(LO19:30)、土日祝10:00〜20:00(LO19:30)", closedDaysInfo: "ウィング高輪に準ずる" },
+  { id: "shinagawa-41", name: "オーバカナル 高輪店", address: "東京都港区高輪4-10-8 京急第7ビル1F", lat: 35.6288, lng: 139.7370, smokingInfo: "全席禁煙(テラス席のみペット可)", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "全202席(ブラッスリー56・バー24・カフェ122席[うちテラス63])", hoursInfo: "ブーランジェリー11:00〜20:00、カフェ11:30〜22:00(LO21:00)、ブラッスリー昼11:30〜14:00・夜18:00〜22:00(LO21:00)", closedDaysInfo: "年中無休" },
+  { id: "shinagawa-42", name: "コーヒーラウンジ マウナケア(品川プリンスホテル)", address: "東京都港区高輪4-10-30 品川プリンスホテル メインタワー2F", lat: 35.6295, lng: 139.7360, outletInfo: "電源コンセントあり、Wi-Fiも利用可", smokingInfo: "禁煙", seatCountInfo: "163席", hoursInfo: "8:00〜20:00(LO19:30)、モーニング8:00〜11:00、ケーキ販売10:00〜", closedDaysInfo: "無休(年中無休)" },
+  { id: "shinagawa-43", name: "ACCEA CAFE 品川プリンスホテル店", address: "東京都港区高輪4-10-30 品川プリンスホテル アネックスタワー2F", lat: 35.6295, lng: 139.7361, outletInfo: "全席に電源完備、Wi-Fi無料で作業向け", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "18席(テレワーク個室ブース3・ハイバックソファ席8・カウンター席7)", hoursInfo: "全日10:00〜20:00", closedDaysInfo: "なし" },
+  { id: "shinagawa-44", name: "品川キッチン(フードコート)", address: "東京都港区高輪4-10-30 品川プリンスホテル アネックスタワー2F", lat: 35.6295, lng: 139.7361, smokingInfo: "禁煙", seatCountInfo: "300席", hoursInfo: "11:00〜22:00(LO21:30)", closedDaysInfo: "無休(年中無休)" },
+  { id: "shinagawa-45", name: "カフェ・ド・シネマ", address: "東京都港区高輪4-10-30 品川プリンスホテル エグゼクティブタワー3F", lat: 35.6296, lng: 139.7359, smokingInfo: "全席禁煙", hoursInfo: "10:00〜20:00", closedDaysInfo: "なし" },
+  { id: "shinagawa-46", name: "ナチュラルカフェ&レストラン 椨の木", address: "東京都港区高輪4-9-16 東京療院新館1F", lat: 35.6285, lng: 139.7372, smokingInfo: "全席禁煙", wifiInfo: "Wi-Fiあり", seatCountInfo: "38席", hoursInfo: "火〜金11:00〜21:00(ランチ11:00〜14:00・カフェ14:00〜16:00LO15:30・ディナー17:30〜21:00LO20:00)、土・祝11:00〜17:30", closedDaysInfo: "月曜・日曜" },
+  { id: "shinagawa-47", name: "46番地", address: "東京都港区高輪4-13-7", lat: 35.6300, lng: 139.7355, hoursInfo: "火〜木19:30〜24:00、金土日19:00〜24:00", closedDaysInfo: "月曜" },
+  { id: "shinagawa-48", name: "カフェガレージ", address: "東京都港区高輪4-24-44", lat: 35.6308, lng: 139.7344, smokingInfo: "全席禁煙", hoursInfo: "月・金〜日9:00〜19:00", closedDaysInfo: "火・水・木(不定休あり)" },
   { id: "shinagawa-49", name: "ミポーズハウス", address: "東京都港区高輪4-24-38", lat: 35.6308, lng: 139.7346 },
-  { id: "shinagawa-50", name: "Brasserie la Maison", address: "東京都港区高輪4-24-40 高輪プリンセスガルテン内", lat: 35.6308, lng: 139.7345 },
+  { id: "shinagawa-50", name: "Brasserie la Maison", address: "東京都港区高輪4-24-40 高輪プリンセスガルテン内", lat: 35.6308, lng: 139.7345, smokingInfo: "全席禁煙", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "41席(テーブル20・ソファ10・カウンター5・テラス6)", hoursInfo: "月・木・日・祝11:00〜16:00(LO食13:30/飲15:30)、金土11:00〜16:00・17:30〜21:30(LO食18:30/飲21:00)", closedDaysInfo: "火・水曜(祝日の場合は営業の場合あり)" },
 ];
