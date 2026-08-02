@@ -2724,10 +2724,14 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
           )}
         </Marker>
       ))}
+      {/* エリアを絞り込んで見る時の既定ズーム(16)以上では、目的の
+          お店を探しやすいよう必ず個別ピンにする。もっと引いた
+          (都内広域を見るような)ズームの時だけ、近いピンをまとめる */}
       <MarkerClusterGroup
         maxClusterRadius={60}
         showCoverageOnHover={false}
         spiderfyOnMaxZoom
+        disableClusteringAtZoom={16}
         iconCreateFunction={createClusterIcon}
       >
       {visibleCafes.map((cafe) => {
