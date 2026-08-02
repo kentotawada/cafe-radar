@@ -8,12 +8,15 @@ import type { Cafe } from "./cafes";
 // 各チェーンの公式店舗ページ・食べログ等で個別に確認して追加した。確認できな
 // かった項目は空欄のままにしている(推測では埋めていない)。
 //
-// 【未着手】ochanomizu-12〜21・33〜43は、調査中にツール利用上限に達した
-// ため未調査のまま(新規項目なし)。別途リサーチを再開して追加する予定。
+// 【要確認・閉店】ochanomizu-19(サンマルクカフェ 明治大学グローバルフロント
+// 店): 食べログに「【閉店】このお店は現在閉店しております」と明記。サンマル
+// クカフェ公式サイトの店舗ページも削除済み。新規項目は追加せず既存情報のまま
+// にしてある。
 //
-// 【要確認・休業中】ochanomizu-46(スカイラウンジ暁): 明治大学公式サイトに
-// よると厨房機器更新工事のため2026年8月1日から休業中、再開は同年11月4日
-// 予定(調査時点)。新規項目は追加せず既存情報のままにしてある。
+// 【要確認・休業中】ochanomizu-46(スカイラウンジ暁・明治大学リバティタワー):
+// 明治大学公式サイトによると厨房機器更新工事のため2026年8月1日から休業中、
+// 再開は同年11月4日予定(調査時点)。新規項目は追加せず既存情報のままにして
+// ある。
 export const cafes: Cafe[] = [
   { id: "ochanomizu-01", name: "マクドナルド 御茶ノ水ソラシティ店", address: "東京都千代田区神田駿河台4-6-1 御茶ノ水ソラシティ B1F", lat: 35.6984, lng: 139.7649, outletInfo: "西側窓際カウンター11席、USB充電のみ設置", smokingInfo: "全店舗禁煙方針、喫煙室なし", wifiInfo: "無料Wi-Fiあり(FREE WiFi、登録不要)", seatCountInfo: "37席", hoursInfo: "7:00〜23:00(日曜22:00〜翌7:00は御茶ノ水ソラシティ全体のメンテナンスにより休業)" },
   { id: "ochanomizu-02", name: "マクドナルド 神保町店", address: "東京都千代田区神田神保町1-2-1", lat: 35.696, lng: 139.758, outletInfo: "3階中央カウンター20席中10席に2口コンセント", smokingInfo: "全店舗禁煙方針、喫煙室なし", wifiInfo: "無料Wi-Fiあり(FREE WiFi、登録不要)", seatCountInfo: "158席", hoursInfo: "6:30〜23:00" },
@@ -26,16 +29,16 @@ export const cafes: Cafe[] = [
   { id: "ochanomizu-09", name: "タリーズコーヒー 神保町三井ビルディング店", address: "東京都千代田区神田神保町1-105 神保町三井ビルディング1F", lat: 35.6958, lng: 139.7568, outletInfo: "電源席ありとの情報も、塞がれ利用不可との口コミあり", smokingInfo: "加熱式タバコ専用室あり(飲食可)", wifiInfo: "無料Wi-Fiあり(Tully's Wi-Fi、登録不要で利用規約に同意するだけ)", hoursInfo: "月〜金7:30〜20:00、土日8:00〜19:00" },
   { id: "ochanomizu-10", name: "エクセルシオール カフェ 新お茶の水店", address: "東京都千代田区神田駿河台4-3 新お茶の水ビルディング サンクレールB1F", lat: 35.6978, lng: 139.7642, outletInfo: "客席にコンセントあり（具体的な席位置は要確認）", smokingInfo: "完全分煙、加熱式・紙タバコ対応の喫煙ブースあり(客席98席はすべて禁煙席)", wifiInfo: "無料Wi-Fiあり(DOUTOR_FREE_Wi-Fi、1回1時間まで繰り返し利用可)", seatCountInfo: "98席(全席禁煙、喫煙ブース別途あり)", hoursInfo: "平日・土7:00〜22:00、日祝7:00〜21:00" },
   { id: "ochanomizu-11", name: "エクセルシオール カフェ お茶の水店", address: "東京都千代田区神田駿河台2-1 ユニオンビル1F", lat: 35.697, lng: 139.762, outletInfo: "入口左手窓際カウンター7席中4席にコンセントあり", smokingInfo: "完全分煙、加熱式・紙タバコ対応の喫煙ブースあり(客席82席はすべて禁煙席)", wifiInfo: "無料Wi-Fiあり(DOUTOR_FREE_Wi-Fi、1回1時間まで繰り返し利用可)", seatCountInfo: "82席(全席禁煙、喫煙ブース別途あり)", hoursInfo: "平日6:45〜22:00、土日祝7:00〜21:00" },
-  { id: "ochanomizu-12", name: "カフェ・ベローチェ 新御茶ノ水店", address: "東京都千代田区神田駿河台3-4-2 日専連朝日生命ビル1F", lat: 35.6976, lng: 139.7638, outletInfo: "電源コンセント＆Wi-Fiあり、作業利用者に人気" },
-  { id: "ochanomizu-13", name: "カフェ・ベローチェ 神保町店", address: "東京都千代田区神田神保町1-8 漢陽商事ビル1F", lat: 35.6958, lng: 139.7572, outletInfo: "カウンター席はほぼ全席2口コンセント完備" },
-  { id: "ochanomizu-14", name: "PRONTO 御茶ノ水店", address: "東京都千代田区神田駿河台2-4-4 サンロイヤルビル1F", lat: 35.6972, lng: 139.7625 },
-  { id: "ochanomizu-15", name: "NEW YORKER'S Cafe 駿河台4丁目店", address: "東京都千代田区神田駿河台4-1-1 ウエルトンビル1F", lat: 35.698, lng: 139.7635, outletInfo: "電源サービスあり（ルノアール系列店舗）" },
-  { id: "ochanomizu-16", name: "喫茶室ルノアール 水道橋西口店", address: "東京都千代田区神田三崎町3-6-13 山京中央ビル1F", lat: 35.6978, lng: 139.7528, outletInfo: "電源サービスあり、携帯充電しながら寛げる" },
-  { id: "ochanomizu-17", name: "サンマルクカフェ相鉄フレッサイン御茶ノ水神保町店", address: "東京都千代田区神田神保町1-19-7", lat: 35.6962, lng: 139.7568, outletInfo: "カウンター席に電源コンセントあり" },
-  { id: "ochanomizu-18", name: "サンマルクカフェ 神保町すずらん通り店", address: "東京都千代田区神田神保町1-5-1", lat: 35.696, lng: 139.758, outletInfo: "壁沿いカウンター席・喫煙室丸テーブルに電源多数" },
+  { id: "ochanomizu-12", name: "カフェ・ベローチェ 新御茶ノ水店", address: "東京都千代田区神田駿河台3-4-2 日専連朝日生命ビル1F", lat: 35.6976, lng: 139.7638, outletInfo: "電源コンセント＆Wi-Fiあり、作業利用者に人気", smokingInfo: "分煙、加熱式たばこ専用喫煙室・喫煙ブースあり", wifiInfo: "無料Wi-Fiあり(Free-WiFi)", hoursInfo: "平日7:00〜21:00、土日祝7:00〜20:00" },
+  { id: "ochanomizu-13", name: "カフェ・ベローチェ 神保町店", address: "東京都千代田区神田神保町1-8 漢陽商事ビル1F", lat: 35.6958, lng: 139.7572, outletInfo: "カウンター席はほぼ全席2口コンセント完備", smokingInfo: "全席禁煙、喫煙ブース(専用室)あり", wifiInfo: "無料Wi-Fiあり", hoursInfo: "7:00〜21:00" },
+  { id: "ochanomizu-14", name: "PRONTO 御茶ノ水店", address: "東京都千代田区神田駿河台2-4-4 サンロイヤルビル1F", lat: 35.6972, lng: 139.7625, hoursInfo: "平日・祝前日6:30〜23:30(カフェタイム6:30〜17:30)、土・祝日8:00〜23:30(カフェタイム8:00〜17:30)、以降バータイム" },
+  { id: "ochanomizu-15", name: "NEW YORKER'S Cafe 駿河台4丁目店", address: "東京都千代田区神田駿河台4-1-1 ウエルトンビル1F", lat: 35.698, lng: 139.7635, outletInfo: "電源サービスあり（ルノアール系列店舗）", smokingInfo: "分煙(禁煙56席、加熱式たばこ専用席26席、紙巻きたばこ用喫煙ブースは飲食不可)", wifiInfo: "無料Wi-Fiあり(Renoir Miyama Wi-Fi、Wi2、au Wi-Fi SPOT、BBモバイルポイント対応)", seatCountInfo: "82席(禁煙56・加熱式たばこ26)+紙巻きたばこ用喫煙ブース別途", hoursInfo: "月〜金7:00〜22:00、土8:00〜22:00、日祝8:00〜21:30" },
+  { id: "ochanomizu-16", name: "喫茶室ルノアール 水道橋西口店", address: "東京都千代田区神田三崎町3-6-13 山京中央ビル1F", lat: 35.6978, lng: 139.7528, outletInfo: "電源サービスあり、携帯充電しながら寛げる", smokingInfo: "分煙(禁煙34席、加熱式たばこ専用席20席)", wifiInfo: "無料Wi-Fiあり(Renoir Miyama Wi-Fi、Wi2、au Wi-Fi SPOT、BBモバイルポイント対応)", seatCountInfo: "54席(禁煙34・加熱式たばこ20)", hoursInfo: "月〜土7:30〜22:00、日祝8:00〜22:00", closedDaysInfo: "年中無休" },
+  { id: "ochanomizu-17", name: "サンマルクカフェ相鉄フレッサイン御茶ノ水神保町店", address: "東京都千代田区神田神保町1-19-7", lat: 35.6962, lng: 139.7568, outletInfo: "カウンター席に電源コンセントあり", smokingInfo: "全席禁煙(54席)", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "54席(全席禁煙)", hoursInfo: "7:00〜22:00" },
+  { id: "ochanomizu-18", name: "サンマルクカフェ 神保町すずらん通り店", address: "東京都千代田区神田神保町1-5-1", lat: 35.696, lng: 139.758, outletInfo: "壁沿いカウンター席・喫煙室丸テーブルに電源多数", smokingInfo: "分煙、喫煙ブースあり", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "92席", hoursInfo: "7:00〜22:00", closedDaysInfo: "年中無休" },
   { id: "ochanomizu-19", name: "サンマルクカフェ 明治大学グローバルフロント店", address: "東京都千代田区神田駿河台2-1", lat: 35.697, lng: 139.7618, outletInfo: "電源・Wi-Fi利用可能な店舗として紹介あり" },
-  { id: "ochanomizu-20", name: "Delifrance お茶の水カフェベーカリー店", address: "東京都千代田区神田駿河台2-1 御茶の水クリスチャンセンター1F", lat: 35.6968, lng: 139.7622, outletInfo: "客席に充電コンセントあり（一部情報でなしとの声も）" },
-  { id: "ochanomizu-21", name: "モスバーガー 水道橋西通り店", address: "東京都千代田区西神田2-5-8", lat: 35.6975, lng: 139.7528, outletInfo: "カウンター席にコンセント設置、電源カフェと紹介" },
+  { id: "ochanomizu-20", name: "Delifrance お茶の水カフェベーカリー店", address: "東京都千代田区神田駿河台2-1 御茶の水クリスチャンセンター1F", lat: 35.6968, lng: 139.7622, outletInfo: "客席に充電コンセントあり（一部情報でなしとの声も）", smokingInfo: "禁煙(禁煙フリー)", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "67席", hoursInfo: "月〜金7:00〜20:30、土7:00〜20:00、日・祝8:00〜20:00" },
+  { id: "ochanomizu-21", name: "モスバーガー 水道橋西通り店", address: "東京都千代田区西神田2-5-8", lat: 35.6975, lng: 139.7528, outletInfo: "カウンター席にコンセント設置、電源カフェと紹介", smokingInfo: "全席禁煙", hoursInfo: "月〜金7:30〜20:00、土・日8:00〜18:00" },
   { id: "ochanomizu-22", name: "淡路坂珈琲 お茶の水店", address: "東京都千代田区神田淡路町2-9 JR紅梅橋高架下4号", lat: 35.698, lng: 139.7685, outletInfo: "各席に電源あり、窓際席はテーブル下に設置", smokingInfo: "分煙(テラス席のみ喫煙可)", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "50席", hoursInfo: "7:30〜19:00", closedDaysInfo: "12/31・1/1のみ休み" },
   { id: "ochanomizu-23", name: "BOTTOS 没頭作業カフェ 御茶ノ水駅前店", address: "東京都千代田区神田駿河台2-6-10 田中ビル2-4F", lat: 35.6975, lng: 139.7625, outletInfo: "全席に電源完備（作業特化型カフェ）", wifiInfo: "無料Wi-Fiあり(高速Wi-Fi)", seatCountInfo: "60席", hoursInfo: "8:00〜22:00(将来的に24時間営業へ移行予定)", closedDaysInfo: "年中無休" },
   { id: "ochanomizu-24", name: "MEDI CAFE", address: "東京都文京区湯島1-5-34 お茶の水医学会館1F", lat: 35.7015, lng: 139.7665, smokingInfo: "全席禁煙", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "24席", hoursInfo: "平日9:30〜18:00", closedDaysInfo: "土日定休" },
@@ -47,17 +50,17 @@ export const cafes: Cafe[] = [
   { id: "ochanomizu-30", name: "ラドリオ", address: "東京都千代田区神田神保町1-3", lat: 35.696, lng: 139.7584, outletInfo: "無料Wi-Fi＆電源コンセント完備との紹介あり", smokingInfo: "全席禁煙", seatCountInfo: "49席(カウンター7・テーブル42)", hoursInfo: "月・水・木・金11:30〜22:30(L.O.22:00)、土日祝12:00〜19:00(L.O.18:30)", closedDaysInfo: "火曜定休" },
   { id: "ochanomizu-31", name: "神田伯剌西爾", address: "東京都千代田区神田神保町1-7 小宮山ビルB1", lat: 35.6959, lng: 139.758, smokingInfo: "分煙(喫煙席34・禁煙席16、未成年不可)", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "50席", hoursInfo: "月〜土11:00〜21:00、日・祝11:00〜19:00" },
   { id: "ochanomizu-32", name: "古瀬戸珈琲店", address: "東京都千代田区神田小川町3-10 江本ビル2F", lat: 35.6958, lng: 139.7593, smokingInfo: "全席禁煙", seatCountInfo: "34席(カウンター12・テーブル22)", hoursInfo: "月〜金12:00〜20:00、土日祝13:00〜19:00", closedDaysInfo: "不定休(休業日はInstagramで告知)" },
-  { id: "ochanomizu-33", name: "カフェ・トロワバグ", address: "東京都千代田区神田神保町1-12-1 富田ビルB1", lat: 35.6956, lng: 139.7575, outletInfo: "Wi-Fi・電源コンセントあり（1976年創業）" },
-  { id: "ochanomizu-34", name: "トロワバグ ヴェール", address: "東京都千代田区神田猿楽町2-7-7 倉林ビル1F B室", lat: 35.6968, lng: 139.7518 },
-  { id: "ochanomizu-35", name: "文房堂ギャラリーカフェ", address: "東京都千代田区神田神保町1-21-1", lat: 35.6953, lng: 139.7568 },
-  { id: "ochanomizu-36", name: "GLITCH COFFEE & ROASTERS", address: "東京都千代田区神田錦町3-16 香村ビル1F", lat: 35.6935, lng: 139.7595 },
-  { id: "ochanomizu-37", name: "壹眞珈琲店 神保町店", address: "東京都千代田区神田神保町1-8 山田ビルB1", lat: 35.6959, lng: 139.7579 },
-  { id: "ochanomizu-38", name: "珈琲館 専大前本店", address: "東京都千代田区神田神保町3-1 日建ビル1F", lat: 35.6963, lng: 139.7548, outletInfo: "カウンター席に電源とWi-Fi、コンセント多数" },
-  { id: "ochanomizu-39", name: "青海珈琲 神保町店", address: "東京都千代田区神田神保町1-24 加藤KKビル1F", lat: 35.6954, lng: 139.757, outletInfo: "電源・Wi-Fiあり、1杯100円からのコーヒー店" },
-  { id: "ochanomizu-40", name: "TeaHouse TAKANO", address: "東京都千代田区神田神保町1-3-5 寿ビルB1", lat: 35.696, lng: 139.7582, outletInfo: "情報により電源の有無が分かれる（要確認）" },
-  { id: "ochanomizu-41", name: "かふぇ あたらくしあ", address: "東京都千代田区神田神保町2-12-4 エスペランサ神田神保町III B1", lat: 35.6968, lng: 139.7548 },
-  { id: "ochanomizu-42", name: "atacu cafe", address: "東京都千代田区神田神保町1-26", lat: 35.6953, lng: 139.7565 },
-  { id: "ochanomizu-43", name: "きっさこ", address: "東京都千代田区神田神保町2-24-3", lat: 35.697, lng: 139.754 },
+  { id: "ochanomizu-33", name: "カフェ・トロワバグ", address: "東京都千代田区神田神保町1-12-1 富田ビルB1", lat: 35.6956, lng: 139.7575, outletInfo: "Wi-Fi・電源コンセントあり（1976年創業）", smokingInfo: "全席禁煙", seatCountInfo: "34席(カウンター7席・テーブル8卓27席)", hoursInfo: "月〜金10:00〜20:00、土・祝12:00〜19:00", closedDaysInfo: "日曜定休" },
+  { id: "ochanomizu-34", name: "トロワバグ ヴェール", address: "東京都千代田区神田猿楽町2-7-7 倉林ビル1F B室", lat: 35.6968, lng: 139.7518, hoursInfo: "火〜金12:00〜19:00(L.O.18:30)、土日祝12:00〜18:00(L.O.17:30)", closedDaysInfo: "月曜定休" },
+  { id: "ochanomizu-35", name: "文房堂ギャラリーカフェ", address: "東京都千代田区神田神保町1-21-1", lat: 35.6953, lng: 139.7568, closedDaysInfo: "年末年始のみ休業(ほぼ年中無休)" },
+  { id: "ochanomizu-36", name: "GLITCH COFFEE & ROASTERS", address: "東京都千代田区神田錦町3-16 香村ビル1F", lat: 35.6935, lng: 139.7595, smokingInfo: "全席禁煙", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "16席(カウンター中心)", hoursInfo: "月〜金8:00〜19:00、土日祝9:00〜19:00", closedDaysInfo: "年中無休" },
+  { id: "ochanomizu-37", name: "壹眞珈琲店 神保町店", address: "東京都千代田区神田神保町1-8 山田ビルB1", lat: 35.6959, lng: 139.7579, smokingInfo: "全席喫煙可(2020年健康増進法改正の影響で現在は変更の可能性あり、要確認)", seatCountInfo: "27席(カウンター7席・4人掛けテーブル5卓)", hoursInfo: "月〜金11:30〜22:00、土12:00〜22:00、日・祝12:00〜21:00" },
+  { id: "ochanomizu-38", name: "珈琲館 専大前本店", address: "東京都千代田区神田神保町3-1 日建ビル1F", lat: 35.6963, lng: 139.7548, outletInfo: "カウンター席に電源とWi-Fi、コンセント多数", smokingInfo: "全席禁煙、喫煙ブース(専用室)あり", wifiInfo: "無料Wi-Fiあり", hoursInfo: "平日7:30〜22:00、土日祝8:00〜20:00", closedDaysInfo: "無休" },
+  { id: "ochanomizu-39", name: "青海珈琲 神保町店", address: "東京都千代田区神田神保町1-24 加藤KKビル1F", lat: 35.6954, lng: 139.757, outletInfo: "電源・Wi-Fiあり、1杯100円からのコーヒー店", hoursInfo: "平日7:30〜20:00、土日祝10:00〜19:00", closedDaysInfo: "不定休" },
+  { id: "ochanomizu-40", name: "TeaHouse TAKANO", address: "東京都千代田区神田神保町1-3-5 寿ビルB1", lat: 35.696, lng: 139.7582, outletInfo: "情報により電源の有無が分かれる（要確認）", hoursInfo: "平日11:30〜19:00、土曜・祝日11:30〜18:30", closedDaysInfo: "日曜定休" },
+  { id: "ochanomizu-41", name: "かふぇ あたらくしあ", address: "東京都千代田区神田神保町2-12-4 エスペランサ神田神保町III B1", lat: 35.6968, lng: 139.7548, hoursInfo: "月〜金11:00〜20:00(L.O.19:30)、土11:00〜18:00(L.O.17:30、祝日は短縮の場合あり)", closedDaysInfo: "日曜・第3月曜定休" },
+  { id: "ochanomizu-42", name: "atacu cafe", address: "東京都千代田区神田神保町1-26", lat: 35.6953, lng: 139.7565, seatCountInfo: "13席", hoursInfo: "平日9:00〜19:00、日12:00〜17:00", closedDaysInfo: "土曜定休(日祝も休業となる場合あり)" },
+  { id: "ochanomizu-43", name: "きっさこ", address: "東京都千代田区神田神保町2-24-3", lat: 35.697, lng: 139.754, smokingInfo: "全席禁煙", seatCountInfo: "18席(テーブル2席×3、4席×3)", hoursInfo: "火〜金12:00〜17:00、土日祝12:00〜18:00", closedDaysInfo: "月曜定休(不定休あり)" },
   { id: "ochanomizu-44", name: "神保町ブックハウスカフェ", address: "東京都千代田区神田神保町2-5 北沢ビル1F", lat: 35.6965, lng: 139.7563, smokingInfo: "全席禁煙、喫煙所なし", wifiInfo: "Wi-Fiあり", seatCountInfo: "総席数55席", hoursInfo: "月〜金11:00〜17:30(LO17:00)、土日11:00〜18:00(LO17:30)", closedDaysInfo: "年中無休(年末年始を除く)" },
   { id: "ochanomizu-45", name: "神保町ブックセンター", address: "東京都千代田区神田神保町2-3-1 岩波書店アネックス1-3F", lat: 35.6966, lng: 139.756, outletInfo: "窓際カウンター6席、各席テーブル面に2口コンセント", hoursInfo: "平日9:00〜19:00、土日祝10:00〜19:00" },
   { id: "ochanomizu-46", name: "スカイラウンジ暁（明治大学リバティタワー）", address: "東京都千代田区神田駿河台1-1 リバティタワー17F", lat: 35.6972, lng: 139.7628 },
