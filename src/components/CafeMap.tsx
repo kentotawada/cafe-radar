@@ -16,7 +16,6 @@ import MarkerClusterGroup from "react-leaflet-cluster";
 import { seedCafes, type Cafe } from "@/lib/seedCafes";
 import { hasOutlet } from "@/lib/cafeAmenities";
 import AdBanner from "@/components/AdBanner";
-import CafeCreatureIcon from "@/components/CafeCreatureIcon";
 import { emitReportSubmitted } from "@/lib/reportEvents";
 import {
   dedupeByReporter,
@@ -2187,13 +2186,10 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                 }`}
               >
                 <div className="flex items-start gap-2">
-                  <div className="relative shrink-0">
-                    <CafeCreatureIcon cafeId={cafe.id} size={32} />
-                    <span
-                      className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white shadow"
-                      style={{ backgroundColor: statusColor }}
-                    />
-                  </div>
+                  <span
+                    className="inline-block w-3 h-3 rounded-full border border-white shadow mt-1 shrink-0"
+                    style={{ backgroundColor: statusColor }}
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-sm text-gray-900">
                       {cafe.name}

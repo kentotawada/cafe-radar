@@ -6,12 +6,11 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { getReporterId } from "@/lib/reporterId";
 import { subscribeReportSubmitted } from "@/lib/reportEvents";
 import { levelForReportCount } from "@/lib/reporterLevel";
-import { creatureSvgMarkup } from "@/lib/creature";
 
-// 報告した回数に応じて、自分専用のキャラクターが育っていく(見た目の
-// 装飾が増える)表示。実店舗クーポンのような運営コストのかかる報酬の
-// 代わりに、匿名のままコード側だけで完結するモチベーション施策として
-// 追加した。報告するたびにreportEvents経由で数え直す
+// 報告した回数に応じて、称号・レベルが上がっていく表示。実店舗クーポン
+// のような運営コストのかかる報酬の代わりに、匿名のままコード側だけで
+// 完結するモチベーション施策として追加した。報告するたびにreportEvents
+// 経由で数え直す
 export default function MyReporterBadge() {
   const [count, setCount] = useState<number | null>(null);
   const [showDetail, setShowDetail] = useState(false);
@@ -36,21 +35,14 @@ export default function MyReporterBadge() {
   if (count === null) return null;
 
   const level = levelForReportCount(count);
-  const seed = getReporterId();
 
   return (
     <>
       <button
         onClick={() => setShowDetail(true)}
-        className="flex items-center gap-1.5 text-xs md:text-sm text-gray-600 border border-gray-300 rounded-full pl-1 pr-2.5 py-0.5 sm:py-1 hover:bg-gray-50 shrink-0"
+        className="flex items-center gap-1.5 text-xs md:text-sm text-gray-600 border border-gray-300 rounded-full px-2.5 py-0.5 sm:py-1 hover:bg-gray-50 shrink-0"
       >
-        <span
-          className="inline-block w-5 h-5 shrink-0"
-          aria-hidden
-          dangerouslySetInnerHTML={{
-            __html: creatureSvgMarkup(seed, 20, level.stage),
-          }}
-        />
+        <span aria-hidden>{level.emoji}</span>
         <span className="hidden sm:inline">Lv.{level.level} {level.title}</span>
         <span className="sm:hidden">Lv.{level.level}</span>
       </button>
@@ -66,15 +58,11 @@ export default function MyReporterBadge() {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex flex-col items-center gap-2 px-5 pt-6 pb-5">
-                <span
-                  className="inline-block w-20 h-20"
-                  aria-hidden
-                  dangerouslySetInnerHTML={{
-                    __html: creatureSvgMarkup(seed, 80, level.stage),
-                  }}
-                />
+                <div className="text-4xl" aria-hidden>
+                  {level.emoji}
+                </div>
                 <div className="text-sm font-bold text-gray-900">
-                  Lv.{level.level} {level.emoji} {level.title}
+                  Lv.{level.level} {level.title}
                 </div>
                 <div className="text-xs text-gray-500">
                   これまでの報告数: {count}件
@@ -106,7 +94,7 @@ export default function MyReporterBadge() {
                   </div>
                 )}
                 <p className="text-[11px] text-gray-400 text-center mt-1">
-                  混雑度や電源席の状況を報告するたびに、あなたのキャラクターが育っていきます
+                  混雑度や電源席の状況を報告するたびに、称号が上がっていきます
                 </p>
               </div>
               <button
