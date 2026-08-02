@@ -3,20 +3,39 @@ import type { Cafe } from "./cafes";
 // 店名・住所はウェブ検索で実在店舗を確認済み（2026年7月時点、各公式サイト・食べログ等）。
 // 座標は住所から推定した目安地点です。経路・写真検索は店名+住所のテキストで
 // Googleマップに渡しているため、座標が多少ずれていても案内自体は正確です。
+//
+// smokingInfo/wifiInfo/seatCountInfo/hoursInfo/closedDaysInfoは2026年8月、
+// 各チェーンの公式店舗ページ・食べログ等で個別に確認して追加した。確認できな
+// かった項目は空欄のままにしている(推測では埋めていない)。
+//
+// 【未着手】このエリアはリサーチ中にツール利用上限に達し、yurakucho-15〜18・
+// 20・21・23・24・26〜48(3件の閉店確認分・11の休業中フラグ分を除く)は
+// 未調査のまま(新規項目なし)。別途リサーチを再開して追加する予定。
+//
+// 【要確認・閉店】新規項目を追加せず既存情報のままにしてある:
+// - yurakucho-03(マクドナルド 銀座二丁目ビル店): 2025年12月28日閉店
+// - yurakucho-09(スターバックス・コーヒー 有楽町ビル店 B1F): 2023年10月20日
+//   閉店(有楽町ビル建て替えのため)
+// - yurakucho-10(スターバックス コーヒー 有楽町ビル1階店): 同上、B1F店と
+//   同時閉店
+//
+// 【要確認・休業中】yurakucho-11(スターバックス コーヒー 丸の内新東京ビル
+// 店): スターバックス公式サイトで「休業中」と表示。一時休業か完全閉店か
+// 確認できず、新規項目は追加せず既存情報のままにしてある。
 export const cafes: Cafe[] = [
-  { id: "yurakucho-01", name: "マクドナルド 銀座インズ店", address: "東京都中央区銀座西1-2 銀座インズ3内", lat: 35.6712, lng: 139.7627, outletInfo: "禁煙・喫煙カウンター各所にコンセントあり" },
+  { id: "yurakucho-01", name: "マクドナルド 銀座インズ店", address: "東京都中央区銀座西1-2 銀座インズ3内", lat: 35.6712, lng: 139.7627, outletInfo: "禁煙・喫煙カウンター各所にコンセントあり", smokingInfo: "全席禁煙(マクドナルド全店舗方針)", wifiInfo: "無料Wi-Fiあり(00_MCD-FREE-WIFI、初回のみ会員登録)", seatCountInfo: "189席", hoursInfo: "6:30〜23:00", closedDaysInfo: "施設(銀座インズ)の休業日に準ずる(実質年中無休)" },
   { id: "yurakucho-03", name: "マクドナルド 銀座二丁目ビル店", address: "東京都中央区銀座2-9-4", lat: 35.6716, lng: 139.7684, outletInfo: "2階席にコンセントあり、長居作業も可" },
-  { id: "yurakucho-04", name: "マクドナルド 東京駅一番街店", address: "東京都千代田区丸の内1-9-1 東京駅一番街", lat: 35.6812, lng: 139.7671, outletInfo: "改装でカウンター撤去、電源席は現在なし" },
-  { id: "yurakucho-05", name: "ガスト 銀座インズ店", address: "東京都中央区銀座西3丁目1番地 銀座インズ1 2F", lat: 35.6712, lng: 139.7627, outletInfo: "電源コンセント完備、Wi-Fiも利用可" },
-  { id: "yurakucho-06", name: "サイゼリヤ 銀座インズ店", address: "東京都中央区銀座西3-1 銀座インズ2F", lat: 35.6712, lng: 139.7628 },
-  { id: "yurakucho-07", name: "スターバックス コーヒー 有楽町メトロピア店", address: "東京都千代田区有楽町1-11-1 東京メトロ有楽町駅構内", lat: 35.6748, lng: 139.7629, outletInfo: "8席のみのカウンター席で電源なし" },
-  { id: "yurakucho-08", name: "スターバックス コーヒー JR有楽町駅京橋口店", address: "東京都千代田区有楽町2-9", lat: 35.6746, lng: 139.7636, outletInfo: "2階に電源コンセント席8席あり" },
+  { id: "yurakucho-04", name: "マクドナルド 東京駅一番街店", address: "東京都千代田区丸の内1-9-1 東京駅一番街", lat: 35.6812, lng: 139.7671, outletInfo: "改装でカウンター撤去、電源席は現在なし", smokingInfo: "全席禁煙(マクドナルド全店舗方針)", wifiInfo: "無料Wi-Fiあり(00_MCD-FREE-WIFI、初回のみ会員登録)", hoursInfo: "5:30〜24:00" },
+  { id: "yurakucho-05", name: "ガスト 銀座インズ店", address: "東京都中央区銀座西3丁目1番地 銀座インズ1 2F", lat: 35.6712, lng: 139.7627, outletInfo: "電源コンセント完備、Wi-Fiも利用可", smokingInfo: "敷地内全面禁煙(すかいらーくグループ方針)", wifiInfo: "無料Wi-Fiあり", hoursInfo: "11:00〜23:00" },
+  { id: "yurakucho-06", name: "サイゼリヤ 銀座インズ店", address: "東京都中央区銀座西3-1 銀座インズ2F", lat: 35.6712, lng: 139.7628, smokingInfo: "全席禁煙", hoursInfo: "10:00〜23:00" },
+  { id: "yurakucho-07", name: "スターバックス コーヒー 有楽町メトロピア店", address: "東京都千代田区有楽町1-11-1 東京メトロ有楽町駅構内", lat: 35.6748, lng: 139.7629, outletInfo: "8席のみのカウンター席で電源なし", smokingInfo: "全店舗禁煙方針、喫煙所なし", wifiInfo: "無料Wi-Fiあり(at_STARBUCKS_Wi2、登録不要で利用規約に同意するだけ)", seatCountInfo: "カウンター8席のみ", hoursInfo: "7:00〜22:00", closedDaysInfo: "不定休" },
+  { id: "yurakucho-08", name: "スターバックス コーヒー JR有楽町駅京橋口店", address: "東京都千代田区有楽町2-9", lat: 35.6746, lng: 139.7636, outletInfo: "2階に電源コンセント席8席あり", smokingInfo: "全店舗禁煙方針、喫煙所なし", wifiInfo: "無料Wi-Fiあり(at_STARBUCKS_Wi2、登録不要で利用規約に同意するだけ)", hoursInfo: "7:00〜22:00", closedDaysInfo: "不定休" },
   { id: "yurakucho-09", name: "スターバックス・コーヒー 有楽町ビル店", address: "東京都千代田区有楽町1-10-1 有楽町ビルディング地下1F", lat: 35.6748, lng: 139.7627 },
   { id: "yurakucho-10", name: "スターバックス コーヒー 有楽町ビル1階店", address: "東京都千代田区有楽町1-10-1 有楽町ビル1階", lat: 35.6748, lng: 139.7627 },
   { id: "yurakucho-11", name: "スターバックス コーヒー 丸の内新東京ビル店", address: "東京都千代田区丸の内3-3-1 新東京ビル", lat: 35.6771, lng: 139.7626, outletInfo: "電源コンセント付き席が7席あり" },
-  { id: "yurakucho-12", name: "スターバックス コーヒー 丸の内ビルディング店", address: "東京都千代田区丸の内2-4-1 丸の内ビルディング", lat: 35.6813, lng: 139.7639, outletInfo: "カウンター6席で電源コンセント利用可" },
-  { id: "yurakucho-13", name: "ドトールコーヒーショップ 有楽町駅前店", address: "東京都千代田区丸の内3-6-11", lat: 35.6772, lng: 139.7638, outletInfo: "電源コンセントあり、作業向きの雰囲気" },
-  { id: "yurakucho-14", name: "ドトールコーヒーショップ 有楽町電気ビル店", address: "東京都千代田区有楽町1-7-1", lat: 35.6753, lng: 139.7622, outletInfo: "カウンター中心に電源あり、全46席" },
+  { id: "yurakucho-12", name: "スターバックス コーヒー 丸の内ビルディング店", address: "東京都千代田区丸の内2-4-1 丸の内ビルディング", lat: 35.6813, lng: 139.7639, outletInfo: "カウンター6席で電源コンセント利用可", smokingInfo: "全店舗禁煙方針、喫煙所なし", wifiInfo: "無料Wi-Fiあり(at_STARBUCKS_Wi2、登録不要で利用規約に同意するだけ)", seatCountInfo: "37席", hoursInfo: "6:45〜22:00", closedDaysInfo: "不定休" },
+  { id: "yurakucho-13", name: "ドトールコーヒーショップ 有楽町駅前店", address: "東京都千代田区丸の内3-6-11", lat: 35.6772, lng: 139.7638, outletInfo: "電源コンセントあり、作業向きの雰囲気", wifiInfo: "無料Wi-Fiあり(DOUTOR_FREE_Wi-Fi)", hoursInfo: "平日6:45〜21:00、土日祝7:30〜21:00" },
+  { id: "yurakucho-14", name: "ドトールコーヒーショップ 有楽町電気ビル店", address: "東京都千代田区有楽町1-7-1", lat: 35.6753, lng: 139.7622, outletInfo: "カウンター中心に電源あり、全46席", smokingInfo: "禁煙32・喫煙13席で分煙", wifiInfo: "無料Wi-Fiあり(DOUTOR_FREE_Wi-Fi)", seatCountInfo: "全45席(禁煙32・喫煙13)", hoursInfo: "平日7:30〜21:00、土8:00〜19:00、日10:00〜19:00" },
   { id: "yurakucho-15", name: "ドトールコーヒーショップ 有楽町日比谷口店", address: "東京都千代田区有楽町1-3-7", lat: 35.6745, lng: 139.7605, outletInfo: "全席に電源コンセント完備" },
   { id: "yurakucho-16", name: "タリーズコーヒー ＆TEA ルミネ有楽町店", address: "東京都千代田区有楽町2-5-1 ルミネ有楽町 8F", lat: 35.6745, lng: 139.7631, outletInfo: "島型カウンター等に電源席が豊富" },
   { id: "yurakucho-17", name: "タリーズコーヒー 日比谷シャンテ店", address: "東京都千代田区有楽町1丁目2-2 日比谷シャンテ B1F", lat: 35.6738, lng: 139.7602, outletInfo: "大テーブル袖に2口+USB充電あり" },
