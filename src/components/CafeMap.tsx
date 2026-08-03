@@ -114,7 +114,7 @@ const FLAG_HIDE_THRESHOLD = 3;
 // 対応しておらずスマホでぼやけて見づらくなったため元に戻した経緯がある
 const MAPTILER_KEY: string | undefined = process.env.NEXT_PUBLIC_MAPTILER_KEY;
 const TILE_URL = MAPTILER_KEY
-  ? `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}{r}.png?key=${MAPTILER_KEY}`
+  ? `https://api.maptiler.com/maps/bright-v2/{z}/{x}/{y}{r}.png?key=${MAPTILER_KEY}`
   : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 const TILE_MAX_ZOOM = 20;
 
@@ -1155,8 +1155,8 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   // 広げた時に地図欄が0になって消えてしまっていた
   const getShellHeight = () =>
     shellRef.current?.getBoundingClientRect().height ?? window.innerHeight;
-  // 最大まで広げた状態でも地図が必ず少し見えるように、地図欄の最低高さを確保する
-  const MIN_MAP_VISIBLE_PX = 120;
+  // 最大まで広げた状態でも地図がある程度ちゃんと見えるように、地図欄の最低高さを確保する
+  const MIN_MAP_VISIBLE_PX = 220;
   const getMaxListHeight = (shellHeight: number) =>
     Math.min(shellHeight * 0.85, shellHeight - MIN_MAP_VISIBLE_PX);
 
