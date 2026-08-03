@@ -27,7 +27,7 @@ function HomeContent() {
               {t("app.subtitle")}
             </p>
           </div>
-          <div className="flex items-center flex-wrap justify-end gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center flex-wrap justify-end gap-1.5 sm:gap-2">
             <MyReporterBadge />
             <Link
               href="/favorites"

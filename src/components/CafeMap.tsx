@@ -13,7 +13,6 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import L from "leaflet";
-import MarkerClusterGroup from "react-leaflet-cluster";
 import { seedCafes, type Cafe } from "@/lib/seedCafes";
 import { hasOutlet } from "@/lib/cafeAmenities";
 import AdBanner from "@/components/AdBanner";
@@ -98,14 +97,25 @@ const allLandmarks: Landmark[] = [
 
 const FLAG_HIDE_THRESHOLD = 3;
 
-// MapTilerタイルへの切り替えを試したところ、本番環境でページが
-// クラッシュする不具合が発生したため、原因調査が終わるまでCARTO
-// Voyagerに固定する(MAPTILER_KEYの設定有無に関わらずCARTOを使う)。
+// 以前MapTilerへの切り替えを試みた際に本番環境でクラッシュが発生し、原因
+// 未調査のままCARTOに戻した経緯がある。今回原因を特定できた: 下の
+// <TileLayer>のsubdomainsに`MAPTILER_KEY ? undefined : "abcd"`のように
+// undefinedを明示的に渡すコードがすでに存在しており、Leafletは
+// options.subdomainsにundefinedを渡されると内部デフォルト('abc')を
+// 上書きしてしまい、タイルURL生成時に`this.options.subdomains.length`で
+// 例外を投げてクラッシュしていた(MAPTILER_KEYが未設定の間は常にfalsyだった
+// ため症状が出ていなかった)。対策として、subdomainsには常に無害な
+// 固定値("abcd")を渡すようにした(MapTilerのURLには{s}が含まれないため
+// 値自体は使われない)。CARTOと全く同じ「URLテンプレート文字列を
+// TileLayerに渡すだけ」の構成を維持しているため、SDK起因の不具合は元々ない。
+// NEXT_PUBLIC_MAPTILER_KEY未設定の環境(取得し忘れ・Vercel側で未設定など)
+// では自動的にCARTO Voyagerにフォールバックする。
 // 国土地理院タイルへの切り替えも試したが、レティナ(高解像度)画像に
-// 対応しておらずスマホでぼやけて見づらくなったため元に戻した。低ズーム時に
-// 区名がローマ字表記になる問題は、別の解決策が見つかるまで保留する
-const MAPTILER_KEY: string | undefined = undefined;
-const TILE_URL = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+// 対応しておらずスマホでぼやけて見づらくなったため元に戻した経緯がある
+const MAPTILER_KEY: string | undefined = process.env.NEXT_PUBLIC_MAPTILER_KEY;
+const TILE_URL = MAPTILER_KEY
+  ? `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}{r}.png?key=${MAPTILER_KEY}`
+  : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 const TILE_MAX_ZOOM = 20;
 
 const SHINJUKU_CENTER: [number, number] = [35.6905, 139.7005];
@@ -266,21 +276,6 @@ function getCafePinIcon(
 }
 
 const PENDING_CAFE_ICON = createCupPinIcon(PIN_COLORS.unknown, "independent", false);
-
-// ズームアウトすると同時に描画されるピンの数が数百件になり、地図の動きが
-// 重くなるため、近いピンを1つのクラスターバッジにまとめる。見た目は
-// 他のバッジ(createLandmarkIcon)と揃え、ブランドカラーの丸バッジにする
-function createClusterIcon(cluster: L.MarkerCluster) {
-  const count = cluster.getChildCount();
-  const size = count < 10 ? 34 : count < 50 ? 42 : 50;
-  const fontSize = count < 100 ? 13 : 11;
-  const html = `<div style="width:${size}px;height:${size}px;border-radius:50%;background:#2563eb;border:3px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;color:#ffffff;font-weight:700;font-size:${fontSize}px;">${count}</div>`;
-  return L.divIcon({
-    html,
-    className: "",
-    iconSize: L.point(size, size),
-  });
-}
 
 // 不動産サイトの周辺環境地図のように、色付きの丸バッジ+シンプルな
 // 白1色のイラスト(アイコン)にする。絵文字は色がバラバラで背景色と
@@ -1131,6 +1126,8 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     return () => observer.disconnect();
   }, []);
 
+  // 高さの計算に使う、リスト欄・地図欄を並べている外枠(.cf-shell)への参照
+  const shellRef = useRef<HTMLDivElement | null>(null);
   // ドラッグ中/ドラッグ後の実際の高さ(px)。nullの間はCSSの既定値(38vh)を使う
   const listPanelRef = useRef<HTMLDivElement | null>(null);
   const [listPanelHeightPx, setListPanelHeightPx] = useState<number | null>(
@@ -1143,9 +1140,25 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     !isDesktopLayout &&
     listPanelHeightPx !== null &&
     listPanelHeightPx <= listPeekHeight + 8;
-  // リスト本文(お店カード一覧)を表示するかどうか。PC/タブレットは従来通り
-  // isListPanelOpen、スマホはドラッグで縮めてピーク状態になっているかどうかで判定
+  // 見出しの矢印(▼/▲)の向きに使う「見た目上は展開されているか」
   const showListContent = isDesktopLayout ? isListPanelOpen : !isListAtPeek;
+  // リスト本文を実際にDOMへ描画するかどうか。PC/タブレットは従来通り
+  // isListPanelOpenで着脱する。スマホはドラッグ中もReactを再描画せず
+  // 高さだけを直接書き換えているため、ここで着脱してしまうと指を動かして
+  // いる間は中身が空のまま伸びて見えてしまう。常にDOMには置いたまま、
+  // ピーク時はoverflow:hiddenで隠す(下のstyleで設定)
+  const shouldMountListContent = isDesktopLayout ? isListPanelOpen : true;
+
+  // 高さの基準はwindow.innerHeightではなく、実際にリスト欄・地図欄を
+  // 並べている.cf-shellの実測高さを使う。ヘッダー分の高さがある分、
+  // window.innerHeightより実際は小さいため、window基準だと最大まで
+  // 広げた時に地図欄が0になって消えてしまっていた
+  const getShellHeight = () =>
+    shellRef.current?.getBoundingClientRect().height ?? window.innerHeight;
+  // 最大まで広げた状態でも地図が必ず少し見えるように、地図欄の最低高さを確保する
+  const MIN_MAP_VISIBLE_PX = 120;
+  const getMaxListHeight = (shellHeight: number) =>
+    Math.min(shellHeight * 0.85, shellHeight - MIN_MAP_VISIBLE_PX);
 
   const beginListDrag = (clientY: number) => {
     const panel = listPanelRef.current;
@@ -1157,30 +1170,35 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   };
   const updateListDrag = (clientY: number) => {
     const state = listDragStateRef.current;
-    if (!state) return;
+    const panel = listPanelRef.current;
+    if (!state || !panel) return;
     const delta = state.startY - clientY;
-    const maxHeight = window.innerHeight * 0.85;
+    const maxHeight = getMaxListHeight(getShellHeight());
     const next = Math.min(
       maxHeight,
       Math.max(listPeekHeight, state.startHeight + delta)
     );
-    setListPanelHeightPx(next);
+    // ドラッグ中はReactのstateを経由せず、DOMに直接styleを書き込む。
+    // 何千件ものマーカーやリストカードを抱えるこのコンポーネント全体が
+    // 指を動かすたびに再描画されるとカクつくため、指を離して確定する
+    // 瞬間だけstateに反映してReactの再描画を1回に抑える
+    panel.style.setProperty("--cf-list-height", `${next}px`);
   };
   const endListDrag = () => {
-    if (!listDragStateRef.current) return;
+    const panel = listPanelRef.current;
+    if (!listDragStateRef.current || !panel) return;
     listDragStateRef.current = null;
-    setListPanelHeightPx((current) => {
-      if (current === null) return current;
-      const viewportHeight = window.innerHeight;
-      const defaultFull = viewportHeight * 0.38;
-      const maxHeight = viewportHeight * 0.85;
-      // 3段階(ピーク/既定/最大)のうち一番近いところへスナップさせる
-      const peekMid = (listPeekHeight + defaultFull) / 2;
-      const maxMid = (defaultFull + maxHeight) / 2;
-      if (current <= peekMid) return listPeekHeight;
-      if (current >= maxMid) return maxHeight;
-      return defaultFull;
-    });
+    const shellHeight = getShellHeight();
+    const defaultFull = shellHeight * 0.38;
+    const maxHeight = getMaxListHeight(shellHeight);
+    const current = panel.getBoundingClientRect().height;
+    // 3段階(ピーク/既定/最大)のうち一番近いところへスナップさせる
+    const peekMid = (listPeekHeight + defaultFull) / 2;
+    const maxMid = (defaultFull + maxHeight) / 2;
+    const snapped =
+      current <= peekMid ? listPeekHeight : current >= maxMid ? maxHeight : defaultFull;
+    panel.style.setProperty("--cf-list-height", `${snapped}px`);
+    setListPanelHeightPx(snapped);
   };
 
   // 店舗情報ポップアップの高さ上限。地図欄の実際の高さ(ヘッダーの
@@ -2115,7 +2133,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     hasManualFocusRef.current = true;
     pendingSearchSyncRef.current = true;
     setIsListPanelOpen(true);
-    setListPanelHeightPx(window.innerHeight * 0.38);
+    setListPanelHeightPx(getShellHeight() * 0.38);
     setTimeout(() => {
       listItemRefs.current
         .get(best.id)
@@ -2200,16 +2218,21 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   };
 
   return (
-    <div className="cf-shell">
+    <div className="cf-shell" ref={shellRef}>
       {/* リストパネル。地図と常に同時に表示する。スマホでは下の固定高さの
           帯、PC/タブレットでは左のサイドバー */}
       <div
         ref={listPanelRef}
         className={`cf-list-panel${isDesktopLayout && !isListPanelOpen ? " cf-list-panel-collapsed" : ""}`}
         style={
-          !isDesktopLayout && listPanelHeightPx !== null
-            ? ({ "--cf-list-height": `${listPanelHeightPx}px` } as CSSProperties)
-            : undefined
+          {
+            ...(!isDesktopLayout && listPanelHeightPx !== null
+              ? { "--cf-list-height": `${listPanelHeightPx}px` }
+              : {}),
+            // ピーク(プルダウンのみ)状態の時は、下に隠れているカード一覧が
+            // スクロールで引き出せてしまわないようにoverflowを止める
+            ...(isListAtPeek ? { overflowY: "hidden" } : {}),
+          } as CSSProperties
         }
       >
         <div
@@ -2240,7 +2263,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
               }
               setListPanelHeightPx((current) =>
                 current !== null && current <= listPeekHeight + 8
-                  ? window.innerHeight * 0.38
+                  ? getShellHeight() * 0.38
                   : listPeekHeight
               );
             }}
@@ -2286,7 +2309,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
             </div>
           )}
         </div>
-        {showListContent && listCafes.length === 0 && (
+        {shouldMountListContent && listCafes.length === 0 && (
           <div className="flex flex-col items-center gap-2 p-6 text-center">
             <div className="text-2xl">🔍</div>
             <div className="text-sm text-gray-500">
@@ -2302,7 +2325,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
             )}
           </div>
         )}
-        {showListContent && (
+        {shouldMountListContent && (
         <div className="flex flex-col gap-2 p-2">
           {listCafes.flatMap((cafe, index) => {
             const stats = statsByCafe[cafe.id];
@@ -2426,7 +2449,13 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
       />
       <TileLayer
         url={TILE_URL}
-        subdomains={MAPTILER_KEY ? undefined : "abcd"}
+        // subdomainsにundefinedを明示的に渡すと、Leafletが内部デフォルト
+        // ('abc')を上書きしてしまい、タイルURL生成時に
+        // this.options.subdomains.lengthで例外が発生してクラッシュする
+        // (過去のMapTiler切り替え時の本番クラッシュの原因はこれだった
+        // 可能性が高い)。MapTilerのURLには{s}が含まれないため値自体は
+        // 使われないので、常に無害な値を渡しておく
+        subdomains="abcd"
         maxZoom={TILE_MAX_ZOOM}
       />
 
@@ -2881,16 +2910,9 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
           )}
         </Marker>
       ))}
-      {/* エリアを絞り込んで見る時の既定ズーム(16)以上では、目的の
-          お店を探しやすいよう必ず個別ピンにする。もっと引いた
-          (都内広域を見るような)ズームの時だけ、近いピンをまとめる */}
-      <MarkerClusterGroup
-        maxClusterRadius={60}
-        showCoverageOnHover={false}
-        spiderfyOnMaxZoom
-        disableClusteringAtZoom={16}
-        iconCreateFunction={createClusterIcon}
-      >
+      {/* ピンは「N件」のクラスターバッジにまとめず、常に個別ピンとして表示する。
+          表示範囲がsearchBounds(再検索した範囲)に絞られているため、
+          クラスタリングなしでも動作は重くならない */}
       {visibleCafes.map((cafe) => {
         const stats = statsByCafe[cafe.id];
         const predictedStats = predictedStatsByCafe[cafe.id];
@@ -3448,7 +3470,6 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
           </Marker>
         );
       })}
-      </MarkerClusterGroup>
     </MapContainer>
         {/* 食べログ等と同じ「この範囲で再検索」ボタン。地図をドラッグ/
             ズームしただけではピンを更新せず、これをタップした時だけ
