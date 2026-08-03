@@ -16,17 +16,20 @@ export async function GET() {
         }}
       >
         <svg width="340" height="340" viewBox="0 0 32 32">
-          <rect x="2" y="14" width="19" height="14" rx="3" fill="#ffffff" />
-          <rect x="2" y="14" width="19" height="4" rx="2" fill="#dbeafe" />
+          <rect x="4" y="11" width="19" height="16" rx="3" fill="#ffffff" />
           <path
-            d="M21 17h3a3 3 0 0 1 0 6h-3v-3h3a0.5 0.5 0 0 0 0-1h-3z"
-            fill="#ffffff"
+            d="M23 14a6 6 0 0 1 0 12"
+            fill="none"
+            stroke="#ffffff"
+            strokeWidth="3.4"
+            strokeLinecap="round"
           />
           <polygon
-            points="27,1 20,10 24,10 22,16 30,7 25,7"
+            points="18,8 9,19 14,19 11,29 24,16 18,16"
             fill="#FFC93C"
-            stroke="#ffffff"
-            strokeWidth="1"
+            stroke="#1e3a8a"
+            strokeWidth="1.6"
+            strokeLinejoin="round"
           />
         </svg>
       </div>
