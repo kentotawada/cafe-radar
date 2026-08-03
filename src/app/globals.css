@@ -68,10 +68,21 @@ body {
 }
 
 /* リストを「ピンの見方」と同じように引っ込め・展開できるようにする。
-   見出しの行だけ残して、それ以外のコンテンツ分の高さ(スマホ)/幅
-   (PC)を content-fit まで縮める */
+   PC/タブレット(サイドバー表示)専用: 見出しの行だけ残して幅をcontent-fit
+   まで縮める。スマホでの高さ調整は下の--cf-list-height(ドラッグ)で行う */
 .cf-list-panel.cf-list-panel-collapsed {
   flex: 0 0 auto;
+}
+
+/* スマホでは指でドラッグしてリスト欄の高さを調整できるようにする
+   (ピーク=プルダウンのみ/既定=38vh/最大=85vh の3段階にスナップ)。
+   JS側で--cf-list-heightにpx値をセットした時だけ反映し、未設定
+   (初期表示など)なら既定の38vhのまま。PC/タブレットでは幅の話に
+   なるため対象外とし、上のflex: 0 0 20rem/24remを維持する */
+@media (max-width: 639px) {
+  .cf-list-panel {
+    flex-basis: var(--cf-list-height, 38vh);
+  }
 }
 
 .cf-map-panel {

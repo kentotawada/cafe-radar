@@ -74,6 +74,8 @@ const dictionary = {
     "list.empty": "条件に合うお店が見つかりませんでした",
     "list.emptyResetFilters": "絞り込みをすべて解除する",
 
+    "map.researchButton": "この範囲で再検索",
+
     "quickPick.button": "近くの空席候補",
     "quickPick.notFound": "近くに条件に合うお店が見つかりませんでした",
 
@@ -180,6 +182,8 @@ const dictionary = {
     "list.noAddress": "No address on file",
     "list.empty": "No cafes match your filters",
     "list.emptyResetFilters": "Clear all filters",
+
+    "map.researchButton": "Search this area",
 
     "quickPick.button": "Find nearby seat",
     "quickPick.notFound": "No matching cafes found nearby",

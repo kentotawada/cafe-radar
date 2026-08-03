@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import {
   MapContainer,
@@ -1064,10 +1065,123 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   // 覚えておく(件数が多いのでrefはstateではなくMapで管理する)
   const listItemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
+  // ピンの表示に実際に使う「検索確定済み」の範囲。食べログ等と同じく、
+  // ユーザーが地図を自由にドラッグ/ズームしただけではピンを更新せず、
+  // 「この範囲で再検索」ボタンを押すか、エリア選択・現在地取得など
+  // 明示的な移動をした時だけ更新する
+  const [searchBounds, setSearchBounds] = useState<L.LatLngBounds | null>(
+    null
+  );
+  const [hasMapDrifted, setHasMapDrifted] = useState(false);
+  // 次にmapBoundsが変化した時、それが「明示的な移動」によるものなら
+  // searchBoundsも一緒に同期させる。初期表示時の最初の1回も同期させたい
+  // ので初期値はtrueにしておく
+  const pendingSearchSyncRef = useRef(true);
+  const handleMapBoundsChange = (bounds: L.LatLngBounds) => {
+    setMapBounds(bounds);
+    if (pendingSearchSyncRef.current) {
+      pendingSearchSyncRef.current = false;
+      setSearchBounds(bounds);
+      setHasMapDrifted(false);
+    } else {
+      setHasMapDrifted(true);
+    }
+  };
+  const handleResearchThisArea = () => {
+    if (!mapBounds) return;
+    setSearchBounds(mapBounds);
+    setHasMapDrifted(false);
+  };
   const [mapZoom, setMapZoom] = useState(16);
   const [sortOrder, setSortOrder] = useState<SortOrder>("recommended");
   const [selectedCafeId, setSelectedCafeId] = useState<string | null>(null);
   const [isListPanelOpen, setIsListPanelOpen] = useState(true);
+
+  // スマホ(縦画面)ではリスト欄を指でドラッグして高さを調整できるように
+  // する。PC/タブレット(サイドバー表示)では幅の話になるため対象外とし、
+  // 従来通りisListPanelOpenによる開閉のみ。どちらのレイアウトかはCSSの
+  // ブレークポイント(640px)に合わせて判定する
+  const [isDesktopLayout, setIsDesktopLayout] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 640px)");
+    const update = () => setIsDesktopLayout(query.matches);
+    update();
+    query.addEventListener("change", update);
+    // matchMediaのchangeイベントに対応していない環境向けの保険として、
+    // 通常のresizeイベントでも同じ判定を行う
+    window.addEventListener("resize", update);
+    return () => {
+      query.removeEventListener("change", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+
+  // 「プルダウンだけ残してリストを隠す」時の高さ = ヘッダー(件数+エリア/
+  // 並び順プルダウン)の実測高さ。文言の長さやフォントサイズが変わっても
+  // 正確にプルダウンの下でリストを隠せるようにResizeObserverで測る
+  const listPanelHeaderRef = useRef<HTMLDivElement | null>(null);
+  const [listPeekHeight, setListPeekHeight] = useState(120);
+  useEffect(() => {
+    const el = listPanelHeaderRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const update = () => setListPeekHeight(el.getBoundingClientRect().height);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // ドラッグ中/ドラッグ後の実際の高さ(px)。nullの間はCSSの既定値(38vh)を使う
+  const listPanelRef = useRef<HTMLDivElement | null>(null);
+  const [listPanelHeightPx, setListPanelHeightPx] = useState<number | null>(
+    null
+  );
+  const listDragStateRef = useRef<{ startY: number; startHeight: number } | null>(
+    null
+  );
+  const isListAtPeek =
+    !isDesktopLayout &&
+    listPanelHeightPx !== null &&
+    listPanelHeightPx <= listPeekHeight + 8;
+  // リスト本文(お店カード一覧)を表示するかどうか。PC/タブレットは従来通り
+  // isListPanelOpen、スマホはドラッグで縮めてピーク状態になっているかどうかで判定
+  const showListContent = isDesktopLayout ? isListPanelOpen : !isListAtPeek;
+
+  const beginListDrag = (clientY: number) => {
+    const panel = listPanelRef.current;
+    if (!panel || isDesktopLayout) return;
+    listDragStateRef.current = {
+      startY: clientY,
+      startHeight: panel.getBoundingClientRect().height,
+    };
+  };
+  const updateListDrag = (clientY: number) => {
+    const state = listDragStateRef.current;
+    if (!state) return;
+    const delta = state.startY - clientY;
+    const maxHeight = window.innerHeight * 0.85;
+    const next = Math.min(
+      maxHeight,
+      Math.max(listPeekHeight, state.startHeight + delta)
+    );
+    setListPanelHeightPx(next);
+  };
+  const endListDrag = () => {
+    if (!listDragStateRef.current) return;
+    listDragStateRef.current = null;
+    setListPanelHeightPx((current) => {
+      if (current === null) return current;
+      const viewportHeight = window.innerHeight;
+      const defaultFull = viewportHeight * 0.38;
+      const maxHeight = viewportHeight * 0.85;
+      // 3段階(ピーク/既定/最大)のうち一番近いところへスナップさせる
+      const peekMid = (listPeekHeight + defaultFull) / 2;
+      const maxMid = (defaultFull + maxHeight) / 2;
+      if (current <= peekMid) return listPeekHeight;
+      if (current >= maxMid) return maxHeight;
+      return defaultFull;
+    });
+  };
 
   // 店舗情報ポップアップの高さ上限。地図欄の実際の高さ(ヘッダーの
   // 「ピンの説明」やリスト欄の展開状態で変わる)を実測して決めるので、
@@ -1118,6 +1232,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
         setUserPosition(position);
         setMapFocus(position);
         hasManualFocusRef.current = true;
+        pendingSearchSyncRef.current = true;
         setIsLocating(false);
         if (!hasManualSortRef.current) {
           setSortOrder("distance");
@@ -1149,6 +1264,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
         ];
         setUserPosition(position);
         setMapFocus(position);
+        pendingSearchSyncRef.current = true;
         if (!hasManualSortRef.current) {
           setSortOrder("distance");
         }
@@ -1165,6 +1281,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     if (match) {
       setMapFocus([match.lat, match.lng]);
       hasManualFocusRef.current = true;
+      pendingSearchSyncRef.current = true;
     }
   };
 
@@ -1901,8 +2018,10 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     return true;
   }
 
+  // ピンは生の地図表示範囲(mapBounds)ではなく、「再検索」が確定した
+  // 範囲(searchBounds)で絞り込む。ドラッグ・ズームしただけでは更新しない
   const visibleCafes = allCafes.filter((cafe) => {
-    if (mapBounds && !mapBounds.pad(0.5).contains([cafe.lat, cafe.lng])) {
+    if (searchBounds && !searchBounds.pad(0.5).contains([cafe.lat, cafe.lng])) {
       return false;
     }
     return passesNonBoundsFilters(cafe);
@@ -1910,9 +2029,9 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
 
   // 目印(駅出口・建物など)も、カフェのピンと同じ理由で表示範囲だけに絞る。
   // 全エリア分(2000件超)を常時描画すると、特にスマホで地図の動きが重くなる
-  const visibleLandmarks = mapBounds
+  const visibleLandmarks = searchBounds
     ? allLandmarks.filter((landmark) =>
-        mapBounds.pad(0.5).contains([landmark.lat, landmark.lng])
+        searchBounds.pad(0.5).contains([landmark.lat, landmark.lng])
       )
     : allLandmarks;
 
@@ -1994,7 +2113,9 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     setSelectedCafeId(best.id);
     setMapFocus([best.lat, best.lng]);
     hasManualFocusRef.current = true;
+    pendingSearchSyncRef.current = true;
     setIsListPanelOpen(true);
+    setListPanelHeightPx(window.innerHeight * 0.38);
     setTimeout(() => {
       listItemRefs.current
         .get(best.id)
@@ -2054,6 +2175,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     setSelectedCafeId(target.id);
     setMapFocus([target.lat, target.lng]);
     hasManualFocusRef.current = true;
+    pendingSearchSyncRef.current = true;
     setIsReportFabOpen(false);
     setReportFabMessage(t("quickReport.sent").replace("{name}", target.name));
     setTimeout(() => setReportFabMessage(null), 3000);
@@ -2081,19 +2203,56 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     <div className="cf-shell">
       {/* リストパネル。地図と常に同時に表示する。スマホでは下の固定高さの
           帯、PC/タブレットでは左のサイドバー */}
-      <div className={`cf-list-panel${isListPanelOpen ? "" : " cf-list-panel-collapsed"}`}>
-        <div className="sticky top-0 bg-gray-50 border-b border-gray-200 z-10">
+      <div
+        ref={listPanelRef}
+        className={`cf-list-panel${isDesktopLayout && !isListPanelOpen ? " cf-list-panel-collapsed" : ""}`}
+        style={
+          !isDesktopLayout && listPanelHeightPx !== null
+            ? ({ "--cf-list-height": `${listPanelHeightPx}px` } as CSSProperties)
+            : undefined
+        }
+      >
+        <div
+          ref={listPanelHeaderRef}
+          className="sticky top-0 bg-gray-50 border-b border-gray-200 z-10"
+        >
+          {/* ドラッグハンドル。スマホでのみ表示し、指でリスト欄の高さを
+              調整できるようにする(ピーク/既定/最大の3段階にスナップ) */}
+          <div
+            className="sm:hidden flex items-center justify-center py-1.5 touch-none cursor-grab active:cursor-grabbing"
+            onPointerDown={(e) => {
+              e.currentTarget.setPointerCapture(e.pointerId);
+              beginListDrag(e.clientY);
+            }}
+            onPointerMove={(e) => {
+              if (listDragStateRef.current) updateListDrag(e.clientY);
+            }}
+            onPointerUp={endListDrag}
+            onPointerCancel={endListDrag}
+          >
+            <div className="h-1.5 w-10 rounded-full bg-gray-300" />
+          </div>
           <button
-            onClick={() => setIsListPanelOpen((prev) => !prev)}
+            onClick={() => {
+              if (isDesktopLayout) {
+                setIsListPanelOpen((prev) => !prev);
+                return;
+              }
+              setListPanelHeightPx((current) =>
+                current !== null && current <= listPeekHeight + 8
+                  ? window.innerHeight * 0.38
+                  : listPeekHeight
+              );
+            }}
             className="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-gray-900"
           >
             <span>
               {listCafes.length}
               {t("list.count")}
             </span>
-            <span>{isListPanelOpen ? "▼" : "▲"}</span>
+            <span>{showListContent ? "▼" : "▲"}</span>
           </button>
-          {isListPanelOpen && (
+          {(isDesktopLayout ? isListPanelOpen : true) && (
             <div className="flex flex-col gap-1.5 px-3 pb-2">
               <select
                 value={areaQuery}
@@ -2127,7 +2286,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
             </div>
           )}
         </div>
-        {isListPanelOpen && listCafes.length === 0 && (
+        {showListContent && listCafes.length === 0 && (
           <div className="flex flex-col items-center gap-2 p-6 text-center">
             <div className="text-2xl">🔍</div>
             <div className="text-sm text-gray-500">
@@ -2143,7 +2302,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
             )}
           </div>
         )}
-        {isListPanelOpen && (
+        {showListContent && (
         <div className="flex flex-col gap-2 p-2">
           {listCafes.flatMap((cafe, index) => {
             const stats = statsByCafe[cafe.id];
@@ -2170,6 +2329,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                   setSelectedCafeId(cafe.id);
                   setMapFocus([cafe.lat, cafe.lng]);
                   hasManualFocusRef.current = true;
+                  pendingSearchSyncRef.current = true;
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
@@ -2177,6 +2337,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                     setSelectedCafeId(cafe.id);
                     setMapFocus([cafe.lat, cafe.lng]);
                     hasManualFocusRef.current = true;
+                    pendingSearchSyncRef.current = true;
                   }
                 }}
                 className={`text-left bg-white border rounded-lg shadow-sm p-3 flex flex-col gap-1 cursor-pointer ${
@@ -2256,7 +2417,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
       attributionControl={false}
     >
       <RecenterOnLocate position={mapFocus} />
-      <MapBoundsTracker onChange={setMapBounds} />
+      <MapBoundsTracker onChange={handleMapBoundsChange} />
       <ZoomTracker onChange={setMapZoom} />
       <PopupScrollGuard />
       <AddCafeClickHandler
@@ -3289,6 +3450,18 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
       })}
       </MarkerClusterGroup>
     </MapContainer>
+        {/* 食べログ等と同じ「この範囲で再検索」ボタン。地図をドラッグ/
+            ズームしただけではピンを更新せず、これをタップした時だけ
+            表示中の範囲でピンを再検索する */}
+        {hasMapDrifted && (
+          <button
+            onClick={handleResearchThisArea}
+            className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs sm:text-sm font-semibold text-blue-700 shadow-lg border border-blue-200 hover:bg-blue-50"
+          >
+            <span>↻</span>
+            <span>{t("map.researchButton")}</span>
+          </button>
+        )}
       </div>
     </div>
   );
