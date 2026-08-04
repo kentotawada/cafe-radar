@@ -73,4 +73,29 @@ export const cafes: Cafe[] = [
   { id: "shinagawa-48", name: "カフェガレージ", address: "東京都港区高輪4-24-44", lat: 35.6308, lng: 139.7344, smokingInfo: "全席禁煙", hoursInfo: "月・金〜日9:00〜19:00", closedDaysInfo: "火・水・木(不定休あり)" },
   { id: "shinagawa-49", name: "ミポーズハウス", address: "東京都港区高輪4-24-38", lat: 35.6308, lng: 139.7346 },
   { id: "shinagawa-50", name: "Brasserie la Maison", address: "東京都港区高輪4-24-40 高輪プリンセスガルテン内", lat: 35.6308, lng: 139.7345, smokingInfo: "全席禁煙", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "41席(テーブル20・ソファ10・カウンター5・テラス6)", hoursInfo: "月・木・日・祝11:00〜16:00(LO食13:30/飲15:30)、金土11:00〜16:00・17:30〜21:30(LO食18:30/飲21:00)", closedDaysInfo: "火・水曜(祝日の場合は営業の場合あり)" },
+  // 以下shinagawa-51〜71は2026年8月に追加。高輪ゲートウェイシティ(ニュウマン高輪
+  // South/North/LUFTBAUM/MIMURE、2025年9月〜2026年3月開業)を中心に、御殿山・
+  // 北品川(京急新馬場駅周辺)まで少し範囲を広げて実在店舗をウェブ検索で確認した。
+  // 営業時間等の情報源が店舗ごとに食い違うものは、未確認項目として空欄にしてある。
+  { id: "shinagawa-51", name: "スターバックス コーヒー 高輪ゲートウェイ駅店", address: "東京都港区港南2-1-220 JR高輪ゲートウェイ駅改札外3階", lat: 35.6350, lng: 139.7402, smokingInfo: "全店舗禁煙方針、喫煙室なし", wifiInfo: "無料Wi-Fiあり(STARBUCKS Wi-Fi、docomo、Wi2 300)", hoursInfo: "7:00〜22:00", closedDaysInfo: "不定休" },
+  { id: "shinagawa-52", name: "スターバックス コーヒー ニュウマン高輪店", address: "東京都港区高輪2-21-1 ニュウマン高輪 North5F", lat: 35.6348, lng: 139.7396, smokingInfo: "全店舗禁煙方針、喫煙室なし", wifiInfo: "無料Wi-Fiあり(STARBUCKS Wi-Fi、docomo、Wi2 300)", seatCountInfo: "約140席(品川・高輪エリア最大級のスターバックスと紹介されている)", hoursInfo: "10:00〜22:00", closedDaysInfo: "不定休" },
+  { id: "shinagawa-53", name: "TOOTH TOOTH BISTRO&CAFE 高輪店", address: "東京都港区高輪2-21-2 ニュウマン高輪 South5F", lat: 35.6347, lng: 139.7394, smokingInfo: "全席禁煙" },
+  { id: "shinagawa-54", name: "Link cafe TOKYO(タリーズコーヒー) 高輪店", address: "東京都港区高輪2-21-2 ニュウマン高輪 South5F", lat: 35.6347, lng: 139.7394, smokingInfo: "全席禁煙" },
+  { id: "shinagawa-55", name: "LOOPS(ニュウマン高輪 LUFTBAUM)", address: "東京都港区高輪2-21-1 ニュウマン高輪 LUFTBAUM28F", lat: 35.6348, lng: 139.7396 },
+  { id: "shinagawa-56", name: "小川珈琲 LABORATORY 高輪", address: "東京都港区高輪2-22-1 NEWoMan TAKANAWA MIMURE2F", lat: 35.6352, lng: 139.7398, smokingInfo: "全席禁煙" },
+  { id: "shinagawa-57", name: "タリーズコーヒー ソニーシティ店", address: "東京都港区港南1-7-1 ソニーシティ1F", lat: 35.6258, lng: 139.7401, smokingInfo: "全席禁煙", wifiInfo: "タリーズWi-Fiあり" },
+  { id: "shinagawa-58", name: "ブルーボトルコーヒー 高輪カフェ", address: "東京都港区高輪2-21-2 ニュウマン高輪 South2F", lat: 35.6347, lng: 139.7394, smokingInfo: "全席禁煙", hoursInfo: "10:00〜20:00" },
+  { id: "shinagawa-59", name: "ラウンジ 光明(グランドプリンスホテル高輪)", address: "東京都港区高輪3-13-1 グランドプリンスホテル高輪", lat: 35.6320, lng: 139.7368, smokingInfo: "全席禁煙" },
+  { id: "shinagawa-60", name: "LA MAISON DU CHOCOLAT 高輪店", address: "東京都港区高輪2-21-2 ニュウマン高輪 South2F", lat: 35.6347, lng: 139.7394 },
+  { id: "shinagawa-61", name: "BUNKITSU TOKYO SHARE LOUNGE 高輪ゲートウェイ", address: "東京都港区高輪2-21-2 ニュウマン高輪 South5F", lat: 35.6347, lng: 139.7394, seatCountInfo: "パノラマラウンジ等含め約195席、会議室5室(時間制の有料ラウンジ&コワーキング)", hoursInfo: "11:00〜20:00(LO19:30)", closedDaysInfo: "不定休(ニュウマン高輪に準ずる)" },
+  { id: "shinagawa-62", name: "MoN Park Cafe by Spiral", address: "東京都港区三田3-16-1 MoN Takanawa 1F", lat: 35.6360, lng: 139.7415, hoursInfo: "10:00〜19:00" },
+  { id: "shinagawa-63", name: "WIRED CAFE Dining Lounge ウィング高輪店", address: "東京都港区高輪4-10-18 京急ショッピングプラザ ウィング高輪WEST2F", lat: 35.6290, lng: 139.7368 },
+  { id: "shinagawa-64", name: "365 Days Coffee ニュウマン高輪店", address: "東京都港区高輪2-21-1 ニュウマン高輪 THE LINKPILLAR1 NORTH2F", lat: 35.6348, lng: 139.7396, hoursInfo: "9:00〜19:00", closedDaysInfo: "不定休" },
+  { id: "shinagawa-65", name: "MAISON CLASSIC CAFE 高輪ゲートウェイ駅店", address: "東京都港区港南2-1 JR高輪ゲートウェイ駅南改札内2F", lat: 35.6345, lng: 139.7400 },
+  { id: "shinagawa-66", name: "FRED'S CAFE 品川フロントビル店", address: "東京都港区港南2-3-13 品川フロントビル", lat: 35.6270, lng: 139.7395, outletInfo: "全席に電源コンセントあり", wifiInfo: "Wi-Fi完備" },
+  { id: "shinagawa-67", name: "タリーズコーヒー 御殿山トラストタワー店", address: "東京都品川区北品川4-7-35 御殿山トラストタワー1F", lat: 35.6235, lng: 139.7330 },
+  { id: "shinagawa-68", name: "KAIDO books & coffee", address: "東京都品川区北品川2-3-7 丸屋ビル1F", lat: 35.6205, lng: 139.7345 },
+  { id: "shinagawa-69", name: "カフェ・ベローチェ 北品川店", address: "東京都品川区北品川2-11-1 ベイテラス北品川1F", lat: 35.6200, lng: 139.7355, hoursInfo: "7:00〜22:00" },
+  { id: "shinagawa-70", name: "NOG COFFEE ROASTERS 品川店", address: "東京都品川区東品川1-5-10 COTOCORPビル1F", lat: 35.6195, lng: 139.7465 },
+  { id: "shinagawa-71", name: "ドトールコーヒーショップ 京急新馬場駅前店", address: "東京都品川区北品川2-17-9", lat: 35.6185, lng: 139.7340, hoursInfo: "平日6:30〜21:00、土日祝7:00〜20:00" },
 ];
