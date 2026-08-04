@@ -936,7 +936,7 @@ function RecenterOnLocate({ position }: { position: [number, number] | null }) {
   const map = useMap();
   useEffect(() => {
     if (position) {
-      map.setView(position, 16);
+      map.setView(position, 17);
     }
   }, [position, map]);
   return null;
@@ -1104,7 +1104,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     setSearchBounds(mapBounds);
     setHasMapDrifted(false);
   };
-  const [mapZoom, setMapZoom] = useState(16);
+  const [mapZoom, setMapZoom] = useState(17);
   const [sortOrder, setSortOrder] = useState<SortOrder>("recommended");
   const [selectedCafeId, setSelectedCafeId] = useState<string | null>(null);
   const [isListPanelOpen, setIsListPanelOpen] = useState(true);
@@ -2454,7 +2454,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
       <div className="cf-map-panel" ref={mapPanelRef}>
     <MapContainer
       center={mapFocus ?? SHINJUKU_CENTER}
-      zoom={16}
+      zoom={17}
       style={{ position: "absolute", inset: 0 }}
       attributionControl={false}
     >
