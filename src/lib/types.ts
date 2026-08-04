@@ -100,3 +100,37 @@ export type Landmark = {
   lng: number;
   category: LandmarkCategory;
 };
+
+// 広告主。カフェオーナー(自店舗の掲載促進)・第三者企業(バナー出稿)の
+// どちらにも対応できるようtypeで区別する(MVPの実装フローはどちらか一方)
+export type AdvertiserType = "cafe_owner" | "business";
+export type AdvertiserStatus = "invited" | "active" | "suspended";
+
+export type Advertiser = {
+  id: string;
+  user_id: string | null;
+  name: string;
+  type: AdvertiserType;
+  cafe_id: string | null;
+  contact_email: string;
+  status: AdvertiserStatus;
+  created_at: string;
+};
+
+// 広告主が投稿する掲載クリエイティブ。差し替えは新規行のpending投稿として
+// 扱い、表示側はstatus='approved'かつ期間内で最新の1件を選ぶ
+export type AdCreativeStatus = "pending" | "approved" | "rejected";
+
+export type AdCreative = {
+  id: string;
+  advertiser_id: string;
+  slot: "banner";
+  image_url: string;
+  link_url: string;
+  alt_text: string;
+  status: AdCreativeStatus;
+  starts_at: string | null;
+  ends_at: string | null;
+  created_at: string;
+  updated_at: string;
+};

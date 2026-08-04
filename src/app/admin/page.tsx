@@ -5,7 +5,16 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { seedCafes, type Cafe } from "@/lib/seedCafes";
 import { hasOutlet } from "@/lib/cafeAmenities";
-import type { CafeFact, CafeFlag, InfoCorrection, Inquiry, Report } from "@/lib/types";
+import type {
+  AdCreative,
+  Advertiser,
+  AdvertiserType,
+  CafeFact,
+  CafeFlag,
+  InfoCorrection,
+  Inquiry,
+  Report,
+} from "@/lib/types";
 
 const FLAG_HIDE_THRESHOLD = 3;
 
@@ -24,6 +33,16 @@ type OutletReportRow = {
 type InfoCorrectionRow = {
   correction: InfoCorrection;
   cafeName: string;
+};
+
+type PendingCreativeRow = {
+  creative: AdCreative;
+  advertiserName: string;
+};
+
+const ADVERTISER_TYPE_LABEL: Record<AdvertiserType, string> = {
+  cafe_owner: "カフェオーナー",
+  business: "企業(バナー出稿)",
 };
 
 function formatDateTime(iso: string | undefined): string {
@@ -102,6 +121,118 @@ function LoginForm() {
   );
 }
 
+function InviteAdvertiserForm({
+  accessToken,
+  onInvited,
+}: {
+  accessToken: string;
+  onInvited: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [type, setType] = useState<AdvertiserType>("cafe_owner");
+  const [cafeId, setCafeId] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const res = await fetch("/api/admin/advertisers/invite", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          name,
+          type,
+          cafeId: cafeId || null,
+          contactEmail,
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        setError(body.error ?? "招待に失敗しました");
+        return;
+      }
+      setSuccessMessage(`${contactEmail} 宛に招待メールを送信しました`);
+      setName("");
+      setCafeId("");
+      setContactEmail("");
+      onInvited();
+    } catch {
+      setError("通信に失敗しました");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="bg-white border border-gray-300 rounded-lg shadow-sm p-3 flex flex-col gap-2"
+    >
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <label className="flex flex-col gap-1 text-xs">
+          <span className="text-gray-700">広告主名</span>
+          <input
+            type="text"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="border border-gray-400 rounded px-2 py-1.5 text-sm text-gray-900 bg-white"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs">
+          <span className="text-gray-700">種別</span>
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value as AdvertiserType)}
+            className="border border-gray-400 rounded px-2 py-1.5 text-sm text-gray-900 bg-white"
+          >
+            <option value="cafe_owner">カフェオーナー</option>
+            <option value="business">企業(バナー出稿)</option>
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-xs">
+          <span className="text-gray-700">紐づく店舗ID(任意)</span>
+          <input
+            type="text"
+            value={cafeId}
+            onChange={(e) => setCafeId(e.target.value)}
+            placeholder="カフェオーナーの場合のみ"
+            className="border border-gray-400 rounded px-2 py-1.5 text-sm text-gray-900 bg-white"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs">
+          <span className="text-gray-700">連絡先メールアドレス</span>
+          <input
+            type="email"
+            required
+            value={contactEmail}
+            onChange={(e) => setContactEmail(e.target.value)}
+            className="border border-gray-400 rounded px-2 py-1.5 text-sm text-gray-900 bg-white"
+          />
+        </label>
+      </div>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+      {successMessage && <p className="text-xs text-green-700">{successMessage}</p>}
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="self-start text-xs bg-blue-600 text-white rounded px-3 py-1.5 font-semibold hover:bg-blue-700 disabled:opacity-50"
+      >
+        {isSubmitting ? "送信中…" : "広告主を追加(招待メール送信)"}
+      </button>
+    </form>
+  );
+}
+
 export default function AdminPage() {
   const [session, setSession] = useState<Session | null | undefined>(() =>
     supabase ? undefined : null
@@ -118,6 +249,11 @@ export default function AdminPage() {
   const [busyCorrectionId, setBusyCorrectionId] = useState<string | null>(null);
   const [inquiries, setInquiries] = useState<Inquiry[] | null>(null);
   const [busyInquiryId, setBusyInquiryId] = useState<string | null>(null);
+  const [advertisers, setAdvertisers] = useState<Advertiser[] | null>(null);
+  const [pendingCreatives, setPendingCreatives] = useState<PendingCreativeRow[] | null>(
+    null
+  );
+  const [busyCreativeId, setBusyCreativeId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!supabase) return;
@@ -329,6 +465,72 @@ export default function AdminPage() {
     loadInquiries();
   };
 
+  // 広告主一覧(招待済み・登録済み全て)
+  const fetchAdvertisers = async (): Promise<Advertiser[] | null> => {
+    if (!supabase) return null;
+    const { data, error } = await supabase
+      .from("advertisers")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error(error);
+      return null;
+    }
+    return (data as Advertiser[]) ?? [];
+  };
+
+  const loadAdvertisers = async () => {
+    const computed = await fetchAdvertisers();
+    if (computed !== null) setAdvertisers(computed);
+  };
+
+  // 審査待ち(status='pending')の掲載クリエイティブ一覧
+  const fetchPendingCreatives = async (): Promise<PendingCreativeRow[] | null> => {
+    if (!supabase) return null;
+    const [creativesRes, advertisersRes] = await Promise.all([
+      supabase
+        .from("ad_creatives")
+        .select("*")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false }),
+      supabase.from("advertisers").select("*"),
+    ]);
+    if (creativesRes.error || advertisersRes.error) {
+      console.error(creativesRes.error ?? advertisersRes.error);
+      return null;
+    }
+    const advertisersById = new Map(
+      ((advertisersRes.data as Advertiser[] | null) ?? []).map((a) => [a.id, a])
+    );
+    return ((creativesRes.data as AdCreative[] | null) ?? []).map((creative) => ({
+      creative,
+      advertiserName:
+        advertisersById.get(creative.advertiser_id)?.name ?? "(広告主不明)",
+    }));
+  };
+
+  const loadPendingCreatives = async () => {
+    const computed = await fetchPendingCreatives();
+    if (computed !== null) setPendingCreatives(computed);
+  };
+
+  const reviewCreative = async (id: string, status: "approved" | "rejected") => {
+    if (!supabase) return;
+    setBusyCreativeId(id);
+    setActionError(null);
+    const { error } = await supabase
+      .from("ad_creatives")
+      .update({ status })
+      .eq("id", id);
+    setBusyCreativeId(null);
+    if (error) {
+      console.error(error);
+      setActionError("審査結果の更新に失敗しました");
+      return;
+    }
+    loadPendingCreatives();
+  };
+
   useEffect(() => {
     if (!session) return;
     fetchRows().then((computed) => {
@@ -346,6 +548,12 @@ export default function AdminPage() {
     });
     fetchInquiries().then((computed) => {
       if (computed !== null) setInquiries(computed);
+    });
+    fetchAdvertisers().then((computed) => {
+      if (computed !== null) setAdvertisers(computed);
+    });
+    fetchPendingCreatives().then((computed) => {
+      if (computed !== null) setPendingCreatives(computed);
     });
   }, [session]);
 
@@ -589,6 +797,114 @@ export default function AdminPage() {
                         className="text-xs bg-green-50 text-green-800 border border-green-300 rounded px-2 py-1 hover:bg-green-100 disabled:opacity-50"
                       >
                         対応済みにする
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
+
+        <section className="mb-8">
+          <h2 className="font-semibold text-gray-900 mb-2">広告主管理</h2>
+          <p className="text-xs text-gray-600 mb-3">
+            広告主を追加すると、入力したメールアドレス宛に招待メールが送られます。広告主はそのリンクからパスワードを設定し、
+            <span className="whitespace-nowrap">/advertiser</span>
+            で自分の広告の掲載状況確認・差し替えができます。
+          </p>
+          <div className="mb-3">
+            <InviteAdvertiserForm
+              accessToken={session.access_token}
+              onInvited={loadAdvertisers}
+            />
+          </div>
+          {advertisers === null ? (
+            <p className="text-sm text-gray-500">読み込み中…</p>
+          ) : advertisers.length === 0 ? (
+            <p className="text-sm text-gray-500">登録済みの広告主はいません</p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {advertisers.map((advertiser) => (
+                <li
+                  key={advertiser.id}
+                  className="bg-white border border-gray-300 rounded-lg shadow-sm p-3 flex flex-col gap-1"
+                >
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-gray-900">
+                      {advertiser.name}
+                    </span>
+                    <span className="text-xs bg-gray-100 text-gray-700 border border-gray-300 px-1.5 py-0.5 rounded">
+                      {ADVERTISER_TYPE_LABEL[advertiser.type]}
+                    </span>
+                    <span className="text-xs bg-blue-50 text-blue-800 border border-blue-200 px-1.5 py-0.5 rounded">
+                      {advertiser.status === "invited"
+                        ? "招待中"
+                        : advertiser.status === "active"
+                        ? "有効"
+                        : "停止中"}
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    {advertiser.contact_email}
+                    {advertiser.cafe_id && `　／　店舗ID: ${advertiser.cafe_id}`}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {pendingCreatives !== null && (
+          <section className="mb-8">
+            <h2 className="font-semibold text-gray-900 mb-2">
+              広告クリエイティブ審査（{pendingCreatives.length}件）
+            </h2>
+            <p className="text-xs text-gray-600 mb-3">
+              広告主が投稿した掲載クリエイティブです。内容を確認し、問題なければ「承認」してください。承認するとサイト上にAdSenseの代わりに表示されます。
+            </p>
+            {pendingCreatives.length === 0 ? (
+              <p className="text-sm text-gray-500">審査待ちのクリエイティブはありません</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {pendingCreatives.map(({ creative, advertiserName }) => (
+                  <li
+                    key={creative.id}
+                    className="bg-white border border-purple-200 rounded-lg shadow-sm p-3 flex flex-col gap-2"
+                  >
+                    <div className="font-medium text-gray-900">{advertiserName}</div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={creative.image_url}
+                      alt={creative.alt_text}
+                      className="max-h-40 w-auto border border-gray-200 rounded"
+                    />
+                    <div className="text-xs text-gray-600">
+                      リンク先:{" "}
+                      <a
+                        href={creative.link_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-blue-600 underline"
+                      >
+                        {creative.link_url}
+                      </a>
+                    </div>
+                    <div className="text-xs text-gray-600">代替テキスト: {creative.alt_text}</div>
+                    <div className="flex gap-2 mt-1">
+                      <button
+                        disabled={busyCreativeId === creative.id}
+                        onClick={() => reviewCreative(creative.id, "approved")}
+                        className="text-xs bg-green-50 text-green-800 border border-green-300 rounded px-2 py-1 hover:bg-green-100 disabled:opacity-50"
+                      >
+                        承認する
+                      </button>
+                      <button
+                        disabled={busyCreativeId === creative.id}
+                        onClick={() => reviewCreative(creative.id, "rejected")}
+                        className="text-xs bg-red-50 text-red-700 border border-red-300 rounded px-2 py-1 hover:bg-red-100 disabled:opacity-50"
+                      >
+                        却下する
                       </button>
                     </div>
                   </li>
