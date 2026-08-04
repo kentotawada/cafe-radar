@@ -7,6 +7,26 @@ import type {
   PowerSupplyTier,
   Report,
 } from "@/lib/types";
+import type { Lang } from "@/lib/i18n";
+
+// バッジのラベルは編集部調べのテキスト(座席数など)と違い、判定結果を
+// 表す固定文言なので言語切り替えの対象にできる。lang未指定時は日本語
+// (/cafe/[id]のような言語トグルを持たないサーバーコンポーネントから
+// 呼ばれる場合はここにフォールバックする)
+const BADGE_LABELS: Record<string, { ja: string; en: string }> = {
+  outlet: { ja: "電源あり", en: "Outlets available" },
+  "powersupply-all": { ja: "全席電源(推測)", en: "Outlets at every seat (est.)" },
+  nonsmoking: { ja: "禁煙", en: "Non-smoking" },
+  smoking: { ja: "喫煙可", en: "Smoking allowed" },
+  wifi: { ja: "Wi-Fiあり", en: "Wi-Fi available" },
+  latenight: { ja: "24時間/深夜営業", en: "Open 24h / late night" },
+  noisy: { ja: "うるさめ", en: "A bit noisy" },
+  crowded: { ja: "混雑気味", en: "Getting crowded" },
+};
+
+function badgeLabel(key: keyof typeof BADGE_LABELS, lang: Lang): string {
+  return BADGE_LABELS[key][lang];
+}
 
 // CafeMapのバッジ表示・絞り込みフィルターと、店舗ごとの共有ページ
 // (src/app/cafe/[id])の両方で同じ判定基準を使うための共通化
@@ -154,7 +174,8 @@ export type QuickBadge = {
 export function getQuickBadges(
   cafe: Cafe,
   stats: CafeStats | null,
-  verifiedOutletCafeIds: Set<string>
+  verifiedOutletCafeIds: Set<string>,
+  lang: Lang = "ja"
 ): QuickBadge[] {
   const badges: QuickBadge[] = [];
 
@@ -162,7 +183,7 @@ export function getQuickBadges(
     badges.push({
       key: "outlet",
       emoji: "🔌",
-      label: "電源あり",
+      label: badgeLabel("outlet", lang),
       className: "bg-blue-100 text-blue-800",
     });
   }
@@ -171,7 +192,7 @@ export function getQuickBadges(
     badges.push({
       key: "powersupply-all",
       emoji: "🔌",
-      label: "全席電源(推測)",
+      label: badgeLabel("powersupply-all", lang),
       className: "bg-blue-50 text-blue-700",
     });
   }
@@ -180,7 +201,7 @@ export function getQuickBadges(
     badges.push({
       key: "nonsmoking",
       emoji: "🚭",
-      label: "禁煙",
+      label: badgeLabel("nonsmoking", lang),
       className: "bg-green-100 text-green-800",
     });
   }
@@ -188,7 +209,7 @@ export function getQuickBadges(
     badges.push({
       key: "smoking",
       emoji: "🚬",
-      label: "喫煙可",
+      label: badgeLabel("smoking", lang),
       className: "bg-gray-200 text-gray-700",
     });
   }
@@ -197,7 +218,7 @@ export function getQuickBadges(
     badges.push({
       key: "wifi",
       emoji: "📶",
-      label: "Wi-Fiあり",
+      label: badgeLabel("wifi", lang),
       className: "bg-sky-100 text-sky-800",
     });
   }
@@ -215,7 +236,7 @@ export function getQuickBadges(
     badges.push({
       key: "latenight",
       emoji: "🌙",
-      label: "24時間/深夜営業",
+      label: badgeLabel("latenight", lang),
       className: "bg-indigo-100 text-indigo-800",
     });
   }
@@ -225,7 +246,7 @@ export function getQuickBadges(
       badges.push({
         key: "noisy",
         emoji: "🔊",
-        label: "うるさめ",
+        label: badgeLabel("noisy", lang),
         className: "bg-purple-100 text-purple-800",
       });
     }
@@ -235,7 +256,7 @@ export function getQuickBadges(
       badges.push({
         key: "crowded",
         emoji: "🈵",
-        label: "混雑気味",
+        label: badgeLabel("crowded", lang),
         className: "bg-red-100 text-red-800",
       });
     }

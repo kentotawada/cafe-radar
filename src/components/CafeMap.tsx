@@ -13,6 +13,7 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import L from "leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
 import { seedCafes, type Cafe } from "@/lib/seedCafes";
 import { hasOutlet } from "@/lib/cafeAmenities";
 import AdBanner from "@/components/AdBanner";
@@ -276,6 +277,22 @@ function getCafePinIcon(
 }
 
 const PENDING_CAFE_ICON = createCupPinIcon(PIN_COLORS.unknown, "independent", false);
+
+// 都心は駅同士(≒エリア同士)の距離が近く、実データが密な今は既定ズームの
+// 表示範囲だけでも数百件のピンが同時に描画されうる。近いピンを1つの
+// クラスターバッジにまとめる。見た目は他のバッジ(createLandmarkIcon)と
+// 揃え、ブランドカラーの丸バッジにする
+function createClusterIcon(cluster: L.MarkerCluster) {
+  const count = cluster.getChildCount();
+  const size = count < 10 ? 34 : count < 50 ? 42 : 50;
+  const fontSize = count < 100 ? 13 : 11;
+  const html = `<div style="width:${size}px;height:${size}px;border-radius:50%;background:#2563eb;border:3px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;color:#ffffff;font-weight:700;font-size:${fontSize}px;">${count}</div>`;
+  return L.divIcon({
+    html,
+    className: "",
+    iconSize: L.point(size, size),
+  });
+}
 
 // 不動産サイトの周辺環境地図のように、色付きの丸バッジ+シンプルな
 // 白1色のイラスト(アイコン)にする。絵文字は色がバラバラで背景色と
@@ -988,7 +1005,7 @@ function ZoomTracker({ onChange }: { onChange: (zoom: number) => void }) {
 }
 
 export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [reportsByCafe, setReportsByCafe] = useState<Record<string, Report[]>>({});
   const [factsByCafe, setFactsByCafe] = useState<Record<string, CafeFact[]>>({});
   const [verifiedOutletCafeIds, setVerifiedOutletCafeIds] = useState<Set<string>>(
@@ -2037,9 +2054,11 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   }
 
   // ピンは生の地図表示範囲(mapBounds)ではなく、「再検索」が確定した
-  // 範囲(searchBounds)で絞り込む。ドラッグ・ズームしただけでは更新しない
+  // 範囲(searchBounds)で絞り込む。ドラッグ・ズームしただけでは更新しない。
+  // 余白は最小限(15%)にとどめる。都心はエリア同士が近く、余白を広く
+  // 取ると密集地で数百件のピンが一度に描画されて動作が重くなるため
   const visibleCafes = allCafes.filter((cafe) => {
-    if (searchBounds && !searchBounds.pad(0.5).contains([cafe.lat, cafe.lng])) {
+    if (searchBounds && !searchBounds.pad(0.15).contains([cafe.lat, cafe.lng])) {
       return false;
     }
     return passesNonBoundsFilters(cafe);
@@ -2049,7 +2068,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   // 全エリア分(2000件超)を常時描画すると、特にスマホで地図の動きが重くなる
   const visibleLandmarks = searchBounds
     ? allLandmarks.filter((landmark) =>
-        searchBounds.pad(0.5).contains([landmark.lat, landmark.lng])
+        searchBounds.pad(0.15).contains([landmark.lat, landmark.lng])
       )
     : allLandmarks;
 
@@ -2285,7 +2304,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                 <option value="">{t("list.areaAll")}</option>
                 {areas.map((area) => (
                   <option key={area.id} value={area.name}>
-                    {area.name}
+                    {lang === "en" ? area.nameEn : area.name}
                   </option>
                 ))}
               </select>
@@ -2330,7 +2349,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
           {listCafes.flatMap((cafe, index) => {
             const stats = statsByCafe[cafe.id];
             const statusColor = statusColorForStats(stats);
-            const badges = getQuickBadges(cafe, stats, verifiedOutletCafeIds);
+            const badges = getQuickBadges(cafe, stats, verifiedOutletCafeIds, lang);
             const isFavorite = favorites.has(cafe.id);
             const distance = userPosition
               ? distanceMeters(userPosition, [cafe.lat, cafe.lng])
@@ -2507,7 +2526,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                   <option value="">{t("filter.areaPlaceholder")}</option>
                   {areas.map((area) => (
                     <option key={area.id} value={area.name}>
-                      {area.name}
+                      {lang === "en" ? area.nameEn : area.name}
                     </option>
                   ))}
                 </select>
@@ -2910,9 +2929,17 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
           )}
         </Marker>
       ))}
-      {/* ピンは「N件」のクラスターバッジにまとめず、常に個別ピンとして表示する。
-          表示範囲がsearchBounds(再検索した範囲)に絞られているため、
-          クラスタリングなしでも動作は重くならない */}
+      {/* 都心はエリア同士が近く、既定ズーム(16)の表示範囲だけでも数百件の
+          ピンが同時に描画されうるため、近いピンはクラスターバッジにまとめる。
+          「お店を探して個別ピンをタップしたい」ズーム(17以上)では従来通り
+          必ず個別ピンにする */}
+      <MarkerClusterGroup
+        maxClusterRadius={60}
+        showCoverageOnHover={false}
+        spiderfyOnMaxZoom
+        disableClusteringAtZoom={17}
+        iconCreateFunction={createClusterIcon}
+      >
       {visibleCafes.map((cafe) => {
         const stats = statsByCafe[cafe.id];
         const predictedStats = predictedStatsByCafe[cafe.id];
@@ -2945,7 +2972,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
             : null;
         const isDynamicCafe = dynamicCafeIds.has(cafe.id);
         const isUnconfirmed = isDynamicCafe && !hasIndependentActivity(cafe);
-        const quickBadges = getQuickBadges(cafe, stats, verifiedOutletCafeIds);
+        const quickBadges = getQuickBadges(cafe, stats, verifiedOutletCafeIds, lang);
         return (
           <Marker
             key={cafe.id}
@@ -3470,6 +3497,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
           </Marker>
         );
       })}
+      </MarkerClusterGroup>
     </MapContainer>
         {/* 食べログ等と同じ「この範囲で再検索」ボタン。地図をドラッグ/
             ズームしただけではピンを更新せず、これをタップした時だけ
