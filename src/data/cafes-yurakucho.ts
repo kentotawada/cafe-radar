@@ -76,4 +76,74 @@ export const cafes: Cafe[] = [
   { id: "yurakucho-46", name: "パパス・カフェ 丸の内本店", address: "東京都千代田区丸の内3-3-1 新東京ビル1F", lat: 35.6771, lng: 139.7626, seatCountInfo: "56席", hoursInfo: "月〜金11:00〜20:30(L.O.20:00)、土日11:00〜19:30(L.O.19:00)" },
   { id: "yurakucho-47", name: "東京會舘 ロッシニテラス（カフェテラス）", address: "東京都千代田区丸の内3-2-1", lat: 35.6773, lng: 139.7627, smokingInfo: "禁煙(ビル内に喫煙ブースあり)", seatCountInfo: "72席(個室なし)", hoursInfo: "平日11:30〜22:00(L.O.20:00)、土日祝11:00〜22:00(L.O.20:00)" },
   { id: "yurakucho-48", name: "ザ・ペニンシュラ ブティック&カフェ 東京", address: "東京都千代田区有楽町1-8-1 ザ・ペニンシュラ東京", lat: 35.6741, lng: 139.7595 },
+
+  // 【2026年8月追加分(yurakucho-49以降)】食べログの有楽町・日比谷エリア一覧で実在を確認し、
+  // 各店の個別ページ(住所・営業時間・定休日・席数・禁煙喫煙・電源・Wi-Fi)で1件ずつ裏取りした。
+  // 確認できなかった項目は空欄のまま(推測では埋めていない)。有楽町駅から徒歩10分弱を目安に、
+  // 西は日比谷・内幸町(帝国ホテル・日比谷図書文化館)、北は丸の内3丁目(新東京ビル・東京国際
+  // フォーラム)、東は銀座3丁目まで少し範囲を広げている。新橋側(cafes-shimbashi.ts)の
+  // 銀座8丁目・汐留・日比谷OKUROJIとは重複しないように選定した。
+  // 【除外した候補】
+  // - ラ･メゾン･デュ･ショコラ 丸の内店: 食べログに「サロン営業休止中」と記載。イートイン
+  //   営業が確認できないため追加せず。
+  // - DEAN & DELUCA カフェ 東京ミッドタウン日比谷: 既存のyurakucho-30と同一住所・同一階で
+  //   重複の可能性が高いため追加せず。
+  // - 木下闇珈琲 / 大月珈琲店(いずれも東京国際フォーラム内): キッチンカー出店で住所・営業
+  //   スケジュールが確定できないため追加せず。
+  // - KOKO 丸ノ内南口店: 住所(丸の内1-10-5)から所在地を特定できず、座標推定ができないため追加せず。
+  { id: "yurakucho-49", name: "京都石塀小路 豆ちゃ 有楽町", address: "東京都千代田区有楽町2-5-1 ルミネ有楽町 ルミネ1 8F", lat: 35.6746, lng: 139.7632, smokingInfo: "全席禁煙(施設内に喫煙所あり)", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "120席", hoursInfo: "11:00〜22:00(L.O.料理21:00、ドリンク21:30)", closedDaysInfo: "ルミネ有楽町の営業に準ずる" },
+  { id: "yurakucho-50", name: "プロント 東京国際フォーラム店", address: "東京都千代田区丸の内3-5-1 東京国際フォーラム B1F", lat: 35.6759, lng: 139.7633, outletInfo: "電源あり", smokingInfo: "全席禁煙(店内に喫煙ブースあり)", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "129席", hoursInfo: "平日7:00〜23:00(L.O.22:30)、土10:00〜22:00(L.O.21:30)、日祝10:00〜19:00(L.O.18:30)", closedDaysInfo: "無休" },
+  { id: "yurakucho-51", name: "プロント 有楽町店", address: "東京都千代田区有楽町2-9-18", lat: 35.6747, lng: 139.7637, smokingInfo: "分煙(加熱式たばこ限定)", seatCountInfo: "76席", hoursInfo: "月〜金8:00〜22:30、土日祝10:00〜22:30", closedDaysInfo: "無休" },
+  { id: "yurakucho-52", name: "24/7 cafe apartment 有楽町", address: "東京都千代田区有楽町2-7-1 有楽町マルイ 5F", lat: 35.6743, lng: 139.7625, smokingInfo: "全席禁煙", seatCountInfo: "60席(カウンター3・ソファー2・半個室1を含む)", hoursInfo: "11:00〜21:00(L.O.20:00)", closedDaysInfo: "有楽町マルイの営業に準ずる" },
+  { id: "yurakucho-53", name: "カフェ＆ブックス ビブリオテーク 東京・有楽町", address: "東京都千代田区有楽町2-5-1 ルミネ有楽町 ルミネ1 3F", lat: 35.6746, lng: 139.7632, smokingInfo: "全席禁煙", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "47席", hoursInfo: "11:00〜21:00(L.O.料理20:00、ドリンク20:30)", closedDaysInfo: "ルミネ有楽町の営業に準ずる" },
+  { id: "yurakucho-54", name: "やさいの王様 日比谷シャンテ店", address: "東京都千代田区有楽町1-2-2 日比谷シャンテ 本館 B2F", lat: 35.6738, lng: 139.7602, smokingInfo: "全席禁煙", seatCountInfo: "46席", hoursInfo: "11:00〜22:00(L.O.21:00)", closedDaysInfo: "日比谷シャンテの休館日に準ずる" },
+  { id: "yurakucho-55", name: "ラデュレ 日比谷店", address: "東京都千代田区有楽町1-2-2 日比谷シャンテ 1F", lat: 35.6738, lng: 139.7602, smokingInfo: "全席禁煙", seatCountInfo: "46席(テーブル席)", hoursInfo: "月〜木11:00〜20:00(L.O.19:00)、金土日祝11:00〜21:00(L.O.20:00)", closedDaysInfo: "日比谷シャンテの営業に準ずる" },
+  { id: "yurakucho-56", name: "Q-pot CAFE. 日比谷シャンテ店", address: "東京都千代田区有楽町1-2-2 日比谷シャンテ 3F", lat: 35.6738, lng: 139.7602, smokingInfo: "全席禁煙", seatCountInfo: "37席(カウンター5・テーブル32)", hoursInfo: "11:00〜20:00(L.O.19:30)", closedDaysInfo: "不定休(施設に準ずる)" },
+  { id: "yurakucho-57", name: "DRAWING HOUSE OF HIBIYA", address: "東京都千代田区有楽町1-1-2 東京ミッドタウン日比谷 6F", lat: 35.6738, lng: 139.7597, outletInfo: "電源あり", smokingInfo: "全席禁煙", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "150席(カウンター8・個室4〜12・テラス32・ソファ20)", hoursInfo: "11:00〜22:00(料理L.O.21:00)", closedDaysInfo: "東京ミッドタウン日比谷に準ずる" },
+  { id: "yurakucho-58", name: "REVIVE KITCHEN THREE HIBIYA", address: "東京都千代田区有楽町1-1-2 東京ミッドタウン日比谷 2F", lat: 35.6738, lng: 139.7597, outletInfo: "電源あり", smokingInfo: "全席禁煙(施設内に喫煙室あり)", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "47席", hoursInfo: "11:00〜22:00(L.O.21:00、ランチ11:00〜14:00・ティー14:00〜17:00・ディナー17:00〜22:00)", closedDaysInfo: "不定休(施設に準ずる)" },
+  { id: "yurakucho-59", name: "LEXUS MEETS...", address: "東京都千代田区有楽町1-1-2 東京ミッドタウン日比谷 1F", lat: 35.6738, lng: 139.7597, smokingInfo: "全席禁煙", seatCountInfo: "110席", hoursInfo: "11:00〜22:00(L.O.料理21:00、ドリンク21:30)" },
+  { id: "yurakucho-60", name: "THE BLUE", address: "東京都千代田区有楽町1-2-2 日比谷シャンテ別館 日比谷ゴジラスクエア", lat: 35.6737, lng: 139.7601, outletInfo: "電源あり", smokingInfo: "全席禁煙(日比谷シャンテB2に喫煙ルームあり)", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "32席(テラス18・店内10・ソファ2・エッグチェア2)", hoursInfo: "11:00〜21:00(L.O.料理20:00、ドリンク20:30)", closedDaysInfo: "不定休" },
+  { id: "yurakucho-61", name: "CAFE A LA TIENNE", address: "東京都千代田区有楽町1-1-1 日本生命日比谷ビル 1F", lat: 35.6734, lng: 139.7591, smokingInfo: "全席禁煙", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "60席", hoursInfo: "11:00〜20:00(L.O.料理19:00、ドリンク19:30)", closedDaysInfo: "年末年始" },
+  { id: "yurakucho-62", name: "SINGLE O Yurakucho", address: "東京都千代田区有楽町2-9-1 ルミネ有楽町 ルミネストリート", lat: 35.6746, lng: 139.7636, hoursInfo: "10:00〜21:00" },
+  { id: "yurakucho-63", name: "甘味おかめ 有楽町店", address: "東京都千代田区有楽町2-7-1 有楽町イトシア イトシアプラザ 1F", lat: 35.6743, lng: 139.7625, smokingInfo: "全席禁煙", seatCountInfo: "26席", hoursInfo: "火〜日11:00〜20:00", closedDaysInfo: "月曜日(祝日の場合は翌火曜日)" },
+  { id: "yurakucho-64", name: "アフタヌーンティー・ティールーム 有楽町ルミネ店", address: "東京都千代田区有楽町2-5-1 ルミネ有楽町 ルミネ1 B1F", lat: 35.6746, lng: 139.7632, smokingInfo: "全席禁煙", seatCountInfo: "25席", hoursInfo: "11:00〜21:00", closedDaysInfo: "不定休(ルミネ有楽町店の営業に準ずる)" },
+  { id: "yurakucho-65", name: "モアナキッチンカフェ 有楽町イトシア店", address: "東京都千代田区有楽町2-7-1 有楽町イトシア B1F", lat: 35.6743, lng: 139.7625, smokingInfo: "全席禁煙", seatCountInfo: "56席", hoursInfo: "11:00〜22:00(L.O.21:00)", closedDaysInfo: "年中無休" },
+  { id: "yurakucho-66", name: "Grove", address: "東京都中央区銀座3-4-4 大倉別館 1F", lat: 35.6726, lng: 139.7658, smokingInfo: "全席禁煙", seatCountInfo: "12席", hoursInfo: "9:00〜23:30(L.O.23:00)", closedDaysInfo: "年中無休" },
+  { id: "yurakucho-67", name: "メゾンカカオ 丸の内店", address: "東京都千代田区丸の内3-3-1 新東京ビル 1F", lat: 35.6771, lng: 139.7626, smokingInfo: "全席禁煙", seatCountInfo: "25席", hoursInfo: "10:00〜19:00(L.O.17:30)" },
+  { id: "yurakucho-68", name: "虎屋菓寮 帝国ホテル店", address: "東京都千代田区内幸町1-1-1 帝国ホテル東京 本館 B1F アーケード", lat: 35.6726, lng: 139.759, smokingInfo: "全席禁煙", seatCountInfo: "34席", hoursInfo: "平日・土11:00〜18:30、日祝11:00〜17:30", closedDaysInfo: "無休" },
+  { id: "yurakucho-69", name: "ディー・エル・カフェ 皇居前店", address: "東京都千代田区有楽町1-13-1", lat: 35.673, lng: 139.7583, smokingInfo: "全席禁煙", hoursInfo: "平日8:30〜16:30", closedDaysInfo: "土曜日、日曜日、祝日" },
+  { id: "yurakucho-70", name: "スターバックス コーヒー 東京ミッドタウン日比谷店", address: "東京都千代田区有楽町1-1-4 東京ミッドタウン日比谷", lat: 35.6738, lng: 139.7597, smokingInfo: "全店舗禁煙方針、喫煙所なし", wifiInfo: "無料Wi-Fiあり(at_STARBUCKS_Wi2、登録不要で利用規約に同意するだけ)", hoursInfo: "7:00〜22:30", closedDaysInfo: "不定休" },
+  { id: "yurakucho-71", name: "カフェ彩", address: "東京都千代田区丸の内3-4-1 新国際ビル B1F", lat: 35.6769, lng: 139.7629, smokingInfo: "全席喫煙可" },
+  { id: "yurakucho-72", name: "ツタンカーメン", address: "東京都千代田区丸の内3-5-1 東京国際フォーラム Aブロック 1F", lat: 35.6759, lng: 139.7633, outletInfo: "電源あり", smokingInfo: "全席禁煙", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "20席", hoursInfo: "火〜日祝11:00〜19:00(L.O.18:00)", closedDaysInfo: "月曜日" },
+  { id: "yurakucho-73", name: "COFFEE GALLERY 有楽町マルイ店", address: "東京都千代田区有楽町2-7-1 有楽町マルイ 7F", lat: 35.6743, lng: 139.7625, smokingInfo: "全席禁煙", hoursInfo: "11:00〜20:00" },
+  { id: "yurakucho-74", name: "麻布茶房 日比谷シャンテ店", address: "東京都千代田区有楽町1-2-2 日比谷シャンテ B2F", lat: 35.6738, lng: 139.7602, smokingInfo: "全席禁煙(店舗近くに共用の喫煙所あり)", seatCountInfo: "36席", hoursInfo: "11:00〜22:00(L.O.21:00)", closedDaysInfo: "なし(日比谷シャンテの営業に準ずる)" },
+  { id: "yurakucho-75", name: "甘味おかめ 交通会館店", address: "東京都千代田区有楽町2-10-1 東京交通会館 B1F", lat: 35.674, lng: 139.7638, smokingInfo: "全席禁煙", seatCountInfo: "28席", hoursInfo: "月〜土11:00〜18:30", closedDaysInfo: "日曜日" },
+  { id: "yurakucho-76", name: "cafe Planetaria TOKYO", address: "東京都千代田区有楽町2-5-1 有楽町マリオン 9F", lat: 35.6741, lng: 139.7621, smokingInfo: "全席禁煙", hoursInfo: "月〜木・土日10:30〜20:40、金10:30〜21:20", closedDaysInfo: "施設に準ずる" },
+  { id: "yurakucho-77", name: "椿屋珈琲 日比谷離れ", address: "東京都千代田区有楽町1-2-5 椿屋珈琲ビル 2・3F", lat: 35.6736, lng: 139.7607, smokingInfo: "分煙(加熱式たばこ限定、紙巻きは喫煙ブース)", seatCountInfo: "92席", hoursInfo: "10:00〜23:00(L.O.22:30)" },
+  { id: "yurakucho-78", name: "Giolitti Cafe 有楽町店", address: "東京都千代田区有楽町2-7-1 有楽町マルイ 3F", lat: 35.6743, lng: 139.7625, smokingInfo: "全席禁煙", seatCountInfo: "48席", hoursInfo: "月〜金・日11:00〜20:00、土・祝前日11:00〜21:00", closedDaysInfo: "有楽町マルイに準ずる" },
+  { id: "yurakucho-79", name: "ゆとりの空間 日比谷店", address: "東京都千代田区有楽町1-2-2 日比谷シャンテ 2F", lat: 35.6738, lng: 139.7602, smokingInfo: "全席禁煙", seatCountInfo: "44席", hoursInfo: "ランチ11:00〜14:30(L.O.)、ディナー16:00〜20:00(L.O.19:30)", closedDaysInfo: "無休" },
+  { id: "yurakucho-80", name: "相田みつを美術館カフェ", address: "東京都千代田区丸の内3-5-1 東京国際フォーラム ガラス棟 B1F", lat: 35.6759, lng: 139.7633, smokingInfo: "全席禁煙", seatCountInfo: "20席ほど" },
+  { id: "yurakucho-81", name: "プロント ライブラリーショップ＆カフェ日比谷", address: "東京都千代田区日比谷公園1-4 日比谷図書文化館 1F", lat: 35.6725, lng: 139.7549, smokingInfo: "全席禁煙", seatCountInfo: "150席", hoursInfo: "平日10:00〜19:00、土日祝10:00〜17:00", closedDaysInfo: "不定休(日比谷図書文化館の営業に準ずる)" },
+  { id: "yurakucho-82", name: "ビチェリン 阪急メンズ東京店", address: "東京都千代田区有楽町2-5-1 阪急メンズ東京 B1F", lat: 35.6741, lng: 139.7621, outletInfo: "電源あり", smokingInfo: "全席禁煙", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "43席", hoursInfo: "平日12:00〜20:00、土日祝11:00〜20:00(L.O.料理19:00、ドリンク19:30)", closedDaysInfo: "館に準ずる" },
+  { id: "yurakucho-83", name: "ザ・パントリー 丸の内", address: "東京都千代田区丸の内3-3-1 新東京ビル 1F", lat: 35.6771, lng: 139.7626, smokingInfo: "全席禁煙", seatCountInfo: "30席", hoursInfo: "月〜金11:00〜20:00(L.O.19:30)", closedDaysInfo: "土曜日、年末年始" },
+  { id: "yurakucho-84", name: "果実園リーベル 日比谷シャンテ店", address: "東京都千代田区有楽町1-2-2 日比谷シャンテ 2F", lat: 35.6738, lng: 139.7602, smokingInfo: "全席禁煙", seatCountInfo: "74席", hoursInfo: "11:00〜20:00", closedDaysInfo: "日比谷シャンテの休館日に準ずる" },
+  { id: "yurakucho-85", name: "ディーン&デルーカ 有楽町カフェ", address: "東京都千代田区有楽町2-9-17 ルミネストリート", lat: 35.6746, lng: 139.7636, smokingInfo: "全席禁煙", seatCountInfo: "20席" },
+  { id: "yurakucho-86", name: "デュオカフェ 有楽町店", address: "東京都千代田区有楽町2-8-1", lat: 35.6744, lng: 139.7632, smokingInfo: "全席喫煙可", seatCountInfo: "10席" },
+  { id: "yurakucho-87", name: "ラ・プティ・メルスリー ルミネ有楽町店", address: "東京都千代田区有楽町2-5-1 ルミネ有楽町 ルミネ1 4F", lat: 35.6746, lng: 139.7632, smokingInfo: "全席禁煙", seatCountInfo: "30席", hoursInfo: "11:00〜21:00(L.O.20:30)", closedDaysInfo: "ルミネ有楽町店に準ずる" },
+  { id: "yurakucho-88", name: "林屋新兵衛 日比谷店", address: "東京都千代田区有楽町1-1-2 東京ミッドタウン日比谷 日比谷三井タワー 2F", lat: 35.6738, lng: 139.7597, outletInfo: "電源あり", smokingInfo: "全席禁煙", hoursInfo: "11:00〜22:00(L.O.21:00)", closedDaysInfo: "不定休(東京ミッドタウン日比谷に準ずる)" },
+  { id: "yurakucho-89", name: "ブルックリン ロースティング カンパニー 東京国際フォーラム店", address: "東京都千代田区丸の内3-5-1 東京国際フォーラム A棟 1F", lat: 35.6759, lng: 139.7633, outletInfo: "電源あり", smokingInfo: "全席禁煙", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "50席", hoursInfo: "平日11:00〜19:00(L.O.18:30)、土日祝10:00〜19:00(L.O.18:30)", closedDaysInfo: "不定休" },
+  { id: "yurakucho-90", name: "珈琲茶館 集 イトシアプラザ有楽町店", address: "東京都千代田区有楽町2-7-1 有楽町イトシア 2F", lat: 35.6743, lng: 139.7625, smokingInfo: "分煙", seatCountInfo: "100席", hoursInfo: "月〜木10:00〜22:00(L.O.料理21:00、ドリンク21:30)、金〜日10:00〜22:30(L.O.料理21:30、ドリンク22:00)" },
+  { id: "yurakucho-91", name: "カフェ&ダイニング アーチ HIBIYA", address: "東京都千代田区有楽町1-2-1 東宝シアタークリエビル 2F", lat: 35.6736, lng: 139.7605, outletInfo: "電源あり", smokingInfo: "全席禁煙", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "77席(カウンター15・テーブル62)", hoursInfo: "平日7:00〜14:30(L.O.14:00)、土日7:00〜15:30(L.O.15:00)", closedDaysInfo: "なし" },
+  { id: "yurakucho-92", name: "ジャンフランソワ 東京ミッドタウン日比谷", address: "東京都千代田区有楽町1-1-3 東京ミッドタウン日比谷 B1F", lat: 35.6737, lng: 139.7596, smokingInfo: "全席禁煙", seatCountInfo: "52席", hoursInfo: "10:00〜21:00", closedDaysInfo: "なし(東京ミッドタウン日比谷に準ずる)" },
+  { id: "yurakucho-93", name: "チャヤ ナチュラル&ワイルドテーブル 日比谷シャンテ店", address: "東京都千代田区有楽町1-2-2 日比谷シャンテ B2F", lat: 35.6738, lng: 139.7602, smokingInfo: "全席禁煙", seatCountInfo: "48席", hoursInfo: "11:00〜22:00(L.O.21:00)", closedDaysInfo: "日比谷シャンテに準ずる" },
+  { id: "yurakucho-94", name: "宮越屋珈琲 日比谷店", address: "東京都千代田区有楽町1-13-1 1F", lat: 35.673, lng: 139.7583, hoursInfo: "平日8:30〜19:00、土日祝11:00〜19:00" },
+  { id: "yurakucho-95", name: "キハチカフェ 日比谷シャンテ店", address: "東京都千代田区有楽町1-2-2 日比谷シャンテ 1F", lat: 35.6738, lng: 139.7602, smokingInfo: "全席禁煙", seatCountInfo: "40席", hoursInfo: "11:00〜20:00(L.O.19:30)", closedDaysInfo: "日比谷シャンテに準ずる" },
+  { id: "yurakucho-96", name: "GODIVA cafe 日比谷店", address: "東京都千代田区有楽町1-5-2 東宝日比谷プロムナードビル 2F", lat: 35.674, lng: 139.7611, smokingInfo: "全席禁煙", seatCountInfo: "57席", hoursInfo: "11:00〜21:00(L.O.料理20:30)" },
+  { id: "yurakucho-97", name: "パティスリー&カフェ デリーモ 東京ミッドタウン日比谷店", address: "東京都千代田区有楽町1-1-3 東京ミッドタウン日比谷 B1F", lat: 35.6737, lng: 139.7596, outletInfo: "電源あり", smokingInfo: "全席禁煙", seatCountInfo: "50席", hoursInfo: "11:00〜23:00(L.O.22:00)", closedDaysInfo: "施設に準ずる" },
+  { id: "yurakucho-98", name: "ビーアンドビーコーヒー 丸の内店", address: "東京都千代田区丸の内3-3-1 新東京ビル B1F", lat: 35.6771, lng: 139.7626, smokingInfo: "分煙", seatCountInfo: "20席", hoursInfo: "平日7:00〜20:00", closedDaysInfo: "土曜日、日曜日、祝日" },
+  { id: "yurakucho-99", name: "Ya Kun Kaya Toast 東京国際フォーラム店", address: "東京都千代田区丸の内3-5-1 東京国際フォーラム 1F", lat: 35.6759, lng: 139.7633, outletInfo: "電源あり", smokingInfo: "全席禁煙", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "52席", hoursInfo: "8:00〜20:00(L.O.19:00)", closedDaysInfo: "なし" },
+  { id: "yurakucho-100", name: "Cafe1968", address: "東京都千代田区丸の内3-3-1 新東京ビル 8F", lat: 35.6771, lng: 139.7626, outletInfo: "コンセントのある席が多いとの口コミあり", wifiInfo: "Wi-Fi完備との口コミあり", hoursInfo: "平日10:00〜18:00", closedDaysInfo: "土曜日、日曜日、祝日" },
+  { id: "yurakucho-101", name: "阿蘇", address: "東京都千代田区有楽町2-10-1 東京交通会館 B1F", lat: 35.674, lng: 139.7638, smokingInfo: "全席喫煙可", seatCountInfo: "16席(カウンターのみ)", hoursInfo: "月〜土9:30〜17:30", closedDaysInfo: "日曜日" },
+  { id: "yurakucho-102", name: "ル・プチメック 日比谷店", address: "東京都千代田区有楽町1-2-2 日比谷シャンテ 1F", lat: 35.6738, lng: 139.7602, smokingInfo: "全席禁煙", seatCountInfo: "42席", hoursInfo: "8:00〜20:00" },
+  { id: "yurakucho-103", name: "ハーブス ルミネ有楽町店", address: "東京都千代田区有楽町2-5-1 ルミネ有楽町 ルミネ1 2F", lat: 35.6746, lng: 139.7632, smokingInfo: "全席禁煙", seatCountInfo: "89席", hoursInfo: "11:00〜21:00(料理L.O.19:00、イートインL.O.20:00)", closedDaysInfo: "無休(施設に準ずる)" },
 ];
