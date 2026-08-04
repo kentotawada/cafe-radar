@@ -18,6 +18,9 @@ import { cafes as iidabashiCafes } from "@/data/cafes-iidabashi";
 import { cafes as nakanoCafes } from "@/data/cafes-nakano";
 import { cafes as tachikawaCafes } from "@/data/cafes-tachikawa";
 import { cafes as ochanomizuCafes } from "@/data/cafes-ochanomizu";
+import { cafes as osakiCafes } from "@/data/cafes-osaki";
+import { cafes as tamachiCafes } from "@/data/cafes-tamachi";
+import { cafes as hamamatsuchoCafes } from "@/data/cafes-hamamatsucho";
 
 export type { Cafe } from "@/data/cafes";
 
@@ -44,4 +47,7 @@ export const seedCafes: Cafe[] = [
   ...nakanoCafes,
   ...tachikawaCafes,
   ...ochanomizuCafes,
+  ...osakiCafes,
+  ...tamachiCafes,
+  ...hamamatsuchoCafes,
 ];
