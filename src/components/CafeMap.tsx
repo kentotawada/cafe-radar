@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import {
@@ -97,6 +97,13 @@ const allLandmarks: Landmark[] = [
 ];
 
 const FLAG_HIDE_THRESHOLD = 3;
+
+// ズームではなく「表示中のピンの数」でクラスタリングの要否を決める。
+// 区の全体が収まるくらいまで引いても、そのエリアの密度が低ければ
+// 個別ピンのまま見えてほしいという要望に対応するため。表示件数がこの
+// しきい値を超えた時だけクラスターにまとめる(超えなければズームに
+// 関係なく常に個別ピン)
+const CLUSTER_PIN_THRESHOLD = 150;
 
 // 以前MapTilerへの切り替えを試みた際に本番環境でクラッシュが発生し、原因
 // 未調査のままCARTOに戻した経緯がある。今回原因を特定できた: 下の
@@ -2063,6 +2070,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     }
     return passesNonBoundsFilters(cafe);
   });
+  const shouldClusterCafes = visibleCafes.length > CLUSTER_PIN_THRESHOLD;
 
   // 目印(駅出口・建物など)も、カフェのピンと同じ理由で表示範囲だけに絞る。
   // 全エリア分(2000件超)を常時描画すると、特にスマホで地図の動きが重くなる
@@ -2929,17 +2937,22 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
           )}
         </Marker>
       ))}
-      {/* 都心はエリア同士が近く、既定ズーム(16)の表示範囲だけでも数百件の
-          ピンが同時に描画されうるため、近いピンはクラスターバッジにまとめる。
-          「お店を探して個別ピンをタップしたい」ズーム(17以上)では従来通り
-          必ず個別ピンにする */}
-      <MarkerClusterGroup
-        maxClusterRadius={60}
-        showCoverageOnHover={false}
-        spiderfyOnMaxZoom
-        disableClusteringAtZoom={17}
-        iconCreateFunction={createClusterIcon}
-      >
+      {/* ズームではなく表示件数でクラスタリングの要否を決める(区が丸ごと
+          収まるくらいまで引いても、その範囲が空いていれば個別ピンのまま
+          見えるようにするため)。CLUSTER_PIN_THRESHOLDを超えた時だけ
+          近いピンをクラスターバッジにまとめる */}
+      {(() => {
+        const PinsWrapper = shouldClusterCafes ? MarkerClusterGroup : Fragment;
+        const wrapperProps = shouldClusterCafes
+          ? {
+              maxClusterRadius: 60,
+              showCoverageOnHover: false,
+              spiderfyOnMaxZoom: true,
+              iconCreateFunction: createClusterIcon,
+            }
+          : {};
+        return (
+          <PinsWrapper {...wrapperProps}>
       {visibleCafes.map((cafe) => {
         const stats = statsByCafe[cafe.id];
         const predictedStats = predictedStatsByCafe[cafe.id];
@@ -3497,7 +3510,9 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
           </Marker>
         );
       })}
-      </MarkerClusterGroup>
+          </PinsWrapper>
+        );
+      })()}
     </MapContainer>
         {/* 食べログ等と同じ「この範囲で再検索」ボタン。地図をドラッグ/
             ズームしただけではピンを更新せず、これをタップした時だけ
