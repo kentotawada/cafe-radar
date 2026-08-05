@@ -13,6 +13,12 @@ const CHARGESPOT_URL =
 // 次第Vercelの環境変数に入れるだけで切り替わる
 const WORKSPACE_URL = process.env.NEXT_PUBLIC_WORKSPACE_AFFILIATE_URL;
 
+// A8の素材はリンクと対で1x1のインプレッション計測gifが配布される。
+// 無くても成果(クリック→予約)は計測されるが、入れないと管理画面の
+// 表示回数が0のままでクリック率が出せない。任意設定
+const WORKSPACE_IMPRESSION_URL =
+  process.env.NEXT_PUBLIC_WORKSPACE_AFFILIATE_IMPRESSION_URL;
+
 // 「電源なし」または「混雑気味」のお店で、困っているユーザーに次の一手を
 // 提案するブロック。広告色を出しすぎないよう、あくまで案内・提案の
 // トーンでまとめる(枠自体はAdBannerとは別物で、アフィリエイト導線)
@@ -75,7 +81,7 @@ export default function AlternativeOptionsBlock({
         <a
           href={workspaceUrl}
           target="_blank"
-          rel="noopener noreferrer sponsored"
+          rel="noopener noreferrer sponsored nofollow"
           className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg px-3 py-2.5 hover:border-amber-300"
         >
           <span className="text-xl shrink-0" aria-hidden>
@@ -97,6 +103,12 @@ export default function AlternativeOptionsBlock({
           <span className="text-xs text-blue-600 shrink-0">探す →</span>
         </a>
       </div>
+
+      {/* A8のインプレッション計測用1x1gif。リンクを実際に出している時だけ送る */}
+      {WORKSPACE_URL && WORKSPACE_IMPRESSION_URL && (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={WORKSPACE_IMPRESSION_URL} width={1} height={1} alt="" aria-hidden />
+      )}
     </div>
   );
 }
