@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import InstallPromptBanner from "@/components/InstallPromptBanner";
 
@@ -56,6 +57,9 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         {children}
         <InstallPromptBanner />
+        {/* 実ユーザーの表示速度(Web Vitals)をVercelに送る。カフェ件数を増やした
+            影響がモバイルで出ていないかを実測で判断するために入れている */}
+        <SpeedInsights />
         {/* AdSenseの審査が通り、パブリッシャーIDが設定されるまではスクリプトを
             読み込まない(未審査サイトへの広告配信はポリシー違反になるため) */}
         {ADSENSE_ID && (
