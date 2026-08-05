@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import {
   MapContainer,
   Marker,
@@ -3053,6 +3054,16 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                 )}
 
                 <div className="flex items-center gap-2 text-[11px] sm:text-sm flex-wrap">
+                  {/* ポップアップからカフェ詳細ページへ行く唯一の導線。
+                      これが無いと、詳細ページは共有リンクとお気に入り経由
+                      でしか開けない(営業時間・定休日・代替手段の案内など、
+                      ポップアップに収まらない情報が全て届かなくなる) */}
+                  <Link
+                    href={`/cafe/${cafe.id}`}
+                    className="text-blue-600 underline font-semibold"
+                  >
+                    📄 このお店の詳細
+                  </Link>
                   <CafeDirectionsLink cafe={cafe} />
                   <a
                     href={searchUrl(cafe)}
