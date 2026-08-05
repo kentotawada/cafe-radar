@@ -86,8 +86,11 @@ export default function AlternativeOptionsBlock({
               別の作業場所を探す
             </div>
             <div className="text-xs text-gray-500">
+              {/* 広告主提供のPR文は「運営サイトへの転載は広告表示に適さない
+                  場合がある」と明記されているため転載しない。ここは公式サイト
+                  記載の事実(最短15分から/貸会議室・レンタルスペース)だけで書く */}
               {WORKSPACE_URL
-                ? "会議室・コワーキングを15分単位で予約"
+                ? "貸会議室・レンタルスペースを最短15分から予約"
                 : `${areaName}周辺のコワーキングスペース・ドロップイン施設`}
             </div>
           </div>
