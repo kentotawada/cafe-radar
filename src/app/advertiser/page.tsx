@@ -94,6 +94,87 @@ function LoginForm() {
   );
 }
 
+// 招待直後(advertisers.status='invited')はパスワードが未設定のまま。
+// 招待リンクの一時セッションが切れると二度とログインできなくなるので、
+// ダッシュボードに入る前にここで必ず設定してもらう
+function SetPasswordForm({ onDone }: { onDone: () => void }) {
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabase) return;
+    if (password !== confirmPassword) {
+      setError("確認用のパスワードが一致しません");
+      return;
+    }
+    setIsSubmitting(true);
+    setError(null);
+
+    const { error: updateError } = await supabase.auth.updateUser({ password });
+    if (updateError) {
+      setIsSubmitting(false);
+      setError(updateError.message);
+      return;
+    }
+    // パスワード設定が済んだ印。018のsecurity definer関数で、
+    // 呼び出し本人のinvited行のstatusだけがactiveになる
+    const { error: activateError } = await supabase.rpc("activate_own_advertiser");
+    setIsSubmitting(false);
+    if (activateError) {
+      setError("パスワードは設定できましたが、状態の更新に失敗しました。運営にお問い合わせください");
+      return;
+    }
+    onDone();
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white text-gray-900 border border-gray-300 rounded-lg shadow-md p-6 w-full max-w-sm flex flex-col gap-3"
+      >
+        <h1 className="text-lg font-bold">パスワードを設定してください</h1>
+        <p className="text-xs text-gray-600">
+          次回以降はこのパスワードでログインします。設定しないと再ログインできなくなるため、必ずここで登録してください。
+        </p>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-gray-700">パスワード(8文字以上)</span>
+          <input
+            type="password"
+            required
+            minLength={8}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="border border-gray-400 rounded px-2 py-1.5 text-base text-gray-900 bg-white"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-gray-700">パスワード(確認)</span>
+          <input
+            type="password"
+            required
+            minLength={8}
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className="border border-gray-400 rounded px-2 py-1.5 text-base text-gray-900 bg-white"
+          />
+        </label>
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="mt-2 bg-blue-600 text-white rounded px-3 py-2 text-sm font-semibold hover:bg-blue-700 disabled:opacity-50"
+        >
+          {isSubmitting ? "設定中…" : "このパスワードで登録する"}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 function UploadCreativeForm({
   advertiserId,
   userId,
@@ -304,6 +385,15 @@ export default function AdvertiserPage() {
           </button>
         </div>
       </div>
+    );
+  }
+
+  // 招待されたまだパスワード未設定の広告主は、先に設定させる
+  if (advertiser.status === "invited") {
+    return (
+      <SetPasswordForm
+        onDone={() => fetchAdvertiser(session.user.id).then(setAdvertiser)}
+      />
     );
   }
 
