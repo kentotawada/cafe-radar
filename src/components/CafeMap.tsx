@@ -4,6 +4,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { MAP_VIEW_KEY, FROM_MAP_KEY } from "@/lib/mapNavigation";
 import {
   MapContainer,
   Marker,
@@ -997,6 +998,52 @@ function MapBoundsTracker({
   return null;
 }
 
+// 店舗詳細ページへ移動するとCafeMapはアンマウントされ、戻ってくると
+// 完全に作り直される。表示していた場所はReactのstateにしか無かったため、
+// 戻ると初期位置に戻り、さらに現在地取得のuseEffectが走って現在地へ
+// 飛ばされていた。表示範囲をsessionStorageに逃がして復元する
+type SavedMapView = { center: [number, number]; zoom: number };
+
+function readSavedMapView(): SavedMapView | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(MAP_VIEW_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as SavedMapView;
+    const [lat, lng] = parsed.center ?? [];
+    if (typeof lat !== "number" || typeof lng !== "number") return null;
+    if (typeof parsed.zoom !== "number") return null;
+    return { center: [lat, lng], zoom: parsed.zoom };
+  } catch {
+    // 壊れた値が入っていても地図が開かなくなるのは避ける
+    return null;
+  }
+}
+
+function MapViewPersistence() {
+  const map = useMap();
+  useEffect(() => {
+    const save = () => {
+      const c = map.getCenter();
+      try {
+        window.sessionStorage.setItem(
+          MAP_VIEW_KEY,
+          JSON.stringify({ center: [c.lat, c.lng], zoom: map.getZoom() })
+        );
+      } catch {
+        // プライベートモード等で書けない場合は諦める(復元されないだけ)
+      }
+    };
+    map.on("moveend", save);
+    map.on("zoomend", save);
+    return () => {
+      map.off("moveend", save);
+      map.off("zoomend", save);
+    };
+  }, [map]);
+  return null;
+}
+
 // ランドマークが多いエリアでは、引いた表示だとラベルの文字同士が重なって
 // 読めなくなるため、ある程度ズームインした時だけラベルを表示する
 function ZoomTracker({ onChange }: { onChange: (zoom: number) => void }) {
@@ -1066,6 +1113,9 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   );
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [mapFocus, setMapFocus] = useState<[number, number] | null>(null);
+  // 詳細ページから戻ってきた時に前回の表示範囲を復元する。マウント時に
+  // 一度だけ読めばよいのでstateの初期化関数で取得する
+  const [savedMapView] = useState<SavedMapView | null>(readSavedMapView);
   const [areaQuery, setAreaQuery] = useState("");
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(
     () => typeof window !== "undefined" && window.innerWidth >= 640
@@ -1254,7 +1304,9 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
 
   // エリア検索など、ユーザーが自分で地図の表示先を選んだ後に、
   // 遅れて返ってきた位置情報がそれを上書きしてしまわないようにする
-  const hasManualFocusRef = useRef(false);
+  // 復元した表示位置がある時は「ユーザーが自分で選んだ場所」と同じ扱いに
+  // する。そうしないと直後に走る現在地取得が復元した位置を上書きしてしまう
+  const hasManualFocusRef = useRef(savedMapView !== null);
   // 現在地が取れたら自動で「近い順」にするが、ユーザーが自分で並び順を
   // 変えた後はそれを尊重して上書きしない
   const hasManualSortRef = useRef(false);
@@ -2462,12 +2514,13 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
       {/* 地図パネル。常に表示し、残りのスペースいっぱいに広がる */}
       <div className="cf-map-panel" ref={mapPanelRef}>
     <MapContainer
-      center={mapFocus ?? SHINJUKU_CENTER}
-      zoom={17}
+      center={mapFocus ?? savedMapView?.center ?? SHINJUKU_CENTER}
+      zoom={savedMapView?.zoom ?? 17}
       style={{ position: "absolute", inset: 0 }}
       attributionControl={false}
     >
       <RecenterOnLocate position={mapFocus} />
+      <MapViewPersistence />
       <MapBoundsTracker onChange={handleMapBoundsChange} />
       <ZoomTracker onChange={setMapZoom} />
       <PopupScrollGuard />
@@ -3060,6 +3113,16 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                       ポップアップに収まらない情報が全て届かなくなる) */}
                   <Link
                     href={`/cafe/${cafe.id}`}
+                    onClick={() => {
+                      // 詳細ページの「地図で見る」に、新しい履歴を積まずに
+                      // 戻ればよいことを伝える。積んでしまうと地図→詳細→地図
+                      // となり、ブラウザの戻るを2回押さないと抜けられない
+                      try {
+                        window.sessionStorage.setItem(FROM_MAP_KEY, "1");
+                      } catch {
+                        // 書けなくても遷移自体は成立させる
+                      }
+                    }}
                     className="text-blue-600 underline font-semibold"
                   >
                     📄 このお店の詳細

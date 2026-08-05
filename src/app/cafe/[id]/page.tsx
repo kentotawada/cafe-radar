@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   lookupCafeById,
@@ -11,6 +10,7 @@ import { hasOutlet } from "@/lib/cafeAmenities";
 import FavoriteToggleButton from "@/components/FavoriteToggleButton";
 import ShareButtons from "@/components/ShareButtons";
 import AlternativeOptionsBlock from "@/components/AlternativeOptionsBlock";
+import BackToMapLink from "@/components/BackToMapLink";
 import AdBanner from "@/components/AdBanner";
 import Footer from "@/components/Footer";
 import {
@@ -136,12 +136,9 @@ export default async function CafeDetailPage({ params }: PageProps) {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="border-b bg-white px-4 py-3">
-        <Link
-          href="/"
-          className="text-sm text-blue-600 underline flex items-center gap-1"
-        >
+        <BackToMapLink className="text-sm text-blue-600 underline flex items-center gap-1">
           ← カフェレーダーに戻る
-        </Link>
+        </BackToMapLink>
       </header>
       <main className="p-4 max-w-xl mx-auto flex flex-col gap-3">
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
@@ -235,12 +232,9 @@ export default async function CafeDetailPage({ params }: PageProps) {
               >
                 経路案内
               </a>
-              <Link
-                href="/"
-                className="flex-1 text-center text-sm bg-blue-600 text-white rounded-lg px-3 py-2 hover:bg-blue-700"
-              >
+              <BackToMapLink className="flex-1 text-center text-sm bg-blue-600 text-white rounded-lg px-3 py-2 hover:bg-blue-700">
                 地図で見る
-              </Link>
+              </BackToMapLink>
             </div>
 
             <ShareButtons title={`【${cafe.name}】電源・Wi-Fi・混雑状況 | カフェレーダー`} />
