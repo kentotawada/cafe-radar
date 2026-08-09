@@ -1134,6 +1134,13 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   // リスト内で該当のお店のカードまでスクロールするために、カードのDOM要素を
   // 覚えておく(件数が多いのでrefはstateではなくMapで管理する)
   const listItemRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  // 地図下の横スライドカード用。carouselSyncingRefは、選択に合わせて
+  // こちらからスクロールさせている間だけ立てる目印で、その間はスクロール
+  // 由来の選択更新を止める(選択→スクロール→選択…と往復するのを防ぐ)
+  const carouselRef = useRef<HTMLDivElement | null>(null);
+  const carouselCardRefs = useRef<Map<string, HTMLDivElement>>(new Map());
+  const carouselSyncingRef = useRef(false);
+  const carouselScrollTimerRef = useRef<number | null>(null);
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
   // ピンの表示に実際に使う「検索確定済み」の範囲。食べログ等と同じく、
   // ユーザーが地図を自由にドラッグ/ズームしただけではピンを更新せず、
@@ -1280,6 +1287,27 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   // 「ピンの説明」やリスト欄の展開状態で変わる)を実測して決めるので、
   // どんな組み合わせでも下のリスト欄と重ならず、途中で切れて見えなく
   // なることもない
+  // ピンやリストから店舗を選んだ時に、横スライドのカードも同じ店舗まで
+  // 送る。カード送りで選んだ場合は既に中央にあるので実質何も起きない
+  useEffect(() => {
+    if (!isListAtPeek || !selectedCafeId) return;
+    const container = carouselRef.current;
+    const card = carouselCardRefs.current.get(selectedCafeId);
+    if (!container || !card) return;
+    carouselSyncingRef.current = true;
+    // behavior:"smooth" はscroll-snap-type:mandatoryと併用すると
+    // アニメーション中にスナップへ引き戻されて一切動かない。instantにする
+    container.scrollTo({
+      left: card.offsetLeft - (container.clientWidth - card.offsetWidth) / 2,
+      behavior: "instant",
+    });
+    // 上のスクロールで発生するscrollイベントを1回分だけ受け流す
+    const timer = window.setTimeout(() => {
+      carouselSyncingRef.current = false;
+    }, 200);
+    return () => window.clearTimeout(timer);
+  }, [selectedCafeId, isListAtPeek]);
+
   const mapPanelRef = useRef<HTMLDivElement | null>(null);
   const [popupMaxHeight, setPopupMaxHeight] = useState(340);
   useEffect(() => {
@@ -2178,6 +2206,54 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
       );
     });
   }
+
+  // 地図の下に重ねる横スライドのカード。リストを畳んで地図を広く見ている
+  // ときに、指でカードを送りながらピンを順に確認できるようにする。
+  // 対象は「いま地図に写っているピン」に絞る。全1,989件を並べても
+  // 画面外の店舗まで延々と送ることになり、DOMも重くなるため
+  const carouselCafes = (() => {
+    if (!isListAtPeek) return [];
+    const visibleIds = new Set(visibleCafes.map((cafe) => cafe.id));
+    return listCafes.filter((cafe) => visibleIds.has(cafe.id)).slice(0, 30);
+  })();
+
+  // カード送りで店舗を選んだ時の処理。縦のリストと違い、ここでは
+  // pendingSearchSyncRefを立てない。立てると地図が寄った直後に検索範囲が
+  // 取り直され、carouselCafesが作り直されて、いま選んだカード自体が
+  // 一覧から消える(実際にそうなっていた)。カードに並んでいるのは元々
+  // 表示中のピンなので、ここで範囲を取り直す必要もない
+  const focusCafe = (cafe: Cafe) => {
+    setSelectedCafeId(cafe.id);
+    setMapFocus([cafe.lat, cafe.lng]);
+    hasManualFocusRef.current = true;
+  };
+
+  // 中央に来たカードの店舗を選ぶ。scrollイベントは指を動かす間ずっと
+  // 飛んでくるので、止まってから判定する
+  const handleCarouselScroll = () => {
+    if (carouselSyncingRef.current) return;
+    if (carouselScrollTimerRef.current !== null) {
+      window.clearTimeout(carouselScrollTimerRef.current);
+    }
+    carouselScrollTimerRef.current = window.setTimeout(() => {
+      const container = carouselRef.current;
+      if (!container) return;
+      const center = container.scrollLeft + container.clientWidth / 2;
+      let nearestId: string | null = null;
+      let nearestDistance = Infinity;
+      for (const [id, el] of carouselCardRefs.current) {
+        const cardCenter = el.offsetLeft + el.offsetWidth / 2;
+        const distance = Math.abs(cardCenter - center);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestId = id;
+        }
+      }
+      if (!nearestId || nearestId === selectedCafeId) return;
+      const cafe = carouselCafes.find((c) => c.id === nearestId);
+      if (cafe) focusCafe(cafe);
+    }, 120);
+  };
 
   // 「現在地からすぐ行ける、空いてそうなお店」を1タップで探す機能。
   // 現在の絞り込み条件は尊重しつつ、徒歩圏内(1.2km以内)で「満席」と
@@ -3588,6 +3664,95 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
         );
       })()}
     </MapContainer>
+
+      {/* 地図に重ねる横スライドのカード。リストを畳んで「エリア」「並び順」の
+          プルダウンだけが見えている状態のときに出す。展開時は縦のリストが
+          同じ役目を果たすので出さない。z-indexはLeafletのポップアップ層(700)
+          より上に置き、カードを送っている最中もカードが隠れないようにする */}
+      {carouselCafes.length > 0 && (
+        <div
+          ref={carouselRef}
+          onScroll={handleCarouselScroll}
+          className="cf-map-carousel absolute bottom-3 left-0 right-0 z-[800] flex gap-3 overflow-x-auto px-[12.5vw] snap-x snap-mandatory"
+        >
+          {carouselCafes.map((cafe) => {
+            const stats = statsByCafe[cafe.id];
+            const badges = getQuickBadges(cafe, stats, verifiedOutletCafeIds, lang);
+            const distance = userPosition
+              ? distanceMeters(userPosition, [cafe.lat, cafe.lng])
+              : null;
+            const isSelected = cafe.id === selectedCafeId;
+            return (
+              <div
+                key={cafe.id}
+                ref={(el) => {
+                  if (el) carouselCardRefs.current.set(cafe.id, el);
+                  else carouselCardRefs.current.delete(cafe.id);
+                }}
+                role="button"
+                tabIndex={0}
+                onClick={() => focusCafe(cafe)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    focusCafe(cafe);
+                  }
+                }}
+                className={`snap-center shrink-0 w-[75vw] max-w-xs bg-white rounded-xl shadow-lg border p-3 flex flex-col gap-1.5 cursor-pointer ${
+                  isSelected ? "border-blue-500 ring-2 ring-blue-200" : "border-gray-200"
+                }`}
+              >
+                <div className="flex items-start gap-2">
+                  <span
+                    className="inline-block w-3 h-3 rounded-full border border-white shadow mt-1 shrink-0"
+                    style={{ backgroundColor: statusColorForStats(stats) }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-sm text-gray-900 truncate">
+                      {cafe.name}
+                    </div>
+                    <div className="text-xs text-gray-500 truncate">
+                      {cafe.address ?? t("list.noAddress")}
+                    </div>
+                  </div>
+                  {distance !== null && (
+                    <div className="text-[10px] font-semibold text-blue-700 bg-blue-50 rounded-full px-2 py-0.5 shrink-0">
+                      🚶 {formatWalkBadge(distance)}
+                    </div>
+                  )}
+                </div>
+                {badges.length > 0 && (
+                  <div className="flex gap-1 overflow-hidden">
+                    {badges.slice(0, 3).map((badge) => (
+                      <span
+                        key={badge.key}
+                        className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap ${badge.className}`}
+                      >
+                        {badge.emoji} {badge.label}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <Link
+                  href={`/cafe/${cafe.id}`}
+                  onClick={(e) => {
+                    // カード自体のonClick(地図を寄せる)と二重に動かない
+                    e.stopPropagation();
+                    try {
+                      window.sessionStorage.setItem(FROM_MAP_KEY, "1");
+                    } catch {
+                      // 書けなくても遷移自体は成立させる
+                    }
+                  }}
+                  className="self-start text-xs text-blue-600 underline font-semibold"
+                >
+                  📄 このお店の詳細
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+      )}
         {/* 食べログ等と同じ「この範囲で再検索」ボタン。地図をドラッグ/
             ズームしただけではピンを更新せず、これをタップした時だけ
             表示中の範囲でピンを再検索する */}

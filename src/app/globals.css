@@ -212,3 +212,16 @@ body {
 .landmark-tooltip::before {
   display: none !important;
 }
+
+/* 地図に重ねる横スライドのカード。スクロールバーが常時見えると
+   カードの下端に灰色の帯が乗って見えるため隠す(操作は指のスワイプ) */
+/* scroll-behavior: smooth はここには入れないこと。指のスワイプまで
+   アニメーション扱いになり、位置の反映が遅れて選択がずれる。
+   選択に追従させるスクロールはJS側でbehavior:"instant"を指定している */
+.cf-map-carousel {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.cf-map-carousel::-webkit-scrollbar {
+  display: none;
+}
