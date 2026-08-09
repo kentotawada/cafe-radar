@@ -38,6 +38,11 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
   },
+  // Search Consoleの所有権確認用。<meta name="google-site-verification">として
+  // 出力される。確認が済んだ後も、外すと所有権が失われるため残しておくこと
+  verification: {
+    google: "FmYW6GIGbBfsUJ0SVa0NnQyK3wqZS1aFSvvASHZMrfY",
+  },
 };
 
 export const viewport: Viewport = {
