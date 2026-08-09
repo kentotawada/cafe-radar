@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Script from "next/script";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import InstallPromptBanner from "@/components/InstallPromptBanner";
@@ -70,12 +69,17 @@ export default function RootLayout({
             これを使ってサイトを確認するため、外すと審査が進まない)。
             承認前は広告自体が配信されずunfilledが返るだけなので、
             置いておくこと自体は問題にならない */}
+        {/* next/scriptのScriptは、afterInteractiveでもbeforeInteractiveでも
+            サーバーHTMLにはpreloadリンクとNext内部のキュー(__next_s)しか
+            出力せず、実体の<script>はJS実行後に挿入される。AdSenseの所有権
+            確認はHTMLを取得して判定するため、それでは検出されない。
+            素の<script async>として書くとReactがそのままHTMLに描画するので、
+            クローラーからも見える。ここはScriptコンポーネントに戻さないこと */}
         {ADSENSE_ID && (
-          <Script
+          <script
             async
             src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_ID}`}
             crossOrigin="anonymous"
-            strategy="afterInteractive"
           />
         )}
       </body>
