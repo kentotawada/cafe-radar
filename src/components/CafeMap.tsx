@@ -236,22 +236,36 @@ function createCupPinIcon(
   usageStyle: CafeUsageStyle,
   showOutletPlug: boolean,
   displaySize: number = CUP_PIN_DISPLAY_SIZE,
-  highlighted: boolean = false
+  highlighted: boolean = false,
+  favorite: boolean = false
 ) {
   const scale = displaySize / CUP_PIN_VIEWBOX;
   const svgHtml = cupPinSvgMarkup(statusColor, usageStyle, showOutletPlug, displaySize);
+  // お気に入りの店は、地図を眺めているだけで見分けられるように
+  // ピンの右上に★を重ねる。白フチを付けて背景が濃い地図でも埋もれないようにする
+  const favoriteHtml = favorite
+    ? `<div style="position:absolute;top:-2px;right:-2px;font-size:${Math.round(
+        displaySize * 0.42
+      )}px;line-height:1;color:#f59e0b;text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 2px #fff,0 0 2px #fff;pointer-events:none;">★</div>`
+    : "";
   // アンカー(ピンの指す先端)は、プラグがあればプラグの先端、
   // 無ければカップの底(丸い台座)にする
   const anchorY = showOutletPlug ? 33 : 21;
   const anchorPx = Math.round(anchorY * scale);
   // 選択中のピンは、先端から広がるパルスリングを足して地図上で
   // すぐ見つけられるようにする
-  const html = highlighted
-    ? `<div style="position:relative;width:${displaySize}px;height:${displaySize}px;">
-        <div class="cf-pin-pulse-ring" style="bottom:${displaySize - anchorPx}px;"></div>
+  const html =
+    highlighted || favorite
+      ? `<div style="position:relative;width:${displaySize}px;height:${displaySize}px;">
+        ${
+          highlighted
+            ? `<div class="cf-pin-pulse-ring" style="bottom:${displaySize - anchorPx}px;"></div>`
+            : ""
+        }
         ${svgHtml}
+        ${favoriteHtml}
       </div>`
-    : svgHtml;
+      : svgHtml;
   return L.divIcon({
     className: "",
     html,
@@ -268,9 +282,10 @@ function getCafePinIcon(
   statusColor: string,
   usageStyle: CafeUsageStyle,
   showOutletPlug: boolean,
-  highlighted: boolean = false
+  highlighted: boolean = false,
+  favorite: boolean = false
 ) {
-  const key = `${statusColor}|${usageStyle}|${showOutletPlug}|${highlighted}`;
+  const key = `${statusColor}|${usageStyle}|${showOutletPlug}|${highlighted}|${favorite}`;
   let icon = cafePinIconCache.get(key);
   if (!icon) {
     icon = createCupPinIcon(
@@ -278,7 +293,8 @@ function getCafePinIcon(
       usageStyle,
       showOutletPlug,
       highlighted ? CUP_PIN_HIGHLIGHT_SIZE : CUP_PIN_DISPLAY_SIZE,
-      highlighted
+      highlighted,
+      favorite
     );
     cafePinIconCache.set(key, icon);
   }
@@ -639,14 +655,16 @@ function iconForCafe(
   cafe: Cafe,
   stats: CafeStats | null,
   verifiedOutletCafeIds: Set<string>,
-  highlighted: boolean = false
+  highlighted: boolean = false,
+  favorite: boolean = false
 ) {
   const statusColor = statusColorForStats(stats);
   return getCafePinIcon(
     statusColor,
     getCafeUsageStyle(cafe),
     hasOutlet(cafe, verifiedOutletCafeIds),
-    highlighted
+    highlighted,
+    favorite
   );
 }
 
@@ -2397,8 +2415,10 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
         >
           {/* ドラッグハンドル。スマホでのみ表示し、指でリスト欄の高さを
               調整できるようにする(ピーク/既定/最大の3段階にスナップ) */}
+          {/* 取っ手は見た目こそ細い棒だが、指で掴む領域は広くとる。
+              py-1.5(全体で約18px)では小さすぎて掴み損ねていた */}
           <div
-            className="sm:hidden flex items-center justify-center py-1.5 touch-none cursor-grab active:cursor-grabbing"
+            className="sm:hidden flex items-center justify-center py-3.5 -my-1 touch-none cursor-grab active:cursor-grabbing"
             onPointerDown={(e) => {
               e.currentTarget.setPointerCapture(e.pointerId);
               beginListDrag(e.clientY);
@@ -3137,7 +3157,8 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
               cafe,
               stats,
               verifiedOutletCafeIds,
-              cafe.id === selectedCafeId
+              cafe.id === selectedCafeId,
+              isFavorite
             )}
           >
             <Popup
@@ -3695,6 +3716,16 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
               ? distanceMeters(userPosition, [cafe.lat, cafe.lng])
               : null;
             const isSelected = cafe.id === selectedCafeId;
+            const isFavorite = favorites.has(cafe.id);
+            // みんなの投稿があるお店は、ポップアップを開かなくても
+            // 混雑度がわかるようにカード上に出す
+            const seatPercent = stats
+              ? weightedPercent(
+                  stats.seatingOccupancyCounts,
+                  OCCUPANCY_SCORE,
+                  stats.totalReporters
+                )
+              : null;
             return (
               <div
                 key={cafe.id}
@@ -3720,26 +3751,55 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                     className="inline-block w-3 h-3 rounded-full border border-white shadow mt-1 shrink-0"
                     style={{ backgroundColor: statusColorForStats(stats) }}
                   />
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm text-gray-900 truncate">
-                      {cafe.name}
-                    </div>
-                    <div className="text-xs text-gray-500 truncate">
-                      {cafe.address ?? t("list.noAddress")}
-                    </div>
+                  {/* 店名は省略せず全部出す。カードの幅で折り返す */}
+                  <div className="flex-1 min-w-0 font-semibold text-sm text-gray-900 break-words">
+                    {cafe.name}
                   </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleFavorite(cafe.id);
+                    }}
+                    aria-label={
+                      isFavorite ? "お気に入りから解除" : "お気に入りに追加"
+                    }
+                    title={isFavorite ? "お気に入りから解除" : "お気に入りに追加"}
+                    className={`shrink-0 text-lg leading-none ${
+                      isFavorite ? "text-yellow-500" : "text-gray-300"
+                    }`}
+                  >
+                    ★
+                  </button>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
                   {distance !== null && (
-                    <div className="text-[10px] font-semibold text-blue-700 bg-blue-50 rounded-full px-2 py-0.5 shrink-0">
+                    <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 rounded-full px-2 py-0.5">
                       🚶 {formatWalkBadge(distance)}
-                    </div>
+                    </span>
+                  )}
+                  {seatPercent !== null && (
+                    <span
+                      className={`text-[10px] font-semibold rounded-full px-2 py-0.5 ${
+                        seatPercent >= 80
+                          ? "bg-red-100 text-red-800"
+                          : seatPercent >= 50
+                            ? "bg-amber-100 text-amber-800"
+                            : "bg-green-100 text-green-800"
+                      }`}
+                    >
+                      混雑度 {seatPercent}%
+                    </span>
                   )}
                 </div>
                 {badges.length > 0 && (
-                  <div className="flex gap-1 overflow-hidden">
-                    {badges.slice(0, 3).map((badge) => (
+                  // みんなの投稿から出るバッジ(混雑気味・うるさめ)は
+                  // getQuickBadgesの末尾に付くため、件数で切ると真っ先に
+                  // 消えてしまう。折り返して全部見せる
+                  <div className="flex flex-wrap gap-1">
+                    {badges.map((badge) => (
                       <span
                         key={badge.key}
-                        className={`text-[10px] px-1.5 py-0.5 rounded-full whitespace-nowrap ${badge.className}`}
+                        className={`text-[10px] px-1.5 py-0.5 rounded-full ${badge.className}`}
                       >
                         {badge.emoji} {badge.label}
                       </span>

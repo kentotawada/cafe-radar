@@ -84,7 +84,7 @@ const dictionary = {
     "favorites.shareTitle": "お気に入りカフェ",
     "favorites.copied": "リンクをコピーしました",
 
-    "quickReport.fab": "投稿する",
+    "quickReport.fab": "いまの様子を報告",
     "quickReport.available": "空いている",
     "quickReport.full": "混んでいる",
     "quickReport.outletOk": "電源使えた",
@@ -193,7 +193,7 @@ const dictionary = {
     "favorites.shareTitle": "Favorite cafes",
     "favorites.copied": "Link copied",
 
-    "quickReport.fab": "Report",
+    "quickReport.fab": "Report conditions",
     "quickReport.available": "Seats available",
     "quickReport.full": "Crowded",
     "quickReport.outletOk": "Outlet works",

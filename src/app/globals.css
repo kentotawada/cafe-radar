@@ -52,6 +52,12 @@ body {
   overflow-y: auto;
   background: #f9fafb;
   border-top: 1px solid #d1d5db;
+  /* リストを端まで送った後もそのまま指を動かすと、スクロールがページ本体へ
+     連鎖してスマホの画面全体が上下に揺れ、リストが動かなくなっていた。
+     containで連鎖を止め、スクロールをこの欄の中だけで完結させる */
+  overscroll-behavior: contain;
+  /* iOSで指を離した後の慣性スクロールを効かせる */
+  -webkit-overflow-scrolling: touch;
 }
 @media (min-width: 640px) {
   .cf-list-panel {
