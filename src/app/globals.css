@@ -39,6 +39,22 @@ body {
   display: flex;
   flex-direction: column;
 }
+
+/* Chromeはページ最上部でさらに下へ引くと「引っ張って更新」に入る。
+   リスト欄を指で動かそうとした時にこれが誘発され、リストではなく画面全体が
+   上下に動いてしまっていた。地図の画面でだけ切る(記事ページでは残す) */
+html:has(.cf-shell),
+body:has(.cf-shell) {
+  overscroll-behavior-y: none;
+}
+
+/* 地図の上に置くボタン。白地に薄いグレー枠だと、明るい地図タイルに
+   溶けて輪郭が見えづらい。枠を一段濃くして影を強め、地図から浮かせる */
+.cf-map-btn {
+  background: #ffffff;
+  border-color: #9ca3af;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
 @media (min-width: 640px) {
   .cf-shell {
     flex-direction: row;

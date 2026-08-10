@@ -798,7 +798,7 @@ function AttributionInfoButton() {
         onClick={() => setOpen(true)}
         aria-label={t("attribution.title")}
         title={t("attribution.title")}
-        className="bg-white/90 rounded-full shadow border border-gray-300 w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center text-xs sm:text-sm font-semibold text-gray-600 cursor-pointer"
+        className="cf-map-btn rounded-full shadow border border-gray-300 w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center text-xs sm:text-sm font-semibold text-gray-600 cursor-pointer"
       >
         {t("attribution.button")}
       </button>
@@ -898,7 +898,7 @@ function InquiryButton() {
         onClick={() => setOpen(true)}
         aria-label={t("inquiry.title")}
         title={t("inquiry.title")}
-        className="bg-white/90 rounded-full shadow border border-gray-300 h-6 px-2 sm:h-8 sm:px-3 flex items-center gap-1 text-[10px] sm:text-sm font-semibold text-gray-700 cursor-pointer"
+        className="cf-map-btn rounded-full shadow border border-gray-300 h-6 px-2 sm:h-8 sm:px-3 flex items-center gap-1 text-[10px] sm:text-sm font-semibold text-gray-700 cursor-pointer"
       >
         ✉ {t("inquiry.button")}
       </button>
@@ -3014,7 +3014,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
           )}
           <button
             onClick={() => setIsReportFabOpen((prev) => !prev)}
-            className="bg-white rounded-full shadow-lg border border-gray-300 h-9 sm:h-10 px-3 flex items-center gap-1 text-xs sm:text-sm font-semibold text-gray-900"
+            className="cf-map-btn rounded-full shadow-lg border border-gray-300 h-9 sm:h-10 px-3 flex items-center gap-1 text-xs sm:text-sm font-semibold text-gray-900"
             aria-label={t("quickReport.fab")}
             title={t("quickReport.fab")}
           >
@@ -3026,7 +3026,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
             disabled={isLocating}
             aria-label="現在地に戻る"
             title="現在地に戻る"
-            className="bg-white rounded-full shadow-lg border border-gray-300 w-10 h-10 flex items-center justify-center disabled:opacity-50"
+            className="cf-map-btn rounded-full shadow-lg border border-gray-300 w-10 h-10 flex items-center justify-center disabled:opacity-50"
           >
             {isLocating ? (
               <svg
@@ -3087,7 +3087,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
           ) : (
             <button
               onClick={startAddingCafe}
-              className="bg-white rounded-full shadow-lg border border-gray-300 px-2 h-7 sm:px-3 sm:h-10 flex items-center gap-1 text-xs sm:text-sm font-semibold text-gray-900"
+              className="cf-map-btn rounded-full shadow-lg border border-gray-300 px-2 h-7 sm:px-3 sm:h-10 flex items-center gap-1 text-xs sm:text-sm font-semibold text-gray-900"
             >
               {t("addCafe.button")}
             </button>
