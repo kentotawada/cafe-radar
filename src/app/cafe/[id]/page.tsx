@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   lookupCafeById,
   nearestAreaName,
   nearestStationWalkMinutes,
 } from "@/lib/lookupCafe";
+import { areas } from "@/data/areas";
 import { supabase } from "@/lib/supabaseClient";
 import { hasOutlet } from "@/lib/cafeAmenities";
 import FavoriteToggleButton from "@/components/FavoriteToggleButton";
@@ -98,6 +100,7 @@ export default async function CafeDetailPage({ params }: PageProps) {
   if (!cafe) notFound();
 
   const area = nearestAreaName(cafe.lat, cafe.lng);
+  const areaId = areas.find((a) => a.name === area)?.id ?? null;
   const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
     cafe.address ?? `${cafe.lat},${cafe.lng}`
   )}`;
@@ -144,9 +147,20 @@ export default async function CafeDetailPage({ params }: PageProps) {
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
           <div className="bg-gradient-to-r from-blue-50 to-white px-5 pt-5 pb-4 flex flex-col gap-2">
             <div className="flex items-start justify-between gap-2">
-              <span className="text-xs font-semibold text-blue-700 bg-blue-100 rounded-full px-2.5 py-1">
-                📍 {area}周辺
-              </span>
+              {/* エリアのまとめページへ送る。検索から個別店舗に来た人が
+                  同じエリアの他店も見られるようにする(内部リンクにもなる) */}
+              {areaId ? (
+                <Link
+                  href={`/area/${areaId}`}
+                  className="text-xs font-semibold text-blue-700 bg-blue-100 rounded-full px-2.5 py-1 hover:bg-blue-200"
+                >
+                  📍 {area}周辺のカフェを見る
+                </Link>
+              ) : (
+                <span className="text-xs font-semibold text-blue-700 bg-blue-100 rounded-full px-2.5 py-1">
+                  📍 {area}周辺
+                </span>
+              )}
               <FavoriteToggleButton cafeId={cafe.id} />
             </div>
             <h1 className="text-2xl font-bold text-gray-900 leading-snug">

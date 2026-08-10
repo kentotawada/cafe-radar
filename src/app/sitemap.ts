@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { seedCafes } from "@/lib/seedCafes";
+import { areas } from "@/data/areas";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -28,5 +29,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.8,
   }));
 
-  return [...staticPages, ...cafePages];
+  // エリア別まとめページ。個別店舗より検索で戦える受け皿なので、
+  // 店舗ページより高い優先度にしておく
+  const areaPages: MetadataRoute.Sitemap = areas.map((area) => ({
+    url: `${SITE_URL}/area/${area.id}`,
+    changeFrequency: "weekly",
+    priority: 0.9,
+  }));
+
+  return [...staticPages, ...areaPages, ...cafePages];
 }
