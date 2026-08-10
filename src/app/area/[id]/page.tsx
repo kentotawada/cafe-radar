@@ -49,13 +49,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const shortName = area.name.replace("駅", "");
   const outletCount = cafes.filter((cafe) => hasOutlet(cafe)).length;
 
+  // 実際に検索されるのは「電源」より「コンセント」が多い(例:
+  // 「新宿 コンセント カフェ」)。データ側には「コンセント」を含む
+  // 記述が多数あるのに、ページ側の文言が「電源」だけで揃っていたため
+  // 検索語と一致していなかった。両方を含める
   return {
-    title: `${shortName}で電源・Wi-Fiが使えるカフェ${cafes.length}選`,
-    description: `${shortName}周辺のカフェ${cafes.length}軒を、電源の有無・Wi-Fi・喫煙可否・座席数で調べてまとめました。電源が使えるお店は${outletCount}軒。混雑状況は利用者の投稿でリアルタイムに更新されます。`,
+    title: `${shortName}でコンセント・電源が使えるカフェ${cafes.length}選`,
+    description: `${shortName}周辺のカフェ${cafes.length}軒を、コンセント(電源)の有無・Wi-Fi・座席数・喫煙可否まで1軒ずつ調べてまとめました。電源が使えるお店は${outletCount}軒。仕事や勉強の作業場所探しに。混雑状況は利用者の投稿でリアルタイムに更新されます。`,
     alternates: { canonical: `/area/${area.id}` },
     openGraph: {
-      title: `${shortName}で電源・Wi-Fiが使えるカフェ${cafes.length}選 | カフェレーダー`,
-      description: `電源が使えるお店は${outletCount}軒。座席数や喫煙可否まで1軒ずつ調べています。`,
+      title: `${shortName}でコンセント・電源が使えるカフェ${cafes.length}選 | カフェレーダー`,
+      description: `コンセントが使えるお店は${outletCount}軒。座席数や喫煙可否まで1軒ずつ調べています。`,
       type: "article",
     },
   };
@@ -90,10 +94,11 @@ export default async function AreaPage({ params }: PageProps) {
         </div>
 
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mt-3">
-          {shortName}で電源・Wi-Fiが使えるカフェ{cafes.length}選
+          {shortName}でコンセント・電源が使えるカフェ{cafes.length}選
         </h1>
         <p className="text-sm text-gray-600 mt-2 leading-relaxed">
-          {shortName}周辺のカフェを1軒ずつ調べ、電源の有無・Wi-Fi・喫煙可否・座席数をまとめました。
+          {shortName}周辺のカフェを1軒ずつ調べ、コンセント(電源)の有無・Wi-Fi・喫煙可否・座席数をまとめました。
+          仕事や勉強で作業できる場所を探すときにお使いください。
           営業時間や座席数は各店舗の公表情報をもとにしています。混雑状況は利用者の投稿でリアルタイムに更新されます。
         </p>
 
@@ -146,6 +151,19 @@ export default async function AreaPage({ params }: PageProps) {
                               {badge.emoji} {badge.label}
                             </span>
                           ))}
+                        </div>
+                      )}
+                      {/* 電源の説明文そのものを出す。このページを開く人が
+                          一番知りたい情報であり、原文には「コンセント」を
+                          含む記述が多く、検索語とも一致する */}
+                      {cafe.outletInfo && (
+                        <div className="text-xs text-blue-800 bg-blue-50 rounded px-2 py-1 mt-1.5">
+                          🔌 {cafe.outletInfo}
+                        </div>
+                      )}
+                      {cafe.wifiInfo && (
+                        <div className="text-xs text-gray-600 mt-1">
+                          📶 {cafe.wifiInfo}
                         </div>
                       )}
                       {cafe.hoursInfo && (
