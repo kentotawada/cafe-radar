@@ -1327,11 +1327,18 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   }, [selectedCafeId, isListAtPeek]);
 
   const mapPanelRef = useRef<HTMLDivElement | null>(null);
+
   const [popupMaxHeight, setPopupMaxHeight] = useState(340);
   useEffect(() => {
     const el = mapPanelRef.current;
     if (!el || typeof ResizeObserver === "undefined") return;
     const updatePopupMaxHeight = () => {
+      // リスト欄をドラッグしている間は地図欄の高さが1フレームごとに変わる。
+      // ここでsetStateすると、ピン・カード一式を抱えたこのコンポーネントが
+      // 毎フレーム再描画されて指の動きに付いてこない(ドラッグ処理側が
+      // わざわざDOM直書きで再描画を避けている意味も無くなる)。
+      // 指を離した時にサイズが確定してから改めて計算する
+      if (listDragStateRef.current) return;
       const isMobile = window.innerWidth < 640;
       const chrome = isMobile ? 110 : 140; // ポップアップ自体の余白・閉じるボタン分
       const cap = isMobile ? 300 : 340;
@@ -2272,6 +2279,30 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
       if (cafe) focusCafe(cafe);
     }, 120);
   };
+
+  // 地図下端のコントロールをカードの高さ分だけ押し上げる。カードの高さは
+  // 店名の折り返しやバッジの数で変わるため、固定値だと足りずに重なる
+  // (実際、128pxの決め打ちでは142pxのカードに「お店を追加」が被っていた)。
+  // 実測してCSS変数に書く。stateを使うと再描画になるのでDOMへ直接書く
+  useEffect(() => {
+    const panel = mapPanelRef.current;
+    if (!panel) return;
+    const carousel = carouselRef.current;
+    if (!carousel) {
+      panel.style.removeProperty("--cf-carousel-h");
+      return;
+    }
+    const apply = () =>
+      panel.style.setProperty(
+        "--cf-carousel-h",
+        `${Math.round(carousel.getBoundingClientRect().height)}px`
+      );
+    apply();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(apply);
+    observer.observe(carousel);
+    return () => observer.disconnect();
+  }, [carouselCafes.length, selectedCafeId]);
 
   // 「現在地からすぐ行ける、空いてそうなお店」を1タップで探す機能。
   // 現在の絞り込み条件は尊重しつつ、徒歩圏内(1.2km以内)で「満席」と
@@ -3718,14 +3749,19 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
             const isSelected = cafe.id === selectedCafeId;
             const isFavorite = favorites.has(cafe.id);
             // みんなの投稿があるお店は、ポップアップを開かなくても
-            // 混雑度がわかるようにカード上に出す
-            const seatPercent = stats
+            // 混雑度がわかるようにカード上に出す。直近30分の投稿が無い
+            // 場合は、同じ曜日・時間帯の過去の投稿からの予測に切り替える。
+            // ライブと予測は必ず区別できるようにラベルを分ける
+            const predicted = predictedStatsByCafe[cafe.id];
+            const occupancySource = stats ?? predicted ?? null;
+            const seatPercent = occupancySource
               ? weightedPercent(
-                  stats.seatingOccupancyCounts,
+                  occupancySource.seatingOccupancyCounts,
                   OCCUPANCY_SCORE,
-                  stats.totalReporters
+                  occupancySource.totalReporters
                 )
               : null;
+            const isPredicted = !stats && Boolean(predicted);
             return (
               <div
                 key={cafe.id}
@@ -3742,7 +3778,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                     focusCafe(cafe);
                   }
                 }}
-                className={`snap-center shrink-0 w-[75vw] max-w-xs bg-white rounded-xl shadow-lg border p-3 flex flex-col gap-1.5 cursor-pointer ${
+                className={`snap-center shrink-0 w-[75vw] max-w-xs bg-white rounded-xl shadow-lg border px-2.5 py-2 flex flex-col gap-1 cursor-pointer ${
                   isSelected ? "border-blue-500 ring-2 ring-blue-200" : "border-gray-200"
                 }`}
               >
@@ -3780,14 +3816,16 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                   {seatPercent !== null && (
                     <span
                       className={`text-[10px] font-semibold rounded-full px-2 py-0.5 ${
-                        seatPercent >= 80
-                          ? "bg-red-100 text-red-800"
-                          : seatPercent >= 50
-                            ? "bg-amber-100 text-amber-800"
-                            : "bg-green-100 text-green-800"
+                        isPredicted
+                          ? "bg-gray-100 text-gray-600"
+                          : seatPercent >= 80
+                            ? "bg-red-100 text-red-800"
+                            : seatPercent >= 50
+                              ? "bg-amber-100 text-amber-800"
+                              : "bg-green-100 text-green-800"
                       }`}
                     >
-                      混雑度 {seatPercent}%
+                      混雑度 {seatPercent}%{isPredicted ? "(予測)" : ""}
                     </span>
                   )}
                 </div>

@@ -229,12 +229,12 @@ body {
   -ms-overflow-style: none;
 }
 
-/* カードが出ている間は、地図下端のコントロール(お店を追加/投稿する/
-   現在地に戻る)をカードの高さ分だけ押し上げて重ならないようにする。
-   カードの高さは中身(店名・住所・バッジ)で変わるため、実測ではなく
-   余裕をみた固定値にしている */
+/* カードが出ている間は、地図下端のコントロール(お店を追加/いまの様子を
+   報告/現在地に戻る)をカードの高さ分だけ押し上げる。高さは店名の
+   折り返しやバッジ数で変わるので、JS側が実測して--cf-carousel-hに
+   書き込む。読み込み直後などまだ未計測のときだけ既定値を使う */
 .cf-map-panel.cf-has-carousel .leaflet-bottom {
-  bottom: 128px;
+  bottom: calc(var(--cf-carousel-h, 140px) + 14px);
 }
 .cf-map-carousel::-webkit-scrollbar {
   display: none;
