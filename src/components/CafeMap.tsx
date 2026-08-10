@@ -4,6 +4,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { MAP_VIEW_KEY, MAP_UI_KEY, FROM_MAP_KEY } from "@/lib/mapNavigation";
 import {
   MapContainer,
@@ -1028,6 +1029,9 @@ type SavedMapUi = {
   areaQuery: string;
   sortOrder: SortOrder;
   listHeight: number | null;
+  // 選んでいた店舗。これが無いと、詳細ページから戻った時に横スライドの
+  // カードが必ず先頭に巻き戻ってしまう
+  selectedCafeId: string | null;
 };
 
 function readSavedMapUi(): SavedMapUi | null {
@@ -1042,6 +1046,8 @@ function readSavedMapUi(): SavedMapUi | null {
       sortOrder: parsed.sortOrder,
       listHeight:
         typeof parsed.listHeight === "number" ? parsed.listHeight : null,
+      selectedCafeId:
+        typeof parsed.selectedCafeId === "string" ? parsed.selectedCafeId : null,
     };
   } catch {
     return null;
@@ -1104,6 +1110,7 @@ function ZoomTracker({ onChange }: { onChange: (zoom: number) => void }) {
 }
 
 export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }) {
+  const router = useRouter();
   const { t, lang } = useLang();
   const [reportsByCafe, setReportsByCafe] = useState<Record<string, Report[]>>({});
   const [factsByCafe, setFactsByCafe] = useState<Record<string, CafeFact[]>>({});
@@ -1217,7 +1224,9 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   };
   const [mapZoom, setMapZoom] = useState(17);
   const [sortOrder, setSortOrder] = useState<SortOrder>(savedMapUi?.sortOrder ?? "recommended");
-  const [selectedCafeId, setSelectedCafeId] = useState<string | null>(null);
+  const [selectedCafeId, setSelectedCafeId] = useState<string | null>(
+    savedMapUi?.selectedCafeId ?? null
+  );
   const [isListPanelOpen, setIsListPanelOpen] = useState(true);
 
   // スマホ(縦画面)ではリスト欄を指でドラッグして高さを調整できるように
@@ -1360,12 +1369,17 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     try {
       window.sessionStorage.setItem(
         MAP_UI_KEY,
-        JSON.stringify({ areaQuery, sortOrder, listHeight: listPanelHeightPx })
+        JSON.stringify({
+          areaQuery,
+          sortOrder,
+          listHeight: listPanelHeightPx,
+          selectedCafeId,
+        })
       );
     } catch {
       // プライベートモード等で書けない場合は復元を諦める
     }
-  }, [areaQuery, sortOrder, listPanelHeightPx]);
+  }, [areaQuery, sortOrder, listPanelHeightPx, selectedCafeId]);
 
   const mapPanelRef = useRef<HTMLDivElement | null>(null);
 
@@ -2288,6 +2302,18 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   // 取り直され、carouselCafesが作り直されて、いま選んだカード自体が
   // 一覧から消える(実際にそうなっていた)。カードに並んでいるのは元々
   // 表示中のピンなので、ここで範囲を取り直す必要もない
+  // カードを「タップ」した時だけ詳細へ送る。カードを横に送る操作でも
+  // pointerup は起きるので、押した位置からほとんど動いていない時に限る
+  const cardPointerRef = useRef<{ x: number; y: number } | null>(null);
+  const openCafeDetail = (cafe: Cafe) => {
+    try {
+      window.sessionStorage.setItem(FROM_MAP_KEY, "1");
+    } catch {
+      // 書けなくても遷移自体は成立させる
+    }
+    router.push(`/cafe/${cafe.id}`);
+  };
+
   const focusCafe = (cafe: Cafe) => {
     setSelectedCafeId(cafe.id);
     setMapFocus([cafe.lat, cafe.lng]);
@@ -3823,11 +3849,26 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                 }}
                 role="button"
                 tabIndex={0}
-                onClick={() => focusCafe(cafe)}
+                onPointerDown={(e) => {
+                  cardPointerRef.current = { x: e.clientX, y: e.clientY };
+                }}
+                onPointerUp={(e) => {
+                  const start = cardPointerRef.current;
+                  cardPointerRef.current = null;
+                  if (!start) return;
+                  // 10pxを超えて動いていたらカード送り。詳細へは飛ばさない
+                  if (
+                    Math.abs(e.clientX - start.x) > 10 ||
+                    Math.abs(e.clientY - start.y) > 10
+                  ) {
+                    return;
+                  }
+                  openCafeDetail(cafe);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    focusCafe(cafe);
+                    openCafeDetail(cafe);
                   }
                 }}
                 className={`snap-center shrink-0 w-[75vw] max-w-xs bg-white rounded-xl shadow-lg border px-2.5 py-2 flex flex-col gap-1 cursor-pointer ${
@@ -3915,21 +3956,11 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                     ))}
                   </div>
                 )}
-                <Link
-                  href={`/cafe/${cafe.id}`}
-                  onClick={(e) => {
-                    // カード自体のonClick(地図を寄せる)と二重に動かない
-                    e.stopPropagation();
-                    try {
-                      window.sessionStorage.setItem(FROM_MAP_KEY, "1");
-                    } catch {
-                      // 書けなくても遷移自体は成立させる
-                    }
-                  }}
-                  className="self-start text-xs text-blue-600 underline font-semibold"
-                >
-                  📄 このお店の詳細
-                </Link>
+                {/* カードのどこを押しても詳細へ飛ぶので、専用のリンクは
+                    置かない。押せることが伝わるよう表示だけ残す */}
+                <div className="self-start text-xs text-blue-600 font-semibold">
+                  📄 タップで詳細
+                </div>
               </div>
             );
           })}
