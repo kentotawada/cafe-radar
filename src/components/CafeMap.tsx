@@ -4,7 +4,7 @@ import { Fragment, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { MAP_VIEW_KEY, FROM_MAP_KEY } from "@/lib/mapNavigation";
+import { MAP_VIEW_KEY, MAP_UI_KEY, FROM_MAP_KEY } from "@/lib/mapNavigation";
 import {
   MapContainer,
   Marker,
@@ -1022,6 +1022,32 @@ function MapBoundsTracker({
 // 飛ばされていた。表示範囲をsessionStorageに逃がして復元する
 type SavedMapView = { center: [number, number]; zoom: number };
 
+// 詳細ページへ行って戻ると CafeMap は作り直される。地図の位置だけでなく
+// 絞り込み・並び順・リスト欄の高さも消えるため、あわせて保存する
+type SavedMapUi = {
+  areaQuery: string;
+  sortOrder: SortOrder;
+  listHeight: number | null;
+};
+
+function readSavedMapUi(): SavedMapUi | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(MAP_UI_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as SavedMapUi;
+    if (typeof parsed.areaQuery !== "string") return null;
+    return {
+      areaQuery: parsed.areaQuery,
+      sortOrder: parsed.sortOrder,
+      listHeight:
+        typeof parsed.listHeight === "number" ? parsed.listHeight : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function readSavedMapView(): SavedMapView | null {
   if (typeof window === "undefined") return null;
   try {
@@ -1134,7 +1160,9 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   // 詳細ページから戻ってきた時に前回の表示範囲を復元する。マウント時に
   // 一度だけ読めばよいのでstateの初期化関数で取得する
   const [savedMapView] = useState<SavedMapView | null>(readSavedMapView);
-  const [areaQuery, setAreaQuery] = useState("");
+  // 詳細ページから戻った時に、絞り込み・並び順・リスト高さを復元する
+  const [savedMapUi] = useState<SavedMapUi | null>(readSavedMapUi);
+  const [areaQuery, setAreaQuery] = useState(savedMapUi?.areaQuery ?? "");
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(
     () => typeof window !== "undefined" && window.innerWidth >= 640
   );
@@ -1188,7 +1216,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     setHasMapDrifted(false);
   };
   const [mapZoom, setMapZoom] = useState(17);
-  const [sortOrder, setSortOrder] = useState<SortOrder>("recommended");
+  const [sortOrder, setSortOrder] = useState<SortOrder>(savedMapUi?.sortOrder ?? "recommended");
   const [selectedCafeId, setSelectedCafeId] = useState<string | null>(null);
   const [isListPanelOpen, setIsListPanelOpen] = useState(true);
 
@@ -1231,7 +1259,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   // ドラッグ中/ドラッグ後の実際の高さ(px)。nullの間はCSSの既定値(38vh)を使う
   const listPanelRef = useRef<HTMLDivElement | null>(null);
   const [listPanelHeightPx, setListPanelHeightPx] = useState<number | null>(
-    null
+    savedMapUi?.listHeight ?? null
   );
   const listDragStateRef = useRef<{ startY: number; startHeight: number } | null>(
     null
@@ -1325,6 +1353,19 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     }, 200);
     return () => window.clearTimeout(timer);
   }, [selectedCafeId, isListAtPeek]);
+
+  // 絞り込み・並び順・リスト高さを保存する。詳細ページから戻った時に、
+  // 「エリアがすべてに戻る」「畳んだリストが開いてカードが消える」のを防ぐ
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem(
+        MAP_UI_KEY,
+        JSON.stringify({ areaQuery, sortOrder, listHeight: listPanelHeightPx })
+      );
+    } catch {
+      // プライベートモード等で書けない場合は復元を諦める
+    }
+  }, [areaQuery, sortOrder, listPanelHeightPx]);
 
   const mapPanelRef = useRef<HTMLDivElement | null>(null);
 
@@ -2871,6 +2912,13 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
             </div>
           )}
         </div>
+        {/* お問い合わせと出典表示。独立した .leaflet-top.leaflet-left を
+            足すとLeaflet自身のズーム(＋−)コンテナと同じ位置に重なるため、
+            既存の右上コンテナの中に入れて縦に積む */}
+        <div className="leaflet-control m-1 sm:m-2 flex flex-col gap-1.5 items-end">
+          <InquiryButton />
+          <AttributionInfoButton />
+        </div>
       </div>
 
       <div className="leaflet-bottom leaflet-right" style={{ zIndex: 1000 }}>
@@ -3018,15 +3066,6 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
               {t("addCafe.button")}
             </button>
           )}
-        </div>
-      </div>
-
-      {/* お問い合わせと出典表示は、押す頻度が低いわりに親指の届く下端を
-          占有していた。地図下端は横スライドのカードに譲り、左上へ移す */}
-      <div className="leaflet-top leaflet-left" style={{ zIndex: 1000 }}>
-        <div className="leaflet-control m-2 flex flex-col gap-1.5 items-start">
-          <InquiryButton />
-          <AttributionInfoButton />
         </div>
       </div>
 
@@ -3761,7 +3800,20 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                   occupancySource.totalReporters
                 )
               : null;
+            const noisePercent = occupancySource
+              ? weightedPercent(
+                  occupancySource.noiseCounts,
+                  NOISE_SCORE,
+                  occupancySource.totalReporters
+                )
+              : null;
             const isPredicted = !stats && Boolean(predicted);
+            // 混雑度・騒音度は数値で別に出すので、同じ内容のバッジ
+            // (混雑気味・うるさめ)はここでは省く。残るのは編集部調べの
+            // 固定情報だけになるため、並ぶ順番が店舗ごとにぶれない
+            const staticBadges = badges.filter(
+              (badge) => badge.key !== "crowded" && badge.key !== "noisy"
+            );
             return (
               <div
                 key={cafe.id}
@@ -3787,8 +3839,12 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                     className="inline-block w-3 h-3 rounded-full border border-white shadow mt-1 shrink-0"
                     style={{ backgroundColor: statusColorForStats(stats) }}
                   />
-                  {/* 店名は省略せず全部出す。カードの幅で折り返す */}
-                  <div className="flex-1 min-w-0 font-semibold text-sm text-gray-900 break-words">
+                  {/* 店名は1行に収める。折り返すとカードの高さが店舗ごとに
+                      変わって、横に送ったときガタつくため */}
+                  <div
+                    title={cafe.name}
+                    className="flex-1 min-w-0 font-semibold text-sm text-gray-900 truncate"
+                  >
                     {cafe.name}
                   </div>
                   <button
@@ -3813,6 +3869,9 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                       🚶 {formatWalkBadge(distance)}
                     </span>
                   )}
+                  {/* 混雑度と騒音度は必ずこの順で隣に並べる。どちらも
+                      みんなの投稿から出る数値で、店舗ごとに位置が動くと
+                      見比べられないため、静的なバッジとは行を分けている */}
                   {seatPercent !== null && (
                     <span
                       className={`text-[10px] font-semibold rounded-full px-2 py-0.5 ${
@@ -3825,16 +3884,28 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                               : "bg-green-100 text-green-800"
                       }`}
                     >
-                      混雑度 {seatPercent}%{isPredicted ? "(予測)" : ""}
+                      🈵 混雑度 {seatPercent}%{isPredicted ? "(予測)" : ""}
+                    </span>
+                  )}
+                  {noisePercent !== null && (
+                    <span
+                      className={`text-[10px] font-semibold rounded-full px-2 py-0.5 ${
+                        isPredicted
+                          ? "bg-gray-100 text-gray-600"
+                          : noisePercent >= 80
+                            ? "bg-purple-100 text-purple-800"
+                            : noisePercent >= 50
+                              ? "bg-amber-100 text-amber-800"
+                              : "bg-green-100 text-green-800"
+                      }`}
+                    >
+                      🔊 騒音度 {noisePercent}%{isPredicted ? "(予測)" : ""}
                     </span>
                   )}
                 </div>
-                {badges.length > 0 && (
-                  // みんなの投稿から出るバッジ(混雑気味・うるさめ)は
-                  // getQuickBadgesの末尾に付くため、件数で切ると真っ先に
-                  // 消えてしまう。折り返して全部見せる
+                {staticBadges.length > 0 && (
                   <div className="flex flex-wrap gap-1">
-                    {badges.map((badge) => (
+                    {staticBadges.map((badge) => (
                       <span
                         key={badge.key}
                         className={`text-[10px] px-1.5 py-0.5 rounded-full ${badge.className}`}
