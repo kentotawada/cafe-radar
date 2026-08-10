@@ -222,6 +222,14 @@ body {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
+
+/* カードが出ている間は、地図下端のコントロール(お店を追加/投稿する/
+   現在地に戻る)をカードの高さ分だけ押し上げて重ならないようにする。
+   カードの高さは中身(店名・住所・バッジ)で変わるため、実測ではなく
+   余裕をみた固定値にしている */
+.cf-map-panel.cf-has-carousel .leaflet-bottom {
+  bottom: 128px;
+}
 .cf-map-carousel::-webkit-scrollbar {
   display: none;
 }

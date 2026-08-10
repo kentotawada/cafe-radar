@@ -2462,6 +2462,17 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                 <option value="occupancy">{t("list.sortOccupancy")}</option>
                 <option value="noise">{t("list.sortNoise")}</option>
               </select>
+              {/* 元は地図の右下にあったが、地図の下端は横スライドのカードで
+                  埋まったうえ、この機能は並び順の「空いている順」+「現在地から
+                  近い順」と結果が重なる。重複相手の隣に置いて、地図側の
+                  ボタン数を減らす */}
+              <button
+                onClick={handleQuickPick}
+                disabled={isLocating}
+                className="text-xs sm:text-sm border border-gray-300 rounded px-2 py-1 bg-white text-gray-700 disabled:opacity-50 whitespace-nowrap"
+              >
+                📍 {t("quickPick.button")}
+              </button>
             </div>
           )}
         </div>
@@ -2588,7 +2599,10 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
       </div>
 
       {/* 地図パネル。常に表示し、残りのスペースいっぱいに広がる */}
-      <div className="cf-map-panel" ref={mapPanelRef}>
+      <div
+        className={`cf-map-panel${carouselCafes.length > 0 ? " cf-has-carousel" : ""}`}
+        ref={mapPanelRef}
+      >
     <MapContainer
       center={mapFocus ?? savedMapView?.center ?? SHINJUKU_CENTER}
       zoom={savedMapView?.zoom ?? 17}
@@ -2881,13 +2895,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
           >
             📢 {t("quickReport.fab")}
           </button>
-          <button
-            onClick={handleQuickPick}
-            disabled={isLocating}
-            className="bg-white rounded-full shadow-lg border border-gray-300 h-9 sm:h-10 px-3 flex items-center gap-1 text-xs sm:text-sm font-semibold text-gray-900 disabled:opacity-50"
-          >
-            📍 {t("quickPick.button")}
-          </button>
+          {/* 「近くの空席候補」はリスト側の並び順プルダウンの隣へ移した */}
           <button
             onClick={() => locateMe()}
             disabled={isLocating}
@@ -2960,7 +2968,12 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
             </button>
           )}
         </div>
-        <div className="leaflet-control m-2 flex flex-col gap-1.5 items-end">
+      </div>
+
+      {/* お問い合わせと出典表示は、押す頻度が低いわりに親指の届く下端を
+          占有していた。地図下端は横スライドのカードに譲り、左上へ移す */}
+      <div className="leaflet-top leaflet-left" style={{ zIndex: 1000 }}>
+        <div className="leaflet-control m-2 flex flex-col gap-1.5 items-start">
           <InquiryButton />
           <AttributionInfoButton />
         </div>
