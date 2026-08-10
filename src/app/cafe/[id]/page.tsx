@@ -146,22 +146,26 @@ export default async function CafeDetailPage({ params }: PageProps) {
       <main className="p-4 max-w-xl mx-auto flex flex-col gap-3">
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
           <div className="bg-gradient-to-r from-blue-50 to-white px-5 pt-5 pb-4 flex flex-col gap-2">
-            <div className="flex items-start justify-between gap-2">
-              {/* エリアのまとめページへ送る。検索から個別店舗に来た人が
-                  同じエリアの他店も見られるようにする(内部リンクにもなる) */}
+            {/* エリアのまとめページへ送る。検索から個別店舗に来た人が
+                同じエリアの他店も見られるようにする(内部リンクにもなる)。
+                文言が長いとお気に入りボタンが下の行に落ちてしまうため、
+                折り返しを止めて1行に収める */}
+            <div className="flex items-center justify-between gap-2 flex-nowrap">
               {areaId ? (
                 <Link
                   href={`/area/${areaId}`}
-                  className="text-xs font-semibold text-blue-700 bg-blue-100 rounded-full px-2.5 py-1 hover:bg-blue-200"
+                  className="min-w-0 truncate text-xs font-semibold text-blue-700 bg-blue-100 rounded-full px-2.5 py-1 hover:bg-blue-200 whitespace-nowrap"
                 >
-                  📍 {area}周辺のカフェを見る
+                  📍 {area}のカフェ一覧
                 </Link>
               ) : (
-                <span className="text-xs font-semibold text-blue-700 bg-blue-100 rounded-full px-2.5 py-1">
+                <span className="min-w-0 truncate text-xs font-semibold text-blue-700 bg-blue-100 rounded-full px-2.5 py-1 whitespace-nowrap">
                   📍 {area}周辺
                 </span>
               )}
-              <FavoriteToggleButton cafeId={cafe.id} />
+              <div className="shrink-0">
+                <FavoriteToggleButton cafeId={cafe.id} />
+              </div>
             </div>
             <h1 className="text-2xl font-bold text-gray-900 leading-snug">
               {cafe.name}

@@ -8,6 +8,7 @@ import { hasOutlet } from "@/lib/cafeAmenities";
 import { getQuickBadges, hasWifi, isNonSmoking } from "@/lib/cafeStats";
 import AdBanner from "@/components/AdBanner";
 import Footer from "@/components/Footer";
+import HistoryBackLink from "@/components/HistoryBackLink";
 
 // エリアごとのまとめページ。個別店舗ページ(/cafe/[id])は1店舗ずつで
 // 情報量が薄く、「渋谷 カフェ 電源」のような検索では戦いにくい。
@@ -74,9 +75,19 @@ export default async function AreaPage({ params }: PageProps) {
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="max-w-3xl mx-auto px-4 py-8">
-        <Link href="/" className="text-sm text-blue-600 underline">
-          ← カフェレーダーの地図に戻る
-        </Link>
+        {/* 店舗詳細からこのページに来た場合、そこへ戻る手段が無かった。
+            検索から直接開いた人には戻り先が無いので地図へ送る */}
+        <div className="flex items-center gap-3">
+          <HistoryBackLink
+            fallbackHref="/"
+            className="text-sm text-blue-600 underline"
+          >
+            ← 戻る
+          </HistoryBackLink>
+          <Link href="/" className="text-sm text-blue-600 underline">
+            地図で見る
+          </Link>
+        </div>
 
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mt-3">
           {shortName}で電源・Wi-Fiが使えるカフェ{cafes.length}選
