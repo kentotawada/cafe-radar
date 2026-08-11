@@ -13,6 +13,21 @@
 
 alter table cafe_facts add column if not exists outlet_usable boolean;
 
+-- 014b は番号が重複していたせいで適用され忘れていた実績がある。
+-- 下のcheck制約がこの2列を参照するので、無ければここで作る
+-- (既にあれば何も起きない)
+alter table cafe_facts add column if not exists wifi_speed text;
+alter table cafe_facts add column if not exists web_meeting_ok boolean;
+
+do $$
+begin
+  alter table cafe_facts add constraint cafe_facts_wifi_speed_check
+    check (wifi_speed in ('fast', 'standard', 'restricted', 'none'));
+exception
+  when duplicate_object then null;
+end
+$$;
+
 -- cafe_facts には「中身が空の行を作らせない」check制約があり、内容の列を
 -- 増やすたびに条件へ足す必要がある(011・014でも同じことをしている)。
 -- これを忘れると、outlet_usableだけを入れた行が

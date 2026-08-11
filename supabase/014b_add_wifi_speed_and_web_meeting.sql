@@ -1,4 +1,11 @@
 -- 既存のSupabaseプロジェクトのSQL Editorでこれを実行してください。
+--
+-- 元は 014 という番号だったが、014_add_contact_fields_to_inquiries.sql と
+-- 番号が重複していたため、こちらが未適用のまま見落とされていた。
+-- (症状: Wi-Fi速度・WEB会議の投稿が
+--  「column "wifi_speed" does not exist」で失敗する)
+-- 番号は今後も重複させないこと。
+--
 -- 「Wi-Fiの速度」「WEB会議・通話をしても問題ないか」は編集部調べのデータが
 -- 無いため、みんなの投稿で少しずつ集めていく新項目として cafe_facts に追加する。
 -- note/seat_count/outlet_seat_count/wifi_speed/web_meeting_okの
