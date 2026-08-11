@@ -2019,6 +2019,25 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     }
   };
 
+  // 「電源が実際に使えたか」の記録。web_meeting_okと同じ形で、
+  // cafe_factsに1行足す(多数決はoutletUsableMajorityで取る)
+  const submitOutletUsable = async (cafeId: string, usable: boolean) => {
+    if (!supabase) {
+      setErrorByCafe((prev) => ({
+        ...prev,
+        [cafeId]: "Supabase未設定のため保存できません",
+      }));
+      return;
+    }
+    const { error } = await supabase
+      .from("cafe_facts")
+      .insert({ cafe_id: cafeId, reporter_id: reporterId, outlet_usable: usable });
+    if (error) {
+      console.error(error);
+      setErrorByCafe((prev) => ({ ...prev, [cafeId]: "共有に失敗しました" }));
+    }
+  };
+
   const handleToggleFavorite = (cafeId: string) => {
     setFavorites(toggleFavorite(cafeId));
   };
@@ -2117,6 +2136,18 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
       (f) => f.wifi_speed as WifiSpeed
     );
     return pickMajorityFromList(votes);
+  }
+
+  // 「電源はあるはずだが使えなかった」の多数決。編集部調べのoutletInfoは
+  // 各店舗の公表情報なので、塞がれている・壊れているといった現地の状態は
+  // ここでしか分からない
+  function outletUsableMajority(cafe: Cafe): boolean | null {
+    const facts = factsByCafe[cafe.id] ?? [];
+    const votes = dedupeByReporter(
+      facts.filter((f) => f.outlet_usable != null)
+    ).map((f) => (f.outlet_usable ? "ok" : "ng"));
+    const majority = pickMajorityFromList(votes);
+    return majority === null ? null : majority === "ok";
   }
 
   function webMeetingMajority(cafe: Cafe): boolean | null {
@@ -2442,7 +2473,9 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     return null;
   }
 
-  const quickReport = async (kind: "available" | "full" | "outletOk") => {
+  const quickReport = async (
+    kind: "available" | "full" | "outletOk" | "outletDead"
+  ) => {
     const target = resolveQuickReportTarget();
     if (!target) {
       setReportFabMessage(t("quickReport.noTarget"));
@@ -2454,13 +2487,20 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
       await submitReport(target.id, "empty", "empty", prior?.noise_level ?? "normal");
     } else if (kind === "full") {
       await submitReport(target.id, "full", "full", prior?.noise_level ?? "normal");
-    } else {
+    } else if (kind === "outletOk") {
+      // 電源席が空いていた、という混雑の報告に加えて、電源が実際に
+      // 使えたことも記録する
       await submitReport(
         target.id,
         "empty",
         prior?.seating_occupancy ?? "empty",
         prior?.noise_level ?? "normal"
       );
+      await submitOutletUsable(target.id, true);
+    } else {
+      // 「あるはずの電源が使えなかった」。混雑度とは別の話なので
+      // 空き状況の報告は行わず、事実だけを記録する
+      await submitOutletUsable(target.id, false);
     }
     setSelectedCafeId(target.id);
     setMapFocus([target.lat, target.lng]);
@@ -3005,6 +3045,12 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                 🔌 {t("quickReport.outletOk")}
               </button>
               <button
+                onClick={() => quickReport("outletDead")}
+                className="text-left px-2 py-1.5 rounded hover:bg-gray-100"
+              >
+                ⚡ {t("quickReport.outletDead")}
+              </button>
+              <button
                 onClick={() => setIsReportFabOpen(false)}
                 className="text-center text-xs text-gray-400 hover:text-gray-600 mt-0.5"
               >
@@ -3525,6 +3571,19 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                       </div>
                     </div>
                   )}
+                  {/* 公表情報では電源ありでも、現地で塞がれている・壊れて
+                      いることがある。みんなの投稿でしか分からないので、
+                      ネット調べの情報のすぐ下に並べて対比させる */}
+                  {outletUsableMajority(cafe) === false && (
+                    <div className="text-[11px] sm:text-sm bg-red-50 border border-red-200 rounded p-1.5 sm:p-2 text-red-900 mb-1 sm:mb-2">
+                      <div className="font-semibold">
+                        ⚡ 電源が使えなかったという報告があります
+                      </div>
+                      <div className="text-red-500 mt-0.5">
+                        塞がれている・故障しているなどの可能性があります
+                      </div>
+                    </div>
+                  )}
                   {cafe.smokingInfo && (
                     <div className="text-[11px] sm:text-sm bg-amber-50 border border-amber-200 rounded p-1.5 sm:p-2 text-amber-900 mb-1 sm:mb-2">
                       <div className="font-semibold mb-0.5">
@@ -3926,6 +3985,14 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                       }`}
                     >
                       🈵 混雑度 {seatPercent}%{isPredicted ? "(予測)" : ""}
+                    </span>
+                  )}
+                  {/* 「電源はあるはずだが使えなかった」の報告。編集部調べで
+                      電源ありとしていても、現地で塞がれていることがある。
+                      行く前にいちばん知りたい情報なので目立たせる */}
+                  {outletUsableMajority(cafe) === false && (
+                    <span className="text-[10px] font-semibold rounded-full px-2 py-0.5 bg-red-100 text-red-800">
+                      ⚡ 電源が使えない報告あり
                     </span>
                   )}
                   {noisePercent !== null && (

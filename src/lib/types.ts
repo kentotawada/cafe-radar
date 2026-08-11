@@ -32,6 +32,9 @@ export type CafeFact = {
   // みんなの投稿で少しずつ集めていく新項目
   wifi_speed: WifiSpeed | null;
   web_meeting_ok: boolean | null;
+  // 「電源はあるはずだが実際には使えなかった」を記録する。公表情報からは
+  // 絶対に取れない、現地でしか分からない情報(テープで塞がれている等)
+  outlet_usable: boolean | null;
   created_at: string;
 };
 
