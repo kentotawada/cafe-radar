@@ -2034,7 +2034,12 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
       .insert({ cafe_id: cafeId, reporter_id: reporterId, outlet_usable: usable });
     if (error) {
       console.error(error);
-      setErrorByCafe((prev) => ({ ...prev, [cafeId]: "共有に失敗しました" }));
+      // スマホでは開発者ツールを開けず、「共有に失敗しました」だけでは
+      // 列が無いのか権限なのか切り分けられない。原因の文言も出す
+      setErrorByCafe((prev) => ({
+        ...prev,
+        [cafeId]: `共有に失敗しました(${error.message})`,
+      }));
     }
   };
 
@@ -3295,6 +3300,13 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
           <Marker
             key={cafe.id}
             position={[cafe.lat, cafe.lng]}
+            // ピンをタップしてポップアップを開いた店舗を「選択中」にする。
+            // これが無いと、resolveQuickReportTargetが「現在地から一番近い
+            // 店」へフォールバックし、開いている店とは別の店に投稿されて
+            // しまう(実際に起きた)。地図は動かさず選択だけ移す
+            eventHandlers={{
+              popupopen: () => setSelectedCafeId(cafe.id),
+            }}
             icon={iconForCafe(
               cafe,
               stats,
