@@ -42,13 +42,19 @@ create table if not exists cafe_facts (
   -- みんなの投稿で少しずつ集めていく新項目
   wifi_speed text check (wifi_speed in ('fast', 'standard', 'restricted', 'none')),
   web_meeting_ok boolean,
+  -- 「電源はあるはずだが実際には使えなかった」。公表情報では拾えない、
+  -- 現地でしか分からない状態(テープで塞がれている・故障など)
+  outlet_usable boolean,
   created_at timestamptz not null default now(),
+  -- 内容の列を増やしたら、必ずこの条件にも足すこと。忘れると
+  -- その列だけを入れた行が check 制約で弾かれる
   constraint cafe_facts_has_content check (
     note is not null
     or seat_count is not null
     or outlet_seat_count is not null
     or wifi_speed is not null
     or web_meeting_ok is not null
+    or outlet_usable is not null
   )
 );
 
