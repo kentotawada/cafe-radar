@@ -1500,6 +1500,20 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
       );
     };
 
+    // ホーム画面に追加して使っている人は、自分の意思でインストールした
+    // 人なので、起動時に現在地を聞かれても唐突ではない。むしろ毎回
+    // ボタンを押させるほうが煩わしい。検索やSNSから初めて来た人とは
+    // 分けて扱う(この区別が無かったため、PWA利用者にも許可を求めなく
+    // なってしまっていた)
+    const isInstalledApp =
+      window.matchMedia?.("(display-mode: standalone)").matches ||
+      // iOS Safariはdisplay-modeに対応せず、独自のnavigator.standaloneを使う
+      (navigator as unknown as { standalone?: boolean }).standalone === true;
+    if (isInstalledApp) {
+      locateSilently();
+      return;
+    }
+
     // Permissions APIが無い環境(古いSafari等)では、自動取得をあきらめる。
     // 許可済みかどうか確かめる術がなく、呼べばダイアログが出てしまうため
     if (!navigator.permissions?.query) return;
