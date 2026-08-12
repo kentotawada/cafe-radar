@@ -134,7 +134,13 @@ const STALE_MINUTES = 30;
 
 type NoiseFilter = "any" | "quietOnly" | "excludeLoud";
 type AvailabilityFilter = "any" | "available";
-type OutletFilter = "any" | "available" | "plentyOutlets";
+// hasOutlet(電源あり)は編集部調べのデータだけで判定できる。
+// available(空きあり)とplentyOutlets(電源席多め)は利用者の投稿が
+// 前提なので、投稿がまだ少ないうちはどのエリアでも0件になる。
+// r/Tokyoで「Wi-Fiと電源で絞ると1軒も出ない」と指摘されたのがこれ。
+// 「電源がある店を探したい」という一番多い意図に応える選択肢が
+// 存在していなかった
+type OutletFilter = "any" | "hasOutlet" | "available" | "plentyOutlets";
 type SmokingFilter = "any" | "nonSmokingOnly" | "smokingOk";
 type SortOrder = "recommended" | "distance" | "seats" | "occupancy" | "noise";
 
@@ -2217,6 +2223,9 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     ) {
       return false;
     }
+    if (outletFilter === "hasOutlet" && !hasOutlet(cafe, verifiedOutletCafeIds)) {
+      return false;
+    }
     if (outletFilter === "plentyOutlets") {
       const ratio = outletSeatRatio(cafe);
       if (ratio === null || ratio < 0.5) return false;
@@ -2856,6 +2865,10 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                   className="border border-gray-400 rounded px-1 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-sm text-gray-900 bg-white w-full"
                 >
                   <option value="any">{t("filter.any")}</option>
+                  {/* 一番上に置く。編集部調べだけで判定できる唯一の選択肢で、
+                      「電源のある店を探したい」という最も多い意図に対応する。
+                      下の2つは投稿が集まるまで0件になるため後ろに回す */}
+                  <option value="hasOutlet">{t("filter.hasOutlet")}</option>
                   <option value="available">{t("filter.availableOnly")}</option>
                   <option value="plentyOutlets">{t("filter.plentyOutlets")}</option>
                 </select>
