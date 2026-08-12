@@ -42,6 +42,8 @@ const dictionary = {
     "filter.noise": "静かさ",
     "filter.smoking": "喫煙",
     "filter.wifi": "Wi-Fi",
+    "popup.quickAsk": "今の様子は?",
+    "popup.quickThanks": "ありがとうございます",
     "filter.any": "すべて",
     "filter.hasOutlet": "電源あり",
     // 下2つは投稿が前提なので、そうと分かる書き方にしておく。
@@ -155,6 +157,8 @@ const dictionary = {
     "filter.noise": "Quietness",
     "filter.smoking": "Smoking",
     "filter.wifi": "Wi-Fi",
+    "popup.quickAsk": "How is it right now?",
+    "popup.quickThanks": "Thanks!",
     "filter.any": "Any",
     "filter.hasOutlet": "Has outlets",
     "filter.availableOnly": "Free right now (reported)",

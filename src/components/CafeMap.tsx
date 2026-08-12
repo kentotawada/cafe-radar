@@ -3396,6 +3396,55 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                 </div>
                 <div className="text-[11px] sm:text-sm text-gray-500">{cafe.address}</div>
 
+                {/* リアルタイムの混雑情報がこのアプリの差別化なのに、報告欄は
+                    ポップアップの一番下、営業時間・電源・Wi-Fi・座席数・混雑予測を
+                    全部スクロールした先にあり、存在に気づかれていなかった。
+                    右下の📢ボタンも、店の情報を読んでいる人の視線には入らない
+                    (実際に操作して確認した)。店名のすぐ下に置き、1タップで
+                    送れるようにする。詳しい報告(騒がしさ・座席数など)は
+                    従来どおり下の欄に残してある */}
+                <div className="flex items-center gap-1 flex-wrap bg-orange-50 border border-orange-200 rounded px-1.5 py-1">
+                  <span className="text-[11px] sm:text-sm text-orange-900 font-semibold">
+                    {myReport ? `✓ ${t("popup.quickThanks")}` : t("popup.quickAsk")}
+                  </span>
+                  <button
+                    onClick={() =>
+                      submitReport(
+                        cafe.id,
+                        "empty",
+                        "empty",
+                        myReport?.noise_level ?? "normal"
+                      )
+                    }
+                    disabled={submitting === cafe.id}
+                    className={`text-[11px] sm:text-sm rounded-full px-2 py-0.5 font-semibold border disabled:opacity-50 ${
+                      myReport?.seating_occupancy === "empty"
+                        ? "bg-green-600 text-white border-green-600"
+                        : "bg-white text-green-800 border-green-300"
+                    }`}
+                  >
+                    😊 {t("quickReport.available")}
+                  </button>
+                  <button
+                    onClick={() =>
+                      submitReport(
+                        cafe.id,
+                        "full",
+                        "full",
+                        myReport?.noise_level ?? "normal"
+                      )
+                    }
+                    disabled={submitting === cafe.id}
+                    className={`text-[11px] sm:text-sm rounded-full px-2 py-0.5 font-semibold border disabled:opacity-50 ${
+                      myReport?.seating_occupancy === "full"
+                        ? "bg-orange-600 text-white border-orange-600"
+                        : "bg-white text-orange-800 border-orange-300"
+                    }`}
+                  >
+                    😣 {t("quickReport.full")}
+                  </button>
+                </div>
+
                 {quickBadges.length > 0 && (
                   <div className="flex gap-1 flex-wrap">
                     {quickBadges.map((badge) => (
