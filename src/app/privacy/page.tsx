@@ -44,8 +44,9 @@ export default function PrivacyPage() {
 
         <h2 className="font-semibold mt-4 mb-1">アクセス解析ツールについて</h2>
         <p className="mb-4">
-          本サービスは、サイトの利用状況を把握するためにGoogle
-          Analytics等のアクセス解析ツールを利用することがあります。これらのツールはCookieを利用してデータを収集しますが、氏名・住所・メールアドレス・電話番号など個人を特定する情報は含まれません。収集されたデータは各ツール提供者のプライバシーポリシーに基づいて管理されます。
+          本サービスは、サイトの利用状況と表示速度を把握するために、Vercel社の「Vercel
+          Web Analytics」および「Vercel Speed
+          Insights」を利用しています。いずれもCookieを使用せず、閲覧されたページのURL・参照元・おおまかな地域・ブラウザの種類・表示速度などを記録します。氏名・住所・メールアドレス・電話番号など個人を特定する情報は収集していません。収集されたデータはVercel社のプライバシーポリシーに基づいて管理されます。
         </p>
 
         <h2 className="font-semibold mt-4 mb-1">広告配信について（Google AdSense）</h2>

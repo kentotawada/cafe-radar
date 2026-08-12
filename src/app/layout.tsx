@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import InstallPromptBanner from "@/components/InstallPromptBanner";
 import PreloadResources from "@/components/PreloadResources";
@@ -68,6 +69,11 @@ export default function RootLayout({
         {/* 実ユーザーの表示速度(Web Vitals)をVercelに送る。カフェ件数を増やした
             影響がモバイルで出ていないかを実測で判断するために入れている */}
         <SpeedInsights />
+        {/* どのページに人が来ているかを記録する。これが無いと
+            「英語圏に寄せるか、日本語検索を待つか」を判断する材料が
+            Redditのコメント数しか無くなる。Cookieを使わない方式なので
+            同意バナーは不要 */}
+        <Analytics />
         {/* パブリッシャーIDが未設定の間はスクリプトを読み込まない。
             審査中はコードを貼ったままにする必要がある(Googleのクローラーが
             これを使ってサイトを確認するため、外すと審査が進まない)。
