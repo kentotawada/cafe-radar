@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import InstallPromptBanner from "@/components/InstallPromptBanner";
+import PreloadResources from "@/components/PreloadResources";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -59,6 +60,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        {/* 地図タイル・Supabaseへの接続を先に張っておく。詳細は
+            PreloadResources.tsx のコメントを参照 */}
+        <PreloadResources />
         {children}
         <InstallPromptBanner />
         {/* 実ユーザーの表示速度(Web Vitals)をVercelに送る。カフェ件数を増やした
