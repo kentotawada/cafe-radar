@@ -3086,7 +3086,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
             </div>
           )}
           {isReportFabOpen && (
-            <div className="bg-white rounded-lg shadow-lg border border-gray-300 p-2 flex flex-col gap-1 w-44">
+            <div className="cf-report-ui bg-white rounded-lg shadow-lg border border-gray-300 p-2 flex flex-col gap-1 w-44">
               <div className="text-[11px] text-gray-500 px-1">
                 {(() => {
                   const target = resolveQuickReportTarget();
@@ -3127,7 +3127,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
           )}
           <button
             onClick={() => setIsReportFabOpen((prev) => !prev)}
-            className="cf-map-btn rounded-full shadow-lg border border-gray-300 h-9 sm:h-10 px-3 flex items-center gap-1 text-xs sm:text-sm font-semibold text-gray-900"
+            className="cf-report-ui cf-map-btn rounded-full shadow-lg border border-gray-300 h-9 sm:h-10 px-3 flex items-center gap-1 text-xs sm:text-sm font-semibold text-gray-900"
             aria-label={t("quickReport.fab")}
             title={t("quickReport.fab")}
           >

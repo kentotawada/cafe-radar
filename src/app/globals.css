@@ -161,7 +161,19 @@ body:has(.cf-shell) {
    自体を非表示にして、店舗情報と重ならないようにする */
 @media (max-width: 639px) {
   .leaflet-container:has(.leaflet-popup) .leaflet-top,
-  .leaflet-container:has(.leaflet-popup) .leaflet-bottom {
+  .leaflet-container:has(.leaflet-popup) .leaflet-bottom.leaflet-left {
+    display: none;
+  }
+
+  /* ただし報告ボタンだけは残す。これも消していたため「お店を選んで
+     ください」と促された人がピンをタップすると📢ごと消えてしまい、
+     もう一度押し直す必要があった(実際に詰まった箇所)。
+     店舗情報と重ならないよう、報告に不要なもの(現在地ボタン・
+     各種エラー表示)はポップアップ表示中だけ隠して面積を最小にする */
+  .leaflet-container:has(.leaflet-popup)
+    .leaflet-bottom.leaflet-right
+    .leaflet-control
+    > *:not(.cf-report-ui) {
     display: none;
   }
 }
