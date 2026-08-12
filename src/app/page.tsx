@@ -9,7 +9,36 @@ import { cupPinSvgMarkup } from "@/lib/cupPinIcon";
 import { LangProvider, useLang, type TranslationKey } from "@/lib/i18n";
 import MyReporterBadge from "@/components/MyReporterBadge";
 
-const CafeMap = dynamic(() => import("@/components/CafeMap"), { ssr: false });
+// 地図が出るまでの数秒間、ここは何も描かれず真っ白だった。
+// PageSpeed Insightsで測ると、LCP要素がヘッダーの
+// 「店舗掲載・法人の方はこちら」という小さなリンクになっていた。
+// 画面の大半を占める地図が何も描いていないので、そんな小さな文字が
+// 「一番大きく描かれた要素」として選ばれてしまっていた。
+// 内訳はTTFB 0ms・レンダリング遅延1,300msで、待っていたのは
+// ダウンロードではなく描画。つまり容量を削っても改善しない。
+//
+// 読み込み中の表示を置くと、待っている人に状況と中身が伝わるうえ、
+// 画面に実際の文字が早く出るぶんLCPも素直に改善する
+function MapSkeleton() {
+  return (
+    <div
+      className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-6 text-center"
+      // 地図タイルの下地に近い色。白のままだと切り替わった瞬間に
+      // 画面がちらつく
+      style={{ backgroundColor: "#e8eaed" }}
+    >
+      <p className="text-sm font-semibold text-gray-700">地図を読み込んでいます</p>
+      <p className="text-xs text-gray-500 leading-relaxed max-w-xs">
+        新宿・渋谷など東京23エリアのカフェを、コンセント(電源)・Wi-Fi・喫煙可否・座席数から探せます。混雑状況は利用者の投稿でリアルタイムに更新されます。
+      </p>
+    </div>
+  );
+}
+
+const CafeMap = dynamic(() => import("@/components/CafeMap"), {
+  ssr: false,
+  loading: () => <MapSkeleton />,
+});
 
 function HomeContent() {
   const [showLegend, setShowLegend] = useState(false);
