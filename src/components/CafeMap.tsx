@@ -1462,26 +1462,61 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     );
   };
 
+  // 以前はここで無条件に getCurrentPosition を呼んでいたため、初めて
+  // 来た人が地図を開いた瞬間に位置情報の許可ダイアログが出ていた
+  // (PageSpeed Insightsでも「ページ読み込み時に位置情報の許可が
+  // リクエストされます」として指摘された)。何のサイトか分かる前に
+  // ダイアログを出されると、拒否されるか、そのまま離脱される。
+  //
+  // 許可済みの人には今まで通り自動で現在地に寄せたいので、先に
+  // Permissions APIで状態だけ問い合わせる。これは問い合わせるだけで
+  // ダイアログを出さない。granted の時だけ取得する。
+  // まだ許可していない人には出さず、右下の「現在地に戻る」ボタンを
+  // 押したときに初めて許可を求める(そこは操作の意図が明確なので、
+  // ダイアログが出ても唐突ではない)。
   useEffect(() => {
     if (!("geolocation" in navigator)) return;
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        if (hasManualFocusRef.current) return;
-        const position: [number, number] = [
-          pos.coords.latitude,
-          pos.coords.longitude,
-        ];
-        setUserPosition(position);
-        setMapFocus(position);
-        pendingSearchSyncRef.current = true;
-        if (!hasManualSortRef.current) {
-          setSortOrder("distance");
-        }
-      },
-      () => {
-        // 取得できなくても地図はデフォルト位置のまま表示する
-      }
-    );
+
+    const locateSilently = () => {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (hasManualFocusRef.current) return;
+          const position: [number, number] = [
+            pos.coords.latitude,
+            pos.coords.longitude,
+          ];
+          setUserPosition(position);
+          setMapFocus(position);
+          pendingSearchSyncRef.current = true;
+          if (!hasManualSortRef.current) {
+            setSortOrder("distance");
+          }
+        },
+        () => {
+          // 取得できなくても地図はデフォルト位置のまま表示する
+        },
+        // ボタン側と同じ条件。付けないと応答が無いとき延々と待つ
+        { timeout: 8000, maximumAge: 60000 }
+      );
+    };
+
+    // Permissions APIが無い環境(古いSafari等)では、自動取得をあきらめる。
+    // 許可済みかどうか確かめる術がなく、呼べばダイアログが出てしまうため
+    if (!navigator.permissions?.query) return;
+
+    let cancelled = false;
+    navigator.permissions
+      .query({ name: "geolocation" })
+      .then((status) => {
+        if (cancelled || status.state !== "granted") return;
+        locateSilently();
+      })
+      .catch(() => {
+        // nameを解釈できないブラウザ。何もしない(ダイアログを出さない)
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleAreaSearch = (query: string) => {
