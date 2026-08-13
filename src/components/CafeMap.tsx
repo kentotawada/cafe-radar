@@ -3729,12 +3729,18 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                     // 問題があった。<details>のネイティブな開閉はReactの再描画を
                     // 一切発生させないため、この問題が起きない
                     <details className="flex flex-col gap-1">
+                      {/* 閉店を明記していなかったため、ここが閉店の報告先だと
+                          気づかれなかった。編集部データ側には「存在しない」
+                          報告ボタンが無く(あれはユーザー追加店舗専用)、
+                          閉店を伝える手段が実質この自由入力しかない。
+                          載っている店に行って無かった、が一番損失の大きい
+                          間違いなので、先頭に置いて明示する */}
                       <summary className="text-[11px] sm:text-sm text-gray-400 underline cursor-pointer">
-                        😕 店舗情報が実際と違う場合はこちら
+                        😕 閉店していた・情報が実際と違う場合はこちら
                       </summary>
                       <div className="flex flex-col gap-1 mt-1">
                         <div className="text-[11px] sm:text-sm text-gray-500">
-                          店舗情報が実際と違う場合はこちらにご記入ください
+                          閉店していた場合や、店舗情報が実際と違う場合はこちらにご記入ください
                         </div>
                         <textarea
                           value={infoCorrectionByCafe[cafe.id] ?? ""}
@@ -3747,7 +3753,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                           }}
                           maxLength={300}
                           rows={2}
-                          placeholder="例: 喫煙席と書かれているが実際は全席禁煙だった"
+                          placeholder="例: 閉店していた / 喫煙席と書かれているが実際は全席禁煙だった"
                           className="border border-gray-400 rounded px-2 py-1 text-sm text-gray-900 bg-white resize-none"
                         />
                         <button

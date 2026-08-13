@@ -3,6 +3,17 @@ import type { Cafe } from "./cafes";
 // 店名・住所はウェブ検索で実在店舗を確認済み（2026年7月時点、各公式サイト・食べログ等）。
 // 座標は住所から推定した目安地点です。経路・写真検索は店名+住所のテキストで
 // Googleマップに渡しているため、座標が多少ずれていても案内自体は正確です。
+//
+// 【削除した店舗】2026-08-13
+// 五反田東急スクエア4Fの2軒を削除した。どちらもGoogleマップで閉業。
+//   - gotanda-42 マイニチパスタ
+//   - gotanda-50 Sign gotanda
+// この2軒は住所も座標も完全に同一だった。同じ区画に別々の店として
+// 両方を載せていたのは調査時点の見落としで、実際には入れ替わっていた
+// 可能性が高い。同一住所・同一座標の組み合わせは、以後こうした
+// 取りこぼしを疑う手がかりにする。
+// 同じ建物ではスターバックス五反田東急スクエア店(5F, gotanda-02)が
+// 営業中のため、建物ごと消してはいない。
 export const cafes: Cafe[] = [
   { id: "gotanda-01", name: "マクドナルド アトレ五反田店", address: "東京都品川区東五反田1-26-14 アトレ五反田 2F・3F", lat: 35.6264, lng: 139.7238, outletInfo: "3F窓際カウンター26席、各席に電源コンセントあり" },
   { id: "gotanda-02", name: "スターバックス コーヒー 五反田東急スクエア店", address: "東京都品川区東五反田2-1-2 五反田東急スクエア 5F", lat: 35.6258, lng: 139.7248, outletInfo: "レジ前カウンター席に電源、混雑時は取りにくい" },
@@ -44,7 +55,6 @@ export const cafes: Cafe[] = [
   { id: "gotanda-39", name: "SAISON bakery&coffee", address: "東京都品川区東五反田2-8-3 五反田ASビル 1F", lat: 35.6255, lng: 139.7252, outletInfo: "Wi-Fi・電源あり、作業向きではとの声も" },
   { id: "gotanda-40", name: "東京豆漿生活", address: "東京都品川区西五反田1-20-3 MKYビル 1F", lat: 35.6244, lng: 139.721 },
   { id: "gotanda-41", name: "Bread&Coffee IKEDAYAMA 五反田駅前店", address: "東京都品川区西五反田1-2-10 CIRCLES五反田 1F", lat: 35.6258, lng: 139.722 },
-  { id: "gotanda-42", name: "マイニチパスタ", address: "東京都品川区東五反田2-1-2 五反田東急スクエア 4F", lat: 35.6258, lng: 139.7248, outletInfo: "店内にWi-Fiと電源席を完備" },
   { id: "gotanda-43", name: "デスタン", address: "東京都品川区西五反田2-11-11", lat: 35.6235, lng: 139.72 },
   { id: "gotanda-44", name: "EL TRES", address: "東京都品川区東五反田2-9-11 さくらてらす五反田", lat: 35.6248, lng: 139.7258 },
   { id: "gotanda-45", name: "フォレスト", address: "東京都品川区西五反田1-32-3 DAIビル 2F", lat: 35.6243, lng: 139.7203 },
@@ -52,7 +62,6 @@ export const cafes: Cafe[] = [
   { id: "gotanda-47", name: "HONEYCOMB COFFEE", address: "東京都品川区大崎3-15-23 鈴木ビル 1F", lat: 35.6178, lng: 139.7268, outletInfo: "ほぼ全席とベンチ席にコンセントあり" },
   { id: "gotanda-48", name: "カフェテラス ミモザ", address: "東京都品川区西五反田3-8-3 町原ビル", lat: 35.6217, lng: 139.7183, outletInfo: "壁側席の両端、ソファ下に電源あり" },
   { id: "gotanda-49", name: "CARROLL", address: "東京都品川区東五反田1-26-3 アトレ五反田2 3F", lat: 35.6263, lng: 139.7239, smokingInfo: "全席禁煙", hoursInfo: "6:30〜23:00" },
-  { id: "gotanda-50", name: "Sign gotanda", address: "東京都品川区東五反田2-1-2 五反田東急スクエア 4F", lat: 35.6258, lng: 139.7248, wifiInfo: "無料Wi-Fiあり", smokingInfo: "喫煙エリアあり", hoursInfo: "7:00〜23:00" },
   { id: "gotanda-51", name: "ケンタッキーフライドチキン 五反田店", address: "東京都品川区東五反田5-27-6 第一五反田ビル", lat: 35.6294, lng: 139.7277, outletInfo: "入口付近カウンター6席・奥壁際カウンター6席に各1口、奥窓際カウンターは2席に1口" },
   { id: "gotanda-52", name: "デニーズ 五反田TOCビル店", address: "東京都品川区西五反田7-22-17 TOCビル", lat: 35.6206, lng: 139.7179 },
   { id: "gotanda-53", name: "ガスト 目黒不動前店", address: "東京都品川区西五反田5-9-2", lat: 35.6285, lng: 139.7145, smokingInfo: "禁煙(すかいらーくグループ全店禁煙方針)", hoursInfo: "7:00〜23:00" },
