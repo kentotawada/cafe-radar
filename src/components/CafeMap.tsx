@@ -124,9 +124,11 @@ const CLUSTER_PIN_THRESHOLD = 150;
 // 国土地理院タイルへの切り替えも試したが、レティナ(高解像度)画像に
 // 対応しておらずスマホでぼやけて見づらくなったため元に戻した経緯がある
 const MAPTILER_KEY: string | undefined = process.env.NEXT_PUBLIC_MAPTILER_KEY;
+const CARTO_TILE_URL =
+  "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 const TILE_URL = MAPTILER_KEY
   ? `https://api.maptiler.com/maps/bright-v2/{z}/{x}/{y}{r}.png?key=${MAPTILER_KEY}`
-  : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+  : CARTO_TILE_URL;
 const TILE_MAX_ZOOM = 20;
 
 const SHINJUKU_CENTER: [number, number] = [35.6905, 139.7005];
@@ -1151,6 +1153,9 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   const [flagsByCafe, setFlagsByCafe] = useState<Record<string, CafeFlag[]>>({});
   const [flaggedByMe, setFlaggedByMe] = useState<Set<string>>(new Set());
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
+  // 地図タイルの配信元。MapTilerが落ちた・キーが無効になった場合に
+  // CARTOへ切り替える(TileLayerのtileerrorで検知)
+  const [tileUrl, setTileUrl] = useState(TILE_URL);
   const [reporterId] = useState<string>(() => getReporterId());
   const [favorites, setFavorites] = useState<Set<string>>(() => getFavorites());
   const [shareStatus, setShareStatus] = useState<"idle" | "copied">("idle");
@@ -2884,7 +2889,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
         onPick={(lat, lng) => setPendingCafeLocation({ lat, lng })}
       />
       <TileLayer
-        url={TILE_URL}
+        url={tileUrl}
         // subdomainsにundefinedを明示的に渡すと、Leafletが内部デフォルト
         // ('abc')を上書きしてしまい、タイルURL生成時に
         // this.options.subdomains.lengthで例外が発生してクラッシュする
@@ -2893,6 +2898,17 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
         // 使われないので、常に無害な値を渡しておく
         subdomains="abcd"
         maxZoom={TILE_MAX_ZOOM}
+        // MapTilerのキーが無効になった日、地図一面が「Invalid key」の
+        // 画像で埋まって何も見えなくなった(403が画像として返るため、
+        // 通信エラーにもならない)。地図が出ないとこのアプリは何もできない
+        // ので、タイルの取得に失敗したらCARTOへ切り替えて表示だけは守る。
+        // 切り替えは一度だけ。CARTO側も落ちている場合に往復させない
+        eventHandlers={{
+          tileerror: () => {
+            if (tileUrl === CARTO_TILE_URL) return;
+            setTileUrl(CARTO_TILE_URL);
+          },
+        }}
       />
 
       <div className="leaflet-top leaflet-right" style={{ zIndex: 1000 }}>
