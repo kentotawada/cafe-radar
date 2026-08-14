@@ -68,7 +68,7 @@ export const cafes: Cafe[] = [
   { id: "hamamatsucho-37", name: "LIT COFFEE & TEA STAND", address: "東京都港区芝2-15-15 ラディーチェ芝1F", lat: 35.650814, lng: 139.752762, smokingInfo: "全席禁煙" },
   { id: "hamamatsucho-38", name: "カフェ ラ・ボエム 浜松町", address: "東京都港区浜松町2-5-3 リブポート浜松町ビル1F・B1", lat: 35.654194, lng: 139.756317, outletInfo: "電源・コンセントあり", wifiInfo: "Wi-Fiあり", seatCountInfo: "60席", hoursInfo: "11:30〜23:00" },
   { id: "hamamatsucho-39", name: "ポコベーグルカフェ 本店", address: "東京都港区東新橋2-10-7-200", lat: 35.661266, lng: 139.756332 },
-  { id: "hamamatsucho-40", name: "ル・パン・コティディアン 芝公園店", address: "東京都港区芝公園3-3-1 東京プリンスホテル", lat: 35.65889, lng: 139.748795, hoursInfo: "7:30〜22:00(L.O.21:00)" },
+  { id: "hamamatsucho-40", name: "ル・パン・コティディアン 芝公園店", address: "東京都港区芝公園3-3-1 東京プリンスホテル", lat: 35.6581178, lng: 139.750154, hoursInfo: "7:30〜22:00(L.O.21:00)" },
   { id: "hamamatsucho-41", name: "甘酒・雑貨かふぇ こめどりーみんぐ", address: "東京都港区芝公園1-7-14 KSひかりビル", lat: 35.657593, lng: 139.752365, smokingInfo: "全席禁煙" },
   { id: "hamamatsucho-42", name: "やなか珈琲店 芝大門店", address: "東京都港区芝大門2-9-18", lat: 35.654316, lng: 139.752823 },
   { id: "hamamatsucho-43", name: "COMFORT STAND", address: "東京都港区東新橋2-9-1 CIRCLES汐留1F", lat: 35.661331, lng: 139.757401, hoursInfo: "平日8:00〜18:00", closedDaysInfo: "土曜日、日曜日" },

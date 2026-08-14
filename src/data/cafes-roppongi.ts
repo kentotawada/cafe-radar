@@ -25,7 +25,7 @@ export const cafes: Cafe[] = [
   { id: "roppongi-16", name: "シナボン & シアトルズベストコーヒー 六本木店", address: "東京都港区六本木6-5-18 六本木センタービル", lat: 35.661331, lng: 139.730759, outletInfo: "2階席にコンセント・USBあり、要ケーブル持参" },
   { id: "roppongi-17", name: "プロント 六本木店", address: "東京都港区六本木3-11-10 ココ六本木ビル", lat: 35.663162, lng: 139.732895 },
   { id: "roppongi-18", name: "春水堂 六本木店", address: "東京都港区六本木1-4-5 アークヒルズサウスタワー1F", lat: 35.665691, lng: 139.739304, outletInfo: "カウンター席全席に電源2口完備" },
-  { id: "roppongi-19", name: "DEAN & DELUCA カフェ 六本木", address: "東京都港区赤坂9-7-3 東京ミッドタウン B1", lat: 35.666023, lng: 139.732208, outletInfo: "カウンター席のみ電源あり、Wi-Fiも完備" },
+  { id: "roppongi-19", name: "DEAN & DELUCA カフェ 六本木", address: "東京都港区赤坂9-7-3 東京ミッドタウン B1", lat: 35.6656243, lng: 139.7304644, outletInfo: "カウンター席のみ電源あり、Wi-Fiも完備" },
   { id: "roppongi-20", name: "IDÉE CAFE PARC 東京ミッドタウン店", address: "東京都港区赤坂9-7-4 東京ミッドタウン ガレリア3F", lat: 35.666023, lng: 139.732208, outletInfo: "電源あり、テラス風の開放的な空間" },
   { id: "roppongi-21", name: "ARK HiLLS CAFE", address: "東京都港区六本木1-3-40 アークヒルズ カラヤン広場", lat: 35.666088, lng: 139.739914, outletInfo: "コンセント利用可、Wi-Fiもあり作業向き" },
   { id: "roppongi-22", name: "PARK6 powered by bondolfi boncaffē", address: "東京都港区六本木6-10-1 六本木ヒルズ ウェストウォーク6F", lat: 35.660206, lng: 139.729202, outletInfo: "カフェ16席+ワークラウンジ全席に電源あり" },
@@ -61,7 +61,7 @@ export const cafes: Cafe[] = [
   // 以下、追加調査分（2026年8月時点、Tabelog・各社公式サイト等で実在確認済み）。
   { id: "roppongi-52", name: "ドトールコーヒーショップ 六本木7丁目店", address: "東京都港区六本木7-8-10", lat: 35.665016, lng: 139.729675 },
   { id: "roppongi-53", name: "ジョナサン 麻布十番店", address: "東京都港区麻布十番1-4-1 ルート麻布十番1F", lat: 35.657043, lng: 139.734848 },
-  { id: "roppongi-54", name: "Le Pain Quotidien 東京ミッドタウン店", address: "東京都港区赤坂9-7-3 東京ミッドタウン ウエストプラザ1F", lat: 35.666023, lng: 139.732208 },
+  { id: "roppongi-54", name: "Le Pain Quotidien 東京ミッドタウン店", address: "東京都港区赤坂9-7-3 東京ミッドタウン ウエストプラザ1F", lat: 35.66554372, lng: 139.73051718 },
   { id: "roppongi-55", name: "512 CAFE&GRILL", address: "東京都港区赤坂9-5-12 パークサイドシックス A棟1F", lat: 35.667301, lng: 139.729355 },
   { id: "roppongi-56", name: "麻布台ヒルズカフェ", address: "東京都港区麻布台1-3-1 麻布台ヒルズ森JPタワー A街区B1F", lat: 35.661549, lng: 139.740921 },
   { id: "roppongi-57", name: "Mercer Brunch", address: "東京都港区六本木4-2-35 アーバンスタイル六本木三河台1F", lat: 35.665585, lng: 139.734467 },

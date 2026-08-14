@@ -853,6 +853,28 @@ function AttributionInfoButton() {
                   ©CARTO
                 </a>
               )}
+              {/* 店舗の座標の一部は、国土地理院の住所検索と Yahoo! の
+                  場所情報検索で解決している。Yahoo!デベロッパーネットワークの
+                  ガイドラインはAPIを使ったアプリにクレジット表示を義務づけて
+                  いるので、地図の出典と同じ場所に並べる。
+                  「最も目立つ要素であってはならない」「提携をほのめかしては
+                  ならない」という条件があるため、出典として淡々と並べる */}
+              <a
+                href="https://www.gsi.go.jp/kikakuchousei/kikakuchousei40182.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block px-4 py-3 border-b border-gray-200 text-blue-600 cursor-pointer"
+              >
+                位置情報の一部: 国土地理院 住所検索API
+              </a>
+              <a
+                href="https://developer.yahoo.co.jp/sitemap/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block px-4 py-3 border-b border-gray-200 text-blue-600 cursor-pointer"
+              >
+                Web Services by Yahoo! JAPAN
+              </a>
               <button
                 onClick={() => setOpen(false)}
                 className="w-full px-4 py-3 font-semibold text-gray-700 cursor-pointer"

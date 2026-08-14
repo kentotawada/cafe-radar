@@ -37,7 +37,7 @@ export const cafes: Cafe[] = [
   { id: "yurakucho-03", name: "マクドナルド 銀座二丁目ビル店", address: "東京都中央区銀座2-9-4", lat: 35.67281, lng: 139.768509, outletInfo: "2階席にコンセントあり、長居作業も可" },
   { id: "yurakucho-04", name: "マクドナルド 東京駅一番街店", address: "東京都千代田区丸の内1-9-1 東京駅一番街", lat: 35.681252, lng: 139.767242, outletInfo: "改装でカウンター撤去、電源席は現在なし", smokingInfo: "全席禁煙(マクドナルド全店舗方針)", wifiInfo: "無料Wi-Fiあり(00_MCD-FREE-WIFI、初回のみ会員登録)", hoursInfo: "5:30〜24:00" },
   { id: "yurakucho-05", name: "ガスト 銀座インズ店", address: "東京都中央区銀座西3丁目1番地 銀座インズ1 2F", lat: 35.673634, lng: 139.770294, outletInfo: "電源コンセント完備、Wi-Fiも利用可", smokingInfo: "敷地内全面禁煙(すかいらーくグループ方針)", wifiInfo: "無料Wi-Fiあり", hoursInfo: "11:00〜23:00" },
-  { id: "yurakucho-06", name: "サイゼリヤ 銀座インズ店", address: "東京都中央区銀座西3-1 銀座インズ2F", lat: 35.673634, lng: 139.770294, smokingInfo: "全席禁煙", hoursInfo: "10:00〜23:00" },
+  { id: "yurakucho-06", name: "サイゼリヤ 銀座インズ店", address: "東京都中央区銀座西3-1 銀座インズ2F", lat: 35.67537962, lng: 139.76539714, smokingInfo: "全席禁煙", hoursInfo: "10:00〜23:00" },
   { id: "yurakucho-07", name: "スターバックス コーヒー 有楽町メトロピア店", address: "東京都千代田区有楽町1-11-1 東京メトロ有楽町駅構内", lat: 35.675388, lng: 139.762878, outletInfo: "8席のみのカウンター席で電源なし", smokingInfo: "全店舗禁煙方針、喫煙所なし", wifiInfo: "無料Wi-Fiあり(at_STARBUCKS_Wi2、登録不要で利用規約に同意するだけ)", seatCountInfo: "カウンター8席のみ", hoursInfo: "7:00〜22:00", closedDaysInfo: "不定休" },
   { id: "yurakucho-08", name: "スターバックス コーヒー JR有楽町駅京橋口店", address: "東京都千代田区有楽町2-9", lat: 35.674507, lng: 139.762558, outletInfo: "2階に電源コンセント席8席あり", smokingInfo: "全店舗禁煙方針、喫煙所なし", wifiInfo: "無料Wi-Fiあり(at_STARBUCKS_Wi2、登録不要で利用規約に同意するだけ)", hoursInfo: "7:00〜22:00", closedDaysInfo: "不定休" },
   { id: "yurakucho-09", name: "スターバックス・コーヒー 有楽町ビル店", address: "東京都千代田区有楽町1-10-1 有楽町ビルディング地下1F", lat: 35.674938, lng: 139.761795 },
