@@ -14,6 +14,14 @@ import type { Cafe } from "./cafes";
 // 取りこぼしを疑う手がかりにする。
 // 同じ建物ではスターバックス五反田東急スクエア店(5F, gotanda-02)が
 // 営業中のため、建物ごと消してはいない。
+//
+// 【現地確認】2026-08-14 — 五反田で4軒を実際に訪問し、2軒が閉店だった
+//   - gotanda-30 マジョルカ … 閉店。削除
+//   - メゾンカイザー五反田店(gotanda-66) … 営業中だがイートインの席が無く、
+//     作業目的では使えない。削除はせず seatCountInfo に事実を記載した
+// 同日、大崎側でも ティーハウス マユール 五反田店(osaki-27)が閉店を確認。
+// 4軒中2軒という割合は、他エリアにも同程度の閉店が混ざっている可能性を
+// 示す。特にチェーン以外の個人店は入れ替わりが速い。
 export const cafes: Cafe[] = [
   { id: "gotanda-01", name: "マクドナルド アトレ五反田店", address: "東京都品川区東五反田1-26-14 アトレ五反田 2F・3F", lat: 35.6264, lng: 139.7238, outletInfo: "3F窓際カウンター26席、各席に電源コンセントあり" },
   { id: "gotanda-02", name: "スターバックス コーヒー 五反田東急スクエア店", address: "東京都品川区東五反田2-1-2 五反田東急スクエア 5F", lat: 35.6258, lng: 139.7248, outletInfo: "レジ前カウンター席に電源、混雑時は取りにくい" },
@@ -43,7 +51,6 @@ export const cafes: Cafe[] = [
   { id: "gotanda-27", name: "TONER", address: "東京都品川区西五反田3-8-3 町原ビル 1F", lat: 35.6217, lng: 139.7183, outletInfo: "カウンター周りのみ電源コンセントあり" },
   { id: "gotanda-28", name: "Times CAFÉ", address: "東京都品川区西五反田2-20-4 パーク24グループ本社ビル 2F", lat: 35.6228, lng: 139.7193, outletInfo: "電源とUSBポート付きの席あり" },
   { id: "gotanda-29", name: "カフェ ビアンコ", address: "東京都品川区西五反田2-9-7 ドルミ五反田アンメゾン 1F", lat: 35.6237, lng: 139.7202 },
-  { id: "gotanda-30", name: "マジョルカ", address: "東京都品川区東五反田2-20-1 明石レジデンス 1F", lat: 35.624, lng: 139.7262 },
   { id: "gotanda-31", name: "星乃珈琲店 五反田店", address: "東京都品川区東五反田1-21-5 2F", lat: 35.6272, lng: 139.725, outletInfo: "コンセント・Wi-Fiともになしとの情報" },
   { id: "gotanda-32", name: "カフェ トゥジュール デビュテ", address: "東京都品川区東五反田5-27-12 扇寿ビル B1", lat: 35.6296, lng: 139.7279 },
   { id: "gotanda-33", name: "gicca 池田山", address: "東京都品川区東五反田5-1-1 OURA BLDG", lat: 35.6302, lng: 139.7282 },
@@ -77,7 +84,7 @@ export const cafes: Cafe[] = [
   { id: "gotanda-63", name: "it's so you coffee", address: "東京都品川区西五反田2-14-13 1F", lat: 35.6231, lng: 139.7196, hoursInfo: "火〜金8:30〜16:00、土・祝8:30〜17:00", closedDaysInfo: "日・月定休" },
   { id: "gotanda-64", name: "Koti", address: "東京都品川区東五反田2-3-2 IM五反田ビル 3F", lat: 35.6251, lng: 139.7256, hoursInfo: "10:00〜17:00", closedDaysInfo: "水・土・日定休" },
   { id: "gotanda-65", name: "Kua Aina 五反田店", address: "東京都品川区西五反田1-26-7 カノウビル 1F", lat: 35.6244, lng: 139.7213 },
-  { id: "gotanda-66", name: "メゾンカイザー 五反田店", address: "東京都品川区東五反田2-10-1 パークタワーグランスカイ 1F", lat: 35.6245, lng: 139.7262, hoursInfo: "7:00〜20:00" },
+  { id: "gotanda-66", name: "メゾンカイザー 五反田店", address: "東京都品川区東五反田2-10-1 パークタワーグランスカイ 1F", lat: 35.6245, lng: 139.7262, seatCountInfo: "イートインの座席なし(2026年8月、現地で確認)", hoursInfo: "7:00〜20:00" },
   { id: "gotanda-67", name: "ゲンロンカフェ", address: "東京都品川区西五反田1-11-9 司ビル 6F", lat: 35.6249, lng: 139.7217 },
   { id: "gotanda-68", name: "Coffee Stand M", address: "東京都品川区東五反田1-18-6", lat: 35.6269, lng: 139.7246 },
   { id: "gotanda-69", name: "コーヒーポスト", address: "東京都品川区西五反田1-22-4", lat: 35.6244, lng: 139.7202 },

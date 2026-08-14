@@ -16,6 +16,13 @@ import type { Cafe } from "./cafes";
 // - リトルフードコート Cafe KITECHO(大崎ウィズタワー): 食べログで【閉店】表示
 // なお、エクセルシオール カフェ 大崎シンクパーク店・デニーズ ThinkPark店・モスバーガー 大崎店は
 // 既にcafes-gotanda.tsに収録済みのため、本ファイルでは重複掲載していない。
+//
+// 【現地確認】2026-08-14
+//   - osaki-27 ティーハウス マユール 五反田店 … 閉店を現地で確認。削除
+//   - osaki-08 タリーズコーヒー 大崎オーバルコート店 … 実際の位置と
+//     約280mずれていたため、国土地理院の住所検索APIが返す街区レベルの
+//     座標(35.623676, 139.729034)に差し替えた。元の座標は丁目単位の
+//     推定で、東五反田2丁目の店舗が同じ点に固まっていた
 export const cafes: Cafe[] = [
   { id: "osaki-01", name: "スターバックス コーヒー ゲートシティ大崎店", address: "東京都品川区大崎1-11-1 ゲートシティ大崎 大崎ゲートシティプラザ1F", lat: 35.6193, lng: 139.7297, smokingInfo: "禁煙(全店舗禁煙方針、喫煙室なし)", wifiInfo: "無料Wi-Fiあり(at_STARBUCKS_Wi2ほか)", hoursInfo: "平日7:00〜22:00、土日祝7:30〜21:30" },
   { id: "osaki-02", name: "スターバックス コーヒー 大崎ブライトタワー店", address: "東京都品川区北品川5-6-1 大崎ブライトタワー", lat: 35.6165, lng: 139.7355, smokingInfo: "禁煙(全店舗禁煙方針、喫煙室なし)", wifiInfo: "無料Wi-Fiあり(at_STARBUCKS_Wi2ほか)", hoursInfo: "平日7:00〜22:00、土日祝7:30〜21:00" },
@@ -24,7 +31,7 @@ export const cafes: Cafe[] = [
   { id: "osaki-05", name: "エクセルシオール カフェ 大崎ニューシティ店", address: "東京都品川区大崎1-6-5 ニューシティ2F", lat: 35.6215, lng: 139.7278, outletInfo: "コンセントあり(喫煙ブースと完全分煙)", smokingInfo: "分煙(喫煙ブースあり、店内81席は全席禁煙)", seatCountInfo: "81席(全席禁煙、別に喫煙ブースあり)", hoursInfo: "平日7:00〜21:00、土日祝8:00〜20:00" },
   { id: "osaki-06", name: "タリーズコーヒー 大崎センタービル店", address: "東京都品川区大崎1-5-1 大崎センタービル", lat: 35.621, lng: 139.729, outletInfo: "ChargeSpot充電サービスあり", smokingInfo: "禁煙", wifiInfo: "Tully's Wi-Fiあり", hoursInfo: "平日7:30〜19:00", closedDaysInfo: "土日定休" },
   { id: "osaki-07", name: "タリーズコーヒー 大崎ガーデンタワー店", address: "東京都品川区西品川1-1-1 住友不動産大崎ガーデンタワー1F", lat: 35.6175, lng: 139.7245, outletInfo: "ChargeSpot充電サービスあり", smokingInfo: "禁煙", wifiInfo: "Tully's Wi-Fiあり", hoursInfo: "平日7:00〜20:00、土9:00〜17:00", closedDaysInfo: "日曜定休" },
-  { id: "osaki-08", name: "タリーズコーヒー 大崎オーバルコート店", address: "東京都品川区東五反田2-17-1 オーバルコート大崎 マークウエスト1F", lat: 35.6245, lng: 139.726, outletInfo: "ChargeSpot充電サービスあり", smokingInfo: "加熱式たばこ専用室あり(室内飲食可)", wifiInfo: "Tully's Wi-Fiあり", hoursInfo: "平日7:00〜18:00", closedDaysInfo: "土日定休" },
+  { id: "osaki-08", name: "タリーズコーヒー 大崎オーバルコート店", address: "東京都品川区東五反田2-17-1 オーバルコート大崎 マークウエスト1F", lat: 35.623676, lng: 139.729034, outletInfo: "ChargeSpot充電サービスあり", smokingInfo: "加熱式たばこ専用室あり(室内飲食可)", wifiInfo: "Tully's Wi-Fiあり", hoursInfo: "平日7:00〜18:00", closedDaysInfo: "土日定休" },
   { id: "osaki-09", name: "マクドナルド 大崎ゲートシティ店", address: "東京都品川区大崎1-11-1 ゲートシティプラザ", lat: 35.6193, lng: 139.7297, smokingInfo: "全席禁煙", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "100席以上(公式サイトより)", hoursInfo: "7:00〜22:30(朝マックは7:00〜10:30)" },
   { id: "osaki-10", name: "BECK'S COFFEE SHOP 大崎店", address: "東京都品川区大崎1-21-4 JR大崎駅南口改札内 Dila大崎", lat: 35.6197, lng: 139.7286, outletInfo: "電源コンセントあり(大型アダプターは挿しにくいとの口コミも)", smokingInfo: "加熱式たばこ専用スペースあり", wifiInfo: "Wi-Fiあり", seatCountInfo: "75席", hoursInfo: "平日6:15〜21:00、土日祝7:00〜19:00" },
   { id: "osaki-11", name: "MAHIRO COFFEE ROASTERY", address: "東京都品川区大崎1-20-8 INOビル", lat: 35.6205, lng: 139.73, seatCountInfo: "6席程度", hoursInfo: "8:00〜19:00", closedDaysInfo: "不定休(Instagram等で告知)" },
@@ -43,7 +50,6 @@ export const cafes: Cafe[] = [
   { id: "osaki-24", name: "BON CAFE coffee&tea", address: "東京都品川区西品川3-7-3 1F", lat: 35.6183, lng: 139.7255 },
   { id: "osaki-25", name: "エンタス", address: "東京都品川区西品川3-7-1 近藤ビルC棟", lat: 35.6183, lng: 139.7256 },
   { id: "osaki-26", name: "レ・ミルフォイユ・ドゥ・リベルテ 大崎店", address: "東京都品川区大崎2-1-1 ThinkPark 2F", lat: 35.6185, lng: 139.7276 },
-  { id: "osaki-27", name: "ティーハウス マユール 五反田店", address: "東京都品川区東五反田2-20-8", lat: 35.6242, lng: 139.7263 },
   { id: "osaki-28", name: "III", address: "東京都品川区大崎3-5-2", lat: 35.6188, lng: 139.726 },
   { id: "osaki-29", name: "サニーサイドアップ", address: "東京都品川区西五反田3-16-2 サニーサイドハイツ1F", lat: 35.6185, lng: 139.7245, smokingInfo: "全席喫煙可", closedDaysInfo: "土日祝定休" },
   { id: "osaki-30", name: "Healthcare Meal", address: "東京都品川区大崎1-11-1 ゲートシティ大崎 プラザ2F", lat: 35.6193, lng: 139.7297 },
