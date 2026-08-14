@@ -126,8 +126,14 @@ const CLUSTER_PIN_THRESHOLD = 150;
 const MAPTILER_KEY: string | undefined = process.env.NEXT_PUBLIC_MAPTILER_KEY;
 const CARTO_TILE_URL =
   "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+// スタイルは streets-v2。以前使っていた bright-v2 は意図的にラベルを絞った
+// 軽量スタイルで、周りに何の店があるか地図から読み取れなかった。
+// 五反田を歩いて「地図に店名が出ていないと目的地にたどり着けない」と
+// 分かったため、店名・アイコンが出るスタイルに変更した。
+// (CARTO・MapTiler・Mapboxはいずれも同じOpenStreetMapのデータを描いている。
+//  違うのはスタイルだけなので、サービスを乗り換える必要は無かった)
 const TILE_URL = MAPTILER_KEY
-  ? `https://api.maptiler.com/maps/bright-v2/{z}/{x}/{y}{r}.png?key=${MAPTILER_KEY}`
+  ? `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}{r}.png?key=${MAPTILER_KEY}`
   : CARTO_TILE_URL;
 const TILE_MAX_ZOOM = 20;
 
