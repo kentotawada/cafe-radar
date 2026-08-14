@@ -39,7 +39,7 @@ export const cafes: Cafe[] = [
   { id: "gotanda-23", name: "ウェンディーズ・ファーストキッチン 五反田東口店", address: "東京都品川区東五反田1-13-12 営和五反田ビル", lat: 35.6267, lng: 139.7244, outletInfo: "窓際カウンターに電源とUSB、21口設置" },
   { id: "gotanda-24", name: "WIRED CAFE Dining Lounge アトレヴィ五反田店", address: "東京都品川区東五反田1-26-14 アトレヴィ五反田 2F", lat: 35.6264, lng: 139.7238, outletInfo: "無料電源・無料Wi-Fi完備" },
   { id: "gotanda-25", name: "カフェオレトーキョーヨル", address: "東京都品川区東五反田1-13-3 加藤ビル 3F", lat: 35.6269, lng: 139.7245 },
-  { id: "gotanda-26", name: "MOBaCAFE", address: "東京都品川区東五反田2-3-2 タイセイビル 1F", lat: 35.6251, lng: 139.7256, outletInfo: "全席に電源、コンセント+USBポートも" },
+  { id: "gotanda-26", name: "MOBaCAFE", address: "東京都品川区東五反田2-3-2 タイセイビル 1F", lat: 35.6251, lng: 139.7256, outletInfo: "全席に電源、コンセント+USBポートも", webMeetingInfo: "有料のWEB会議スペースがあるとの口コミが複数あり(Googleマップ、2026年8月時点)" },
   { id: "gotanda-27", name: "TONER", address: "東京都品川区西五反田3-8-3 町原ビル 1F", lat: 35.6217, lng: 139.7183, outletInfo: "カウンター周りのみ電源コンセントあり" },
   { id: "gotanda-28", name: "Times CAFÉ", address: "東京都品川区西五反田2-20-4 パーク24グループ本社ビル 2F", lat: 35.6228, lng: 139.7193, outletInfo: "電源とUSBポート付きの席あり" },
   { id: "gotanda-29", name: "カフェ ビアンコ", address: "東京都品川区西五反田2-9-7 ドルミ五反田アンメゾン 1F", lat: 35.6237, lng: 139.7202 },

@@ -3751,6 +3751,20 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                       </div>
                     </div>
                   )}
+                  {/* 有料ブースや個室など「設備としてWEB会議ができるか」。
+                      利用者投稿の web_meeting_ok(周囲の雰囲気として通話しても
+                      浮かないか)とは別物なので、並べず独立して出す */}
+                  {cafe.webMeetingInfo && (
+                    <div className="text-[11px] sm:text-sm bg-violet-50 border border-violet-200 rounded p-1.5 sm:p-2 text-violet-900 mb-1 sm:mb-2">
+                      <div className="font-semibold mb-0.5">
+                        🎧 WEB会議・通話（ネット調べ）
+                      </div>
+                      <div>{cafe.webMeetingInfo}</div>
+                      <div className="text-violet-400 mt-0.5">
+                        ※最新でない場合があります
+                      </div>
+                    </div>
+                  )}
                   {cafe.smokingInfo && (
                     <div className="text-[11px] sm:text-sm bg-amber-50 border border-amber-200 rounded p-1.5 sm:p-2 text-amber-900 mb-1 sm:mb-2">
                       <div className="font-semibold mb-0.5">
