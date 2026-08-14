@@ -516,11 +516,14 @@ const LANDMARK_ICONS: Record<LandmarkCategory, L.DivIcon> = {
   traffic_signal: createTrafficSignalIcon(),
 };
 
+// 五反田を実際に歩いて出た指摘:「現在地がどこか分かりにくい」。
+// 青い点だけだと、カフェのピンが密集している場所で埋もれる。
+// リストから店を選んだ時のピンと同じく、広がるリングを付けて主張させる
 const USER_LOCATION_ICON = L.divIcon({
   className: "",
-  html: `<div style="background:#3b82f6;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 0 0 2px rgba(59,130,246,0.4), 0 1px 4px rgba(0,0,0,0.5)"></div>`,
-  iconSize: [16, 16],
-  iconAnchor: [8, 8],
+  html: `<div class="cf-user-dot"><span class="cf-user-pulse-ring"></span></div>`,
+  iconSize: [18, 18],
+  iconAnchor: [9, 9],
 });
 
 const NOISE_LABEL: Record<NoiseLevel, string> = {
@@ -1425,6 +1428,40 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   // 変えた後はそれを尊重して上書きしない
   const hasManualSortRef = useRef(false);
 
+  // 五反田を歩いて出た指摘:「歩いても現在地が動かない」。
+  // getCurrentPositionは一度きりの取得なので当然だった。最初の取得に
+  // 成功したら、そこからwatchPositionに切り替えて追従させる。
+  //
+  // 地図の中心は動かさない。歩くたびに勝手にスクロールすると、
+  // 少し先の店を見ようとして地図を動かしても引き戻されてしまう。
+  // 動かすのはマーカーだけで、中心を戻したい時は現在地ボタンを押す。
+  const watchIdRef = useRef<number | null>(null);
+  const startTracking = () => {
+    if (watchIdRef.current !== null) return;
+    if (!("geolocation" in navigator)) return;
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        setUserPosition([pos.coords.latitude, pos.coords.longitude]);
+      },
+      () => {
+        // 途中で取れなくなっても、最後に取れた位置を残しておく。
+        // 歩いている最中にエラーを出しても直せることが無い
+      },
+      // 歩行に追従させたいので精度優先。maximumAgeを短くしないと
+      // キャッシュされた古い位置が返り続けて「動かない」ままになる
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
+    );
+  };
+
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+      }
+    };
+  }, []);
+
   const locateMe = (onSuccess?: (position: [number, number]) => void) => {
     if (!("geolocation" in navigator)) {
       setLocateError("この端末・ブラウザでは現在地を取得できません");
@@ -1446,6 +1483,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
         if (!hasManualSortRef.current) {
           setSortOrder("distance");
         }
+        startTracking();
         onSuccess?.(position);
       },
       (err) => {
@@ -1480,12 +1518,18 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
     const locateSilently = () => {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          if (hasManualFocusRef.current) return;
           const position: [number, number] = [
             pos.coords.latitude,
             pos.coords.longitude,
           ];
+          // 現在地の印と追従は、地図をどこに表示していても常に始める。
+          // 以前はここで hasManualFocusRef を見て丸ごと打ち切っていたため、
+          // 前回の表示位置を復元した時やエリアを選んだ後は、現在地が
+          // 一切表示されなかった。上書きしたくないのは「地図の中心」で
+          // あって、自分がどこにいるかの表示ではない
           setUserPosition(position);
+          startTracking();
+          if (hasManualFocusRef.current) return;
           setMapFocus(position);
           pendingSearchSyncRef.current = true;
           if (!hasManualSortRef.current) {
