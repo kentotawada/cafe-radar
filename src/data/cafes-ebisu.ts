@@ -31,7 +31,7 @@ export const cafes: Cafe[] = [
   { id: "ebisu-02", name: "スターバックス コーヒー 恵比寿ガーデンプレイスタワー１Ｆ店", address: "東京都渋谷区恵比寿4-20-3 恵比寿ガーデンプレイスタワー", lat: 35.6421682, lng: 139.7134557, outletInfo: "窓際カウンター12席中6席に電源あり", smokingInfo: "全席禁煙", wifiInfo: "無料Wi-Fiあり(at_STARBUCKS_Wi2、docomo)", seatCountInfo: "48席", hoursInfo: "平日7:00〜22:00、土日祝8:00〜22:00", closedDaysInfo: "不定休" },
   { id: "ebisu-03", name: "スターバックス コーヒー 恵比寿ファーストスクエア店", address: "東京都渋谷区恵比寿1-18-14 恵比寿ファーストスクエア", lat: 35.647221, lng: 139.714584, outletInfo: "電源が使える席はなし", smokingInfo: "全席禁煙", wifiInfo: "無料Wi-Fiあり(at_STARBUCKS_Wi2ほか)", hoursInfo: "平日7:00〜21:00、土日祝8:00〜20:00", closedDaysInfo: "不定休" },
   { id: "ebisu-04", name: "スターバックス コーヒー アトレ恵比寿店(2F)", address: "東京都渋谷区恵比寿南1-5-5 アトレ恵比寿", lat: 35.647175, lng: 139.709305, outletInfo: "電源席なし、コンセント利用不可", smokingInfo: "全席禁煙", wifiInfo: "無料Wi-Fiあり(at_STARBUCKS_Wi2ほか)", hoursInfo: "7:00〜22:30", closedDaysInfo: "不定休" },
-  { id: "ebisu-05", name: "スターバックス コーヒー アトレ恵比寿店(5F)", address: "東京都渋谷区恵比寿南1-5-5 アトレ恵比寿", lat: 35.647175, lng: 139.709305, outletInfo: "電源席なし", smokingInfo: "全席禁煙", wifiInfo: "無料Wi-Fiあり(at_STARBUCKS_Wi2ほか)", hoursInfo: "10:00〜20:00", closedDaysInfo: "不定休" },
+  { id: "ebisu-05", name: "スターバックス コーヒー アトレ恵比寿店(5F)", address: "東京都渋谷区恵比寿南1-5-5 アトレ恵比寿", lat: 35.6466232, lng: 139.7101809, outletInfo: "電源席なし", smokingInfo: "全席禁煙", wifiInfo: "無料Wi-Fiあり(at_STARBUCKS_Wi2ほか)", hoursInfo: "10:00〜20:00", closedDaysInfo: "不定休" },
   { id: "ebisu-06", name: "スターバックス ティー&カフェ 恵比寿ガーデンプレイス B1店", address: "東京都渋谷区恵比寿4-20-7 恵比寿ガーデンプレイス センタープラザ B1", lat: 35.643665, lng: 139.713364, outletInfo: "電源席なし", smokingInfo: "全席禁煙", wifiInfo: "無料Wi-Fiあり(at_STARBUCKS_Wi2ほか)", hoursInfo: "8:00〜22:00", closedDaysInfo: "不定休" },
   { id: "ebisu-07", name: "ドトールコーヒーショップ 恵比寿駅前店", address: "東京都渋谷区恵比寿南1-4-1", lat: 35.646618, lng: 139.709183, outletInfo: "電源が使えない店との情報あり", smokingInfo: "分煙(禁煙51席・喫煙24席、総席数75)", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "全75席", hoursInfo: "7:00〜21:00", closedDaysInfo: "年中無休" },
   { id: "ebisu-08", name: "ドトールコーヒーショップ 恵比寿東店", address: "東京都渋谷区東3-25-5 グランドメゾン恵比寿東", lat: 35.648594, lng: 139.710266, outletInfo: "電源カフェとして掲載、コンセントあり", smokingInfo: "全席禁煙(公式には喫煙ブース記載あるが喫煙席は0席)", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "全20席(禁煙20・喫煙0)", hoursInfo: "平日6:30〜19:30、土7:30〜19:00、日祝7:30〜19:00" },
@@ -84,7 +84,7 @@ export const cafes: Cafe[] = [
   { id: "ebisu-55", name: "uRn. chAi&TeA 恵比寿店", address: "東京都渋谷区恵比寿1-22-23 ヴェラハイツ恵比寿1F", lat: 35.646141, lng: 139.71347, outletInfo: "窓際カウンター席に電源あり", smokingInfo: "全席禁煙", seatCountInfo: "18席", hoursInfo: "9:30〜20:00", closedDaysInfo: "無休" },
   { id: "ebisu-56", name: "it COFFEE 恵比寿店", address: "東京都渋谷区恵比寿1-20-2 恵比寿ファーストビル1F", lat: 35.64698, lng: 139.712524, outletInfo: "ほぼ全席にコンセント完備", smokingInfo: "全席禁煙", hoursInfo: "8:00〜20:00", closedDaysInfo: "無休" },
   { id: "ebisu-57", name: "THE NEW NORMAL", address: "東京都渋谷区恵比寿南2-3-13 山燃ビル2F", lat: 35.645611, lng: 139.707306, smokingInfo: "全席禁煙", seatCountInfo: "26席", hoursInfo: "月木金土日祝11:30〜23:30(L.O.フード22:30/ドリンク23:00)、火水11:30〜23:00(L.O.フード22:00/ドリンク22:30)", closedDaysInfo: "基本無休" },
-  { id: "ebisu-58", name: "京橋千疋屋 アトレ恵比寿店", address: "東京都渋谷区恵比寿南1-5-5 アトレ恵比寿3F", lat: 35.647175, lng: 139.709305, smokingInfo: "全席禁煙", seatCountInfo: "44席", hoursInfo: "10:00〜21:00(パーラーL.O.20:30)", closedDaysInfo: "無休(アトレ恵比寿全館休館日を除く)" },
+  { id: "ebisu-58", name: "京橋千疋屋 アトレ恵比寿店", address: "東京都渋谷区恵比寿南1-5-5 アトレ恵比寿3F", lat: 35.64697871, lng: 139.70983926, smokingInfo: "全席禁煙", seatCountInfo: "44席", hoursInfo: "10:00〜21:00(パーラーL.O.20:30)", closedDaysInfo: "無休(アトレ恵比寿全館休館日を除く)" },
   // 2026年8月、追加調査で確認した恵比寿駅周辺の実在店舗(ebisu-59以降)。
   // 座標は住所からの推定値。出典が単一のブログ・まとめ記事のみの店舗は
   // 電源/Wi-Fi/喫煙等の項目を推測で埋めず住所のみ掲載としている。
@@ -115,7 +115,7 @@ export const cafes: Cafe[] = [
   { id: "ebisu-83", name: "WE ARE THE FARM EBISU", address: "東京都渋谷区恵比寿西2-8-10 ORIX恵比寿西ビル1F", lat: 35.649368, lng: 139.707489 },
   { id: "ebisu-84", name: "マーサー ビス エビス", address: "東京都渋谷区恵比寿1-26-17 阿部ビル", lat: 35.647198, lng: 139.715622 },
   { id: "ebisu-85", name: "ブルーボトルコーヒー 恵比寿カフェ", address: "東京都渋谷区恵比寿南1-5-5", lat: 35.647175, lng: 139.709305, wifiInfo: "Wi-Fiなし", seatCountInfo: "21席", hoursInfo: "8:00〜21:00" },
-  { id: "ebisu-86", name: "宮越屋珈琲 恵比寿店", address: "東京都渋谷区恵比寿4-20-7 恵比寿ガーデンプレイス センタープラザB1", lat: 35.643665, lng: 139.713364, hoursInfo: "10:00〜22:00" },
+  { id: "ebisu-86", name: "宮越屋珈琲 恵比寿店", address: "東京都渋谷区恵比寿4-20-7 恵比寿ガーデンプレイス センタープラザB1", lat: 35.6428737, lng: 139.7140696, hoursInfo: "10:00〜22:00" },
   { id: "ebisu-87", name: "EBISU CLASS COFFEE", address: "東京都渋谷区恵比寿西1-3-2 恵比寿テラスビル2F", lat: 35.648994, lng: 139.708618, seatCountInfo: "15席", hoursInfo: "カフェ12:00〜19:00(L.O.18:00〜18:30)、バー20:00〜深夜", closedDaysInfo: "年中無休" },
   { id: "ebisu-88", name: "ever green cafe restaurant EBISU", address: "東京都渋谷区恵比寿1-26-1 第一公園内", lat: 35.64727, lng: 139.715271 },
   { id: "ebisu-89", name: "A MOMENT 恵比寿", address: "東京都渋谷区恵比寿南1-23-1 ABC亜米利加橋ビル3F", lat: 35.643436, lng: 139.711685 },

@@ -109,7 +109,7 @@ export const cafes: Cafe[] = [
   { id: "shimbashi-71", name: "スターバックス コーヒー 汐留シティセンター店", address: "東京都港区東新橋1-5-2 汐留シティセンター1F", lat: 35.665634, lng: 139.761398, smokingInfo: "全店舗禁煙方針、喫煙所なし", wifiInfo: "無料Wi-Fiあり(at_STARBUCKS_Wi2、登録不要で利用規約に同意するだけ)", hoursInfo: "7:00〜22:00" },
   { id: "shimbashi-72", name: "スターバックス コーヒー 日比谷シティ店", address: "東京都千代田区内幸町2-2-3 日比谷国際ビルヂングB1F", lat: 35.670513, lng: 139.754822, smokingInfo: "全店舗禁煙方針、喫煙所なし", wifiInfo: "無料Wi-Fiあり(at_STARBUCKS_Wi2、登録不要で利用規約に同意するだけ)", seatCountInfo: "店内32席(屋外ひびきテラス等を含めると100席以上)" },
   { id: "shimbashi-73", name: "スターバックス コーヒー カレッタ汐留店", address: "東京都港区東新橋1-8-2 カレッタ汐留B1F", lat: 35.664555, lng: 139.762268, smokingInfo: "全店舗禁煙方針、喫煙所なし", wifiInfo: "無料Wi-Fiあり(at_STARBUCKS_Wi2、登録不要で利用規約に同意するだけ)" },
-  { id: "shimbashi-74", name: "タリーズコーヒー 汐留住友ビル店", address: "東京都港区東新橋1-9-2 汐留住友ビル2F", lat: 35.662498, lng: 139.760895 },
+  { id: "shimbashi-74", name: "タリーズコーヒー 汐留住友ビル店", address: "東京都港区東新橋1-9-2 汐留住友ビル2F", lat: 35.66231154, lng: 139.76023985 },
   { id: "shimbashi-75", name: "巴裡小川軒 サロン・ド・テ 新橋店", address: "東京都港区新橋2-20-15 新橋駅前ビル1号館1F", lat: 35.666275, lng: 139.759567, hoursInfo: "平日10:00〜18:30、土10:00〜17:00", closedDaysInfo: "日曜日" },
   { id: "shimbashi-76", name: "Patisserie TEN &", address: "東京都千代田区内幸町1-7-1 日比谷OKUROJI", lat: 35.66959, lng: 139.758957 },
   { id: "shimbashi-77", name: "Japan Premium Lounge Cafe", address: "東京都中央区銀座8-3-11 和恒ビル1F", lat: 35.669052, lng: 139.759033, smokingInfo: "全席禁煙", wifiInfo: "無料Wi-Fiあり", seatCountInfo: "16席(カウンター6・4人卓1・2人卓3)", hoursInfo: "月〜土・祝10:00〜18:00", closedDaysInfo: "日曜日、年末年始" },

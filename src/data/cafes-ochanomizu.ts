@@ -92,7 +92,7 @@ export const cafes: Cafe[] = [
   { id: "ochanomizu-65", name: "イトウコーヒー店", address: "東京都千代田区神田錦町3-8 ランドステージお茶の水1F", lat: 35.693272, lng: 139.762115 },
   { id: "ochanomizu-66", name: "珈琲舎 蔵", address: "東京都千代田区神田神保町1-26 矢崎ビル2F", lat: 35.697201, lng: 139.759171 },
   { id: "ochanomizu-67", name: "ギャラリー珈琲店 古瀬戸", address: "東京都千代田区神田神保町1-7 NSEビル1F", lat: 35.695789, lng: 139.759201 },
-  { id: "ochanomizu-68", name: "喫茶プペ", address: "東京都千代田区神田錦町3-13-11", lat: 35.69215, lng: 139.761703 },
+  { id: "ochanomizu-68", name: "喫茶プペ", address: "東京都千代田区神田錦町3-13-11", lat: 35.69221436, lng: 139.76225838 },
   { id: "ochanomizu-69", name: "優美堂", address: "東京都千代田区神田小川町2-4", lat: 35.694618, lng: 139.763977, hoursInfo: "月・火・木・日・祝11:30〜18:00(L.O.17:30)、金・土11:30〜21:00(L.O.20:30)", closedDaysInfo: "水曜定休" },
   { id: "ochanomizu-70", name: "バロン", address: "東京都千代田区神田錦町2-7-1 東和ビル1F", lat: 35.691624, lng: 139.762909 },
   { id: "ochanomizu-71", name: "豆香房 神保町店", address: "東京都千代田区神田神保町1-39-9", lat: 35.694763, lng: 139.760468, hoursInfo: "平日7:30〜18:30、土9:00〜17:30、日12:00〜17:00", closedDaysInfo: "祝日定休" },
