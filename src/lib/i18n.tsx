@@ -183,6 +183,7 @@ const dictionary = {
     "gmap.shapeIndependent": "個人店",
     "gmap.shapeNight": "夜も営業",
     "gmap.shapeOutlet": "電源あり",
+    "gmap.gsiCredit": "位置情報の一部: 国土地理院 住所検索API",
   },
   en: {
     "app.title": "Cafe Radar",
@@ -352,6 +353,7 @@ const dictionary = {
     "gmap.shapeIndependent": "Independent",
     "gmap.shapeNight": "Open late",
     "gmap.shapeOutlet": "Has outlets",
+    "gmap.gsiCredit": "Some coordinates: GSI address search API",
   },
 } as const;
 

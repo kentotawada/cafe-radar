@@ -53,10 +53,12 @@ export function passesFilters(
   cafe: Cafe,
   f: CafeFilters,
   stats: CafeStats | null,
-  favorites: Set<string>
+  favorites: Set<string>,
+  // 編集部調べでは未確認でも、管理者が承認した電源報告がある店
+  verifiedOutletIds?: Set<string>
 ): boolean {
   if (f.favoritesOnly && !favorites.has(cafe.id)) return false;
-  if (f.outlet && !hasOutlet(cafe)) return false;
+  if (f.outlet && !hasOutlet(cafe, verifiedOutletIds)) return false;
   if (f.wifi && !hasWifi(cafe)) return false;
   if (f.nonSmoking && !isNonSmoking(cafe)) return false;
   if (f.smokingOk && !isSmokingOk(cafe)) return false;

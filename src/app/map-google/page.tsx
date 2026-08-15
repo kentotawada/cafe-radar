@@ -51,6 +51,7 @@ import {
 } from "@/lib/useCafeFacts";
 import { isNonSmoking } from "@/lib/cafeStats";
 import { useUserCafes } from "@/lib/useUserCafes";
+import { useVerifiedOutlets } from "@/lib/useVerifiedOutlets";
 import { PIN_COLORS, PIN_LEGEND } from "@/lib/pinColors";
 import { LangProvider, useLang, type TranslationKey } from "@/lib/i18n";
 import type { CafeStats } from "@/lib/types";
@@ -75,9 +76,9 @@ const PIN_SIZE = 42;
 // ピンのSVGは (利用スタイル × 電源の有無) の組み合わせでしか変わらない。
 // 毎回組み立てると、パンのたびに数百回の文字列生成が走る
 const pinHtmlCache = new Map<string, string>();
-function pinHtml(cafe: Cafe, statusColor: string) {
+function pinHtml(cafe: Cafe, statusColor: string, verifiedOutletIds: Set<string>) {
   const style = getCafeUsageStyle(cafe);
-  const outlet = hasOutlet(cafe, new Set());
+  const outlet = hasOutlet(cafe, verifiedOutletIds);
   const key = `${statusColor}|${style}|${outlet}`;
   let html = pinHtmlCache.get(key);
   if (!html) {
@@ -98,8 +99,8 @@ function pinHtml(cafe: Cafe, statusColor: string) {
 // 最初 CSS の transform でずらしたが、それでは見た目が動くだけで
 // ライブラリが持っている位置は元のまま。クラスタリングやタップ判定が
 // ずれた位置を使い続ける。anchorPoint で正しく指定する
-function pinAnchorPoint(cafe: Cafe): [string, string] {
-  const anchorY = hasOutlet(cafe, new Set()) ? 33 : 21;
+function pinAnchorPoint(cafe: Cafe, verifiedOutletIds: Set<string>): [string, string] {
+  const anchorY = hasOutlet(cafe, verifiedOutletIds) ? 33 : 21;
   return ["50%", `${(anchorY / PIN_SIZE) * 100}%`];
 }
 
@@ -116,11 +117,13 @@ function ClusteredCafeMarker({
   stats,
   onSelect,
   register,
+  verifiedOutletIds,
 }: {
   cafe: Cafe;
   stats: CafeStats | null;
   onSelect: (cafe: Cafe) => void;
   register: (id: string, marker: Marker | null) => void;
+  verifiedOutletIds: Set<string>;
 }) {
   const ref = useCallback(
     (marker: Marker | null) => register(cafe.id, marker),
@@ -132,11 +135,13 @@ function ClusteredCafeMarker({
       ref={ref}
       onClick={() => onSelect(cafe)}
       title={cafe.name}
-      anchorPoint={pinAnchorPoint(cafe)}
+      anchorPoint={pinAnchorPoint(cafe, verifiedOutletIds)}
     >
       <div
         style={{ width: PIN_SIZE, height: PIN_SIZE }}
-        dangerouslySetInnerHTML={{ __html: pinHtml(cafe, statusColorForStats(stats)) }}
+        dangerouslySetInnerHTML={{
+          __html: pinHtml(cafe, statusColorForStats(stats), verifiedOutletIds),
+        }}
       />
     </AdvancedMarker>
   );
@@ -149,10 +154,12 @@ function CafeMarkers({
   cafes,
   statsByCafe,
   onSelect,
+  verifiedOutletIds,
 }: {
   cafes: Cafe[];
   statsByCafe: Record<string, CafeStats>;
   onSelect: (cafe: Cafe) => void;
+  verifiedOutletIds: Set<string>;
 }) {
   const map = useMap();
   // 集めたマーカーは ref に持つ。state にすると ref が付くたびに再描画が
@@ -191,6 +198,7 @@ function CafeMarkers({
           stats={statsByCafe[cafe.id] ?? null}
           onSelect={onSelect}
           register={register}
+          verifiedOutletIds={verifiedOutletIds}
         />
       ))}
     </>
@@ -211,6 +219,69 @@ function UserLocationMarker({ position }: { position: [number, number] | null })
         <span className="cf-user-pulse-ring" />
       </div>
     </AdvancedMarker>
+  );
+}
+
+// 出典表示。地図そのものの出典は Google が自前で出すので、ここで出すのは
+// 「うちが持ち込んだデータ」の出典だけになる。
+//
+// 店舗の座標の一部は国土地理院の住所検索と Yahoo! の場所情報検索で解決して
+// いる。Yahoo!デベロッパーネットワークのガイドラインは、APIを使ったアプリに
+// クレジット表示を義務づけている。地図をGoogleに替えてもこの義務は消えない。
+// 「最も目立つ要素であってはならない」「提携をほのめかしてはならない」と
+// いう条件があるので、出典として淡々と並べる
+function AttributionButton() {
+  const { t } = useLang();
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        aria-label={t("attribution.title")}
+        title={t("attribution.title")}
+        className="bg-white/95 rounded-full shadow border border-gray-300 w-6 h-6 flex items-center justify-center text-[11px] font-semibold text-gray-600"
+      >
+        {t("attribution.button")}
+      </button>
+      {open && (
+        <div
+          className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl w-full max-w-xs overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-4 py-3 bg-gray-100 font-semibold text-gray-900">
+              {t("attribution.title")}
+            </div>
+            <a
+              href="https://www.gsi.go.jp/kikakuchousei/kikakuchousei40182.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block px-4 py-3 border-b border-gray-200 text-blue-600"
+            >
+              {t("gmap.gsiCredit")}
+            </a>
+            {/* この文字列は Yahoo! 側が指定している表記。訳さない */}
+            <a
+              href="https://developer.yahoo.co.jp/sitemap/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block px-4 py-3 border-b border-gray-200 text-blue-600"
+            >
+              Web Services by Yahoo! JAPAN
+            </a>
+            <button
+              onClick={() => setOpen(false)}
+              className="w-full px-4 py-3 font-semibold text-gray-700"
+            >
+              {t("attribution.close")}
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -240,6 +311,9 @@ function GoogleMapView() {
   const [newName, setNewName] = useState("");
   const [newAddress, setNewAddress] = useState("");
   const watchIdRef = useRef<number | null>(null);
+  // 自分で地図を動かしたか。動かした後に現在地へ勝手に飛ばされると、
+  // 見ていた場所を見失う
+  const hasMovedRef = useRef(false);
   // 「地図はGoogleでいいが、載っている情報はカフェレーダーのもの」。
   // 直近30分の混雑報告を取り、ピンの色と店舗情報に反映する
   const { statsByCafe, submitting, error: reportError, submitOccupancy } =
@@ -259,6 +333,10 @@ function GoogleMapView() {
     addCafe,
     flagCafe,
   } = useUserCafes();
+
+  // 管理者が承認した電源報告。ピンのプラグと「電源あり」の絞り込みが
+  // これを見ないと、承認しても何も変わらない
+  const verifiedOutletIds = useVerifiedOutlets();
 
   // 編集部調べの店と、利用者が追加した店をひとつの一覧にする
   const allCafes = useMemo(() => [...seedCafes, ...userCafes], [userCafes]);
@@ -282,7 +360,13 @@ function GoogleMapView() {
     const padded = bounds.pad(0.15);
     const inView = allCafes.filter((c) => {
       if (!padded.contains([c.lat, c.lng])) return false;
-      return passesFilters(c, filters, statsByCafe[c.id] ?? null, favorites);
+      return passesFilters(
+        c,
+        filters,
+        statsByCafe[c.id] ?? null,
+        favorites,
+        verifiedOutletIds
+      );
     });
     if (inView.length <= MAX_MARKERS) return inView;
     // 引いた表示だと1,000件を超える。クラスタでまとめても、その数の
@@ -295,7 +379,7 @@ function GoogleMapView() {
           ((b.lat - cLat) ** 2 + (b.lng - cLng) ** 2)
       )
       .slice(0, MAX_MARKERS);
-  }, [bounds, filters, statsByCafe, favorites, allCafes]);
+  }, [bounds, filters, statsByCafe, favorites, allCafes, verifiedOutletIds]);
   const capped = visible.length >= MAX_MARKERS;
 
   // 縦リスト用。地図の中心に近い順に並べる。地図とリストで順番が
@@ -315,6 +399,7 @@ function GoogleMapView() {
   const focusCafe = useCallback(
     (cafe: Cafe) => {
       setSelected(cafe);
+      hasMovedRef.current = true;
       map?.panTo({ lat: cafe.lat, lng: cafe.lng });
     },
     [map]
@@ -326,6 +411,7 @@ function GoogleMapView() {
 
   const locate = useCallback(() => {
     if (!("geolocation" in navigator)) return;
+    hasMovedRef.current = true;
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const p: [number, number] = [pos.coords.latitude, pos.coords.longitude];
@@ -345,6 +431,39 @@ function GoogleMapView() {
       { timeout: 8000, maximumAge: 60000 }
     );
   }, [map]);
+
+  // 開いた時点で現在地へ寄せる。ただし許可のダイアログを勝手に出さない。
+  //
+  // ホーム画面に追加して使っている人は自分の意思で入れた人なので、
+  // 起動のたびにボタンを押させるほうが煩わしい。検索やSNSから初めて
+  // 来た人とは分けて扱う。それ以外は Permissions API で「許可済み」と
+  // 確認できたときだけ動かす(確認できない環境ではあきらめる。呼べば
+  // ダイアログが出てしまうため)。Leaflet 版と同じ判断
+  useEffect(() => {
+    if (!map || hasMovedRef.current) return;
+    const isInstalledApp =
+      window.matchMedia?.("(display-mode: standalone)").matches ||
+      // iOS Safari は display-mode に対応せず、独自の navigator.standalone を使う
+      (navigator as unknown as { standalone?: boolean }).standalone === true;
+    if (isInstalledApp) {
+      locate();
+      return;
+    }
+    if (!navigator.permissions?.query) return;
+    let cancelled = false;
+    navigator.permissions
+      .query({ name: "geolocation" })
+      .then((status) => {
+        if (cancelled || status.state !== "granted" || hasMovedRef.current) return;
+        locate();
+      })
+      .catch(() => {
+        // name を解釈できないブラウザ。何もしない(ダイアログを出さない)
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [map, locate]);
 
   const cancelAdding = useCallback(() => {
     setAddingCafe(false);
@@ -388,13 +507,21 @@ function GoogleMapView() {
         streetViewControl={false}
         fullscreenControl={false}
         onIdle={handleIdle}
+        onDragstart={() => {
+          hasMovedRef.current = true;
+        }}
         onClick={(e) => {
           if (!addingCafe || !e.detail.latLng) return;
           setPendingLocation(e.detail.latLng);
         }}
         style={{ width: "100%", height: "100%" }}
       >
-        <CafeMarkers cafes={visible} statsByCafe={statsByCafe} onSelect={setSelected} />
+        <CafeMarkers
+          cafes={visible}
+          statsByCafe={statsByCafe}
+          onSelect={setSelected}
+          verifiedOutletIds={verifiedOutletIds}
+        />
         <UserLocationMarker position={userPosition} />
         {pendingLocation && (
           <AdvancedMarker
@@ -655,6 +782,7 @@ function GoogleMapView() {
             {t("gmap.countUnit")}
             {capped ? t("gmap.capped") : ""}
           </div>
+          <AttributionButton />
         </div>
 
         {/* 駅で探す。全23エリアぶん。中身は駅の一覧なので「エリア」ではなく
@@ -811,7 +939,7 @@ function GoogleMapView() {
                       {OCCUPANCY_EMOJI[level]} {occLabel[level]}
                     </span>
                   )}
-                  {hasOutlet(cafe) && <span>🔌</span>}
+                  {hasOutlet(cafe, verifiedOutletIds) && <span>🔌</span>}
                   {cafe.wifiInfo && <span>📶</span>}
                   <span>
                     🚶 {nearestStationWalkMinutes(cafe.lat, cafe.lng)}
@@ -868,7 +996,7 @@ function GoogleMapView() {
                               {OCCUPANCY_EMOJI[level]} {occLabel[level]}
                             </span>
                           )}
-                          {hasOutlet(cafe) && <span>🔌</span>}
+                          {hasOutlet(cafe, verifiedOutletIds) && <span>🔌</span>}
                           {cafe.wifiInfo && <span>📶 Wi-Fi</span>}
                         </div>
                       </div>
