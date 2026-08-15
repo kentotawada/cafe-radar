@@ -76,9 +76,9 @@ Google Maps 自体のJS(約200KB)はこの上に乗るが、地図の描画開�
 
 ## LCPの実測(2026-08-16)
 
-PageSpeed Insights の匿名APIは日次上限に達していて使えない。ブラウザペインも
-タブが hidden 状態で動くため paint/LCP が記録されない。Lighthouse をローカルの
-Chrome で直接動かす方法なら測れる。同じコマンドで両方を測れば比較になる。
+Lighthouse をローカルの Chrome で3回ずつ動かした(モバイル・シミュレート)。
+PageSpeed Insights の匿名APIは日次上限で使えず、ブラウザペインもタブが hidden で
+動くため paint/LCP が記録されない。この方法なら測れる。
 
 ```
 CHROME_PATH="/c/Program Files/Google/Chrome/Application/chrome.exe" \
@@ -89,13 +89,56 @@ npx lighthouse@12 "https://cafe-radar.com/" \
   --chrome-flags="--headless=new --no-sandbox" --quiet
 ```
 
-| | `/` (Leaflet版) | `/map-google` |
+| | `/` (Leaflet) | `/map-google` |
 |---|---|---|
-| Performance | 77 | 未測定 |
-| LCP | **2.9s** | 未測定 |
-| FCP | 1.2s | 未測定 |
-| TBT | 730ms | 未測定 |
-| CLS | 0 | 未測定 |
+| Performance | 78 | 35 |
+| LCP | **2.9s** | **9.5s** |
+| FCP | 1.2s | 4.0s |
+| TBT | 838ms | 1.4s |
+| CLS | 0 | 0 |
 
-`/map-google` を測るには本番環境に `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` が要る。
-現状このキーは Preview 環境にしか設定されていない。
+数字だけ見ると Googleマップ版が大幅に悪い。**が、この比較は成り立たない。**
+
+### LCPの数字が逆を向いている理由
+
+`/` の LCP要素は「地図を読み込んでいます」という**テキスト**だった。
+Leaflet のタイルは 256px の小さな画像がたくさん並ぶ形なので、どの1枚も
+このテキストより大きくならず、LCP候補にならない。つまり `/` の 2.9s は
+「読み込み中の文字が出た時刻」であって、地図が見えた時刻ではない。
+
+`/map-google` の LCP要素は**実際の地図タイル画像**。地図が出るぶん、
+大きな画像が LCP になる。
+
+### 地図が実際に画面に出るまでの時間(観測値)
+
+| | タイル取得 開始 | 完了 | 転送量 |
+|---|---|---|---|
+| `/` (MapTiler) | **10.2〜11.3s** | 12.5〜14.1s | 1,130KB |
+| `/map-google` (Google) | **1.6〜2.5s** | 2.7〜3.8s | 647KB |
+
+最終スクリーンショットでも裏が取れた。
+
+- `/` … トレース終端 9.4s の時点で**まだ「地図を読み込んでいます」のまま**
+- `/map-google` … 2.85s の時点で 748軒のピンごと地図が描き終わっている
+
+利用者が地図を見られるまでの時間は、Googleマップ版のほうが **4〜5倍速い**。
+Leaflet版の LCP が良く見えるのは、10秒以上ローディング表示を出し続けていて、
+その文字が LCP要素として採点されているからにすぎない。
+
+### 残るトレードオフ
+
+Core Web Vitals は実利用者のデータ(CrUX)で測られ、検索順位に効く。差し替えると
+実利用者の LCP要素も地図タイルに変わるため、**体感は速くなるのに LCP の数値は
+悪化する**。差し替えのコストはこの1点。
+
+打てる手(未着手):
+
+- `maps.googleapis.com` と `fonts.gstatic.com` への preconnect
+- 初回描画時のピン数を絞る(現在 `MAX_MARKERS = 400`)
+
+### 試して効果が薄かったこと
+
+最初の1フレームを描き終えてから地図を読みに行く形(`requestAnimationFrame` 2回)に
+したが、LCP 10.4s → 9.5s、FCP 4.7s → 4.0s どまりだった。DOM が 100〜570ms で
+用意できているのに初回描画が 1.2〜2.4s 遅れる状態は残っている。
+変更自体は害が無いので入れたままにしてある。
