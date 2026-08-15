@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   APIProvider,
@@ -9,77 +9,168 @@ import {
   AdvancedMarker,
   InfoWindow,
   useApiLoadingStatus,
+  useMap,
   type MapCameraChangedEvent,
 } from "@vis.gl/react-google-maps";
+import { MarkerClusterer } from "@googlemaps/markerclusterer";
+import type { Marker } from "@googlemaps/markerclusterer";
 import { seedCafes, type Cafe } from "@/lib/seedCafes";
 import { hasOutlet } from "@/lib/cafeAmenities";
+import { hasWifi } from "@/lib/cafeStats";
 import { getCafeUsageStyle } from "@/lib/cafeUsageStyle";
 import { cupPinSvgMarkup } from "@/lib/cupPinIcon";
 import { PIN_COLORS } from "@/lib/pinColors";
+import { MapBounds } from "@/lib/mapBounds";
 
-// Googleマップに乗り換えるかを、実物で見比べて決めるための比較ページ。
-// 本体(/)は Leaflet + CARTO/MapTiler のまま一切触っていない。
+// Googleマップ版。現地で見比べた結果「Googleのほうが店にたどり着きやすい」
+// という判断になったため、本体を移行する前段として実用レベルまで作る。
 //
-// 判断したいのは「背景に店名やビルが描かれていると、実際に店へ
-// たどり着きやすくなるか」。五反田を歩いて出た論点なので、
-// 同じ場所を両方の地図で開いて比べる。
-//
-// 混雑度の色分けやクラスタリングはまだ入れていない。まず地図そのものの
-// 見え方と速度を確かめる段階で、そこで見送るなら作り込む意味がない。
+// 本体(/)はまだ Leaflet のまま。絞り込み・混雑報告・カード列は移していない。
+// ここで確かめたいのは、日常的に使えるかどうか。
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-// AdvancedMarker は Map ID が無いと描画されない。自前のIDを作るまでは
-// Googleが用意しているデモ用IDで動く(スタイルの調整はできない)
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID";
 
 const GOTANDA: google.maps.LatLngLiteral = { lat: 35.6257, lng: 139.7233 };
-// 一度に描くピンの上限。表示範囲で絞ったうえで、それでも多い時は打ち切る
-const MAX_PINS = 200;
+const PIN_SIZE = 42;
 
-function CafePin({ cafe, onClick }: { cafe: Cafe; onClick: () => void }) {
-  const html = useMemo(
-    () =>
-      cupPinSvgMarkup(
-        PIN_COLORS.unknown,
-        getCafeUsageStyle(cafe),
-        hasOutlet(cafe, new Set()),
-        42
-      ),
-    [cafe]
+function pinHtml(cafe: Cafe) {
+  return cupPinSvgMarkup(
+    PIN_COLORS.unknown,
+    getCafeUsageStyle(cafe),
+    hasOutlet(cafe, new Set()),
+    PIN_SIZE
   );
+}
+
+// AdvancedMarker と MarkerClusterer をつなぐ。クラスタリングは
+// Leaflet 版と同じ理由で要る。都心では表示範囲だけでも数百件が同時に出て、
+// ピンが重なって地図が読めなくなる
+function CafeMarkers({
+  cafes,
+  onSelect,
+}: {
+  cafes: Cafe[];
+  onSelect: (cafe: Cafe) => void;
+}) {
+  const map = useMap();
+  const [markers, setMarkers] = useState<Record<string, Marker>>({});
+  const clusterer = useRef<MarkerClusterer | null>(null);
+
+  useEffect(() => {
+    if (!map) return;
+    if (!clusterer.current) {
+      clusterer.current = new MarkerClusterer({ map });
+    }
+  }, [map]);
+
+  useEffect(() => {
+    if (!clusterer.current) return;
+    clusterer.current.clearMarkers();
+    clusterer.current.addMarkers(Object.values(markers));
+  }, [markers]);
+
+  const setMarkerRef = useCallback((marker: Marker | null, id: string) => {
+    setMarkers((prev) => {
+      if ((marker && prev[id]) || (!marker && !prev[id])) return prev;
+      if (marker) return { ...prev, [id]: marker };
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  }, []);
+
   return (
-    <AdvancedMarker
-      position={{ lat: cafe.lat, lng: cafe.lng }}
-      onClick={onClick}
-      title={cafe.name}
-    >
-      <div
-        style={{ width: 42, height: 42 }}
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
+    <>
+      {cafes.map((cafe) => (
+        <AdvancedMarker
+          key={cafe.id}
+          position={{ lat: cafe.lat, lng: cafe.lng }}
+          ref={(marker) => setMarkerRef(marker, cafe.id)}
+          onClick={() => onSelect(cafe)}
+          title={cafe.name}
+        >
+          <div
+            style={{ width: PIN_SIZE, height: PIN_SIZE }}
+            dangerouslySetInnerHTML={{ __html: pinHtml(cafe) }}
+          />
+        </AdvancedMarker>
+      ))}
+    </>
+  );
+}
+
+function UserLocationMarker({ position }: { position: [number, number] | null }) {
+  if (!position) return null;
+  return (
+    <AdvancedMarker position={{ lat: position[0], lng: position[1] }} title="現在地">
+      <div className="cf-user-dot">
+        <span className="cf-user-pulse-ring" />
+      </div>
     </AdvancedMarker>
   );
 }
 
 function GoogleMapView() {
-  const [bounds, setBounds] = useState<google.maps.LatLngBoundsLiteral | null>(null);
+  const map = useMap();
+  const [bounds, setBounds] = useState<MapBounds | null>(null);
   const [selected, setSelected] = useState<Cafe | null>(null);
+  const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
+  const [onlyOutlet, setOnlyOutlet] = useState(false);
+  const [onlyWifi, setOnlyWifi] = useState(false);
+  const watchIdRef = useRef<number | null>(null);
 
   const handleCameraChanged = useCallback((e: MapCameraChangedEvent) => {
-    setBounds(e.detail.bounds);
+    const b = e.detail.bounds;
+    setBounds((prev) => {
+      const next = MapBounds.fromLiteral(b);
+      // 座標が変わっていない時に state を更新すると、再描画が延々と続く。
+      // Leaflet 版で踏んだのと同じ罠
+      return prev?.equals(next) ? prev : next;
+    });
   }, []);
 
   const visible = useMemo(() => {
     if (!bounds) return [];
-    const list = seedCafes.filter(
-      (c) =>
-        c.lat >= bounds.south &&
-        c.lat <= bounds.north &&
-        c.lng >= bounds.west &&
-        c.lng <= bounds.east
+    const padded = bounds.pad(0.15);
+    return seedCafes.filter((c) => {
+      if (!padded.contains([c.lat, c.lng])) return false;
+      if (onlyOutlet && !hasOutlet(c, new Set())) return false;
+      if (onlyWifi && !hasWifi(c)) return false;
+      return true;
+    });
+  }, [bounds, onlyOutlet, onlyWifi]);
+
+  const locate = useCallback(() => {
+    if (!("geolocation" in navigator)) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const p: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        setUserPosition(p);
+        map?.panTo({ lat: p[0], lng: p[1] });
+        map?.setZoom(17);
+        // 歩いている間も追従させる。Leaflet 版と同じ理由
+        if (watchIdRef.current === null) {
+          watchIdRef.current = navigator.geolocation.watchPosition(
+            (w) => setUserPosition([w.coords.latitude, w.coords.longitude]),
+            () => {},
+            { enableHighAccuracy: true, maximumAge: 5000, timeout: 20000 }
+          );
+        }
+      },
+      () => {},
+      { timeout: 8000, maximumAge: 60000 }
     );
-    return list.slice(0, MAX_PINS);
-  }, [bounds]);
+  }, [map]);
+
+  useEffect(
+    () => () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+    },
+    []
+  );
 
   return (
     <div className="relative flex-1">
@@ -88,24 +179,19 @@ function GoogleMapView() {
         defaultCenter={GOTANDA}
         defaultZoom={16}
         gestureHandling="greedy"
-        disableDefaultUI={false}
-        // 地図に元から描かれているGoogleの店をタップすると、Google自身の
-        // 吹き出しが出る。自分のピンの吹き出しと2種類が混ざって
-        // 分かりにくいので止める
         clickableIcons={false}
         onCameraChanged={handleCameraChanged}
         style={{ width: "100%", height: "100%" }}
       >
-        {visible.map((cafe) => (
-          <CafePin key={cafe.id} cafe={cafe} onClick={() => setSelected(cafe)} />
-        ))}
+        <CafeMarkers cafes={visible} onSelect={setSelected} />
+        <UserLocationMarker position={userPosition} />
         {selected && (
           <InfoWindow
             position={{ lat: selected.lat, lng: selected.lng }}
             onCloseClick={() => setSelected(null)}
             pixelOffset={[0, -38]}
           >
-            <div className="text-gray-900 max-w-[240px]">
+            <div className="text-gray-900 max-w-[250px]">
               <div className="font-bold text-sm">{selected.name}</div>
               {selected.address && (
                 <div className="text-[11px] text-gray-500 mt-0.5">{selected.address}</div>
@@ -118,19 +204,58 @@ function GoogleMapView() {
               {selected.wifiInfo && (
                 <div className="text-[11px] mt-1 text-gray-600">📶 {selected.wifiInfo}</div>
               )}
-              <Link
-                href={`/cafe/${selected.id}`}
-                className="inline-block mt-2 text-[11px] text-blue-600 underline"
-              >
-                店舗の詳細
-              </Link>
+              {selected.seatCountInfo && (
+                <div className="text-[11px] mt-1 text-gray-600">🪑 {selected.seatCountInfo}</div>
+              )}
+              <div className="flex gap-2 mt-2">
+                <Link href={`/cafe/${selected.id}`} className="text-[11px] text-blue-600 underline">
+                  詳細
+                </Link>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                    selected.address ? `${selected.name} ${selected.address}` : selected.name
+                  )}`}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="text-[11px] text-blue-600 underline"
+                >
+                  経路
+                </a>
+              </div>
             </div>
           </InfoWindow>
         )}
       </Map>
-      <div className="absolute left-2 bottom-2 bg-white/90 rounded shadow px-2 py-1 text-[11px] text-gray-700">
-        表示中 {visible.length}軒{visible.length >= MAX_PINS ? "(上限)" : ""}
+
+      <div className="absolute left-2 top-2 flex flex-col gap-1 items-start">
+        <div className="bg-white/95 rounded shadow px-2 py-1 text-[11px] text-gray-700">
+          表示中 {visible.length}軒
+        </div>
+        <button
+          onClick={() => setOnlyOutlet((v) => !v)}
+          className={`rounded-full shadow px-3 py-1 text-[11px] font-semibold border ${
+            onlyOutlet ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-700 border-gray-300"
+          }`}
+        >
+          🔌 電源あり
+        </button>
+        <button
+          onClick={() => setOnlyWifi((v) => !v)}
+          className={`rounded-full shadow px-3 py-1 text-[11px] font-semibold border ${
+            onlyWifi ? "bg-sky-600 text-white border-sky-600" : "bg-white text-gray-700 border-gray-300"
+          }`}
+        >
+          📶 Wi-Fiあり
+        </button>
       </div>
+
+      <button
+        onClick={locate}
+        aria-label="現在地"
+        className="absolute right-3 bottom-6 bg-white rounded-full shadow-lg border border-gray-300 w-11 h-11 flex items-center justify-center text-lg"
+      >
+        ◎
+      </button>
     </div>
   );
 }
@@ -138,9 +263,6 @@ function GoogleMapView() {
 // 地図の読み込みに失敗したとき、そのまま <Map> を描くとライブラリが
 // 未初期化のAPIに触り続け、getRootNode のエラーが延々と出てタブごと
 // 落ちる(実際に起きた)。読み込みが終わるまでは地図を組み立てない。
-//
-// 失敗したときは、原因を切り分けるための情報も出しておく。設定を
-// 手探りで触るより、画面に出ているものを見たほうが早い。
 function MapGate() {
   const status = useApiLoadingStatus();
 
@@ -148,10 +270,6 @@ function MapGate() {
     return (
       <div className="flex-1 p-6 text-sm text-gray-800">
         <p className="font-bold text-red-700 mb-3">Googleマップを読み込めませんでした</p>
-        <p className="mb-4">
-          ブラウザのコンソールに Google が出しているエラー名(
-          <code>InvalidKeyMapError</code> など)が原因です。
-        </p>
         <dl className="text-xs bg-gray-100 rounded p-3 leading-relaxed">
           <dt className="font-semibold">使用中のキー(先頭12文字)</dt>
           <dd className="mb-2 font-mono">
@@ -203,16 +321,16 @@ export default function MapGooglePage() {
     <div className="flex flex-col h-screen">
       <header className="border-b px-3 py-2 flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-base font-bold">Googleマップ版(比較用)</h1>
+          <h1 className="text-base font-bold">Googleマップ版</h1>
           <p className="text-[11px] text-gray-500">
-            本体は変更していません。見え方と速度の比較用です
+            本体は変更していません。絞り込みと混雑報告はまだ未移植です
           </p>
         </div>
         <Link
           href="/"
           className="text-xs text-blue-600 border border-blue-300 rounded-full px-3 py-1 whitespace-nowrap"
         >
-          今の地図と比べる
+          今の地図
         </Link>
       </header>
       <APIProvider apiKey={GOOGLE_MAPS_API_KEY} language="ja" region="JP">
