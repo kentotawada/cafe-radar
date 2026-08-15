@@ -9,9 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@googlemaps/markerclusterer": "^2.6.2",
     "@supabase/supabase-js": "^2.110.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
+    "@vis.gl/react-google-maps": "^1.9.0",
     "leaflet": "^1.9.4",
     "next": "16.2.10",
     "react": "19.2.4",

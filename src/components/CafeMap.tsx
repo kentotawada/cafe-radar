@@ -19,6 +19,7 @@ import L from "leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import { seedCafes, type Cafe } from "@/lib/seedCafes";
 import { hasOutlet } from "@/lib/cafeAmenities";
+import { getCafeUsageStyle } from "@/lib/cafeUsageStyle";
 import AdBanner from "@/components/AdBanner";
 import { emitReportSubmitted } from "@/lib/reportEvents";
 import {
@@ -28,7 +29,6 @@ import {
   isNonSmoking,
   isSmokingOk,
   hasWifi,
-  isLateNight,
   getQuickBadges,
   filterSimilarTimeSlot,
   pickMajorityFromList,
@@ -208,36 +208,6 @@ function parseSeatCount(seatCountInfo: string | null | undefined): number | null
 // (夜間・早朝のノマド利用)」を推定する。それ以外は「コワーキング併設」
 // らしき記載があればcoworking、なければ独立店・おしゃれ系として扱う
 // (店名からの推定のため厳密ではないが、地図上でざっくり見分ける用途)
-const CHAIN_NAME_PATTERNS: RegExp[] = [
-  /スターバックス/,
-  /ドトール/,
-  /タリーズ/,
-  /PRONTO|プロント/i,
-  /星乃珈琲/,
-  /エクセルシオール/,
-  /ベローチェ/,
-  /コメダ/,
-  /サンマルク/,
-  /マクドナルド/,
-  /ガスト/,
-  /ジョナサン/,
-  /デニーズ/,
-  /ド・クリエ/,
-  /ルノアール/,
-];
-const COWORKING_NAME_PATTERNS = /コワーキング|co-?working/i;
-
-function getCafeUsageStyle(cafe: Cafe): CafeUsageStyle {
-  if (CHAIN_NAME_PATTERNS.some((pattern) => pattern.test(cafe.name))) return "chain";
-  if (isLateNight(cafe)) return "night";
-  if (
-    COWORKING_NAME_PATTERNS.test(cafe.name) ||
-    (cafe.outletInfo && COWORKING_NAME_PATTERNS.test(cafe.outletInfo))
-  ) {
-    return "coworking";
-  }
-  return "independent";
-}
 
 // 表示サイズをviewBoxより小さく/大きくすることで、線の太さの比率を
 // 保ったまま全体を縮小・拡大する
