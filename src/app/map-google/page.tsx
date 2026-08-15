@@ -70,6 +70,18 @@ function pinHtml(cafe: Cafe, statusColor: string) {
   return html;
 }
 
+// カップの絵は42pxの箱の中で、先端(店を指す点)が上から21pxの位置にある。
+// 電源プラグが付く場合はプラグの先まで伸びて33px。Leaflet では
+// iconAnchor でこの点を指定していた。
+//
+// Google のマーカーは要素の「下端中央」を座標に合わせるので、そのままだと
+// 先端が座標より 42-21=21px 上を指す。ズーム17で約25m、ズーム16なら約50m。
+// 五反田で「道を挟んで隣のビル」に見えたのはこれ
+function pinTipOffset(cafe: Cafe): number {
+  const anchorY = hasOutlet(cafe, new Set()) ? 33 : 21;
+  return PIN_SIZE - anchorY;
+}
+
 // ピン1個ぶん。ref に渡す関数を useCallback で固定するために、
 // あえてコンポーネントを分けている。
 //
@@ -101,7 +113,12 @@ function ClusteredCafeMarker({
       title={cafe.name}
     >
       <div
-        style={{ width: PIN_SIZE, height: PIN_SIZE }}
+        style={{
+          width: PIN_SIZE,
+          height: PIN_SIZE,
+          // 先端が座標を指すように下へずらす。詳細は pinTipOffset のコメント
+          transform: `translateY(${pinTipOffset(cafe)}px)`,
+        }}
         dangerouslySetInnerHTML={{ __html: pinHtml(cafe, statusColorForStats(stats)) }}
       />
     </AdvancedMarker>
@@ -167,7 +184,9 @@ function UserLocationMarker({ position }: { position: [number, number] | null })
   if (!position) return null;
   return (
     <AdvancedMarker position={{ lat: position[0], lng: position[1] }} title="現在地">
-      <div className="cf-user-dot">
+      {/* 現在地は点の中心が位置。Googleは要素の下端を座標に合わせるので、
+          半径ぶん(18pxの半分)下へずらして中心を合わせる */}
+      <div className="cf-user-dot" style={{ transform: "translateY(9px)" }}>
         <span className="cf-user-pulse-ring" />
       </div>
     </AdvancedMarker>
