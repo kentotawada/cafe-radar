@@ -16,7 +16,6 @@ import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import type { Marker } from "@googlemaps/markerclusterer";
 import { seedCafes, type Cafe } from "@/lib/seedCafes";
 import { hasOutlet } from "@/lib/cafeAmenities";
-import { hasWifi } from "@/lib/cafeStats";
 import { getCafeUsageStyle } from "@/lib/cafeUsageStyle";
 import { cupPinSvgMarkup } from "@/lib/cupPinIcon";
 import { MapBounds } from "@/lib/mapBounds";
@@ -29,13 +28,22 @@ import {
   OCCUPANCY_ORDER,
 } from "@/lib/useLiveReports";
 import { pickMajority } from "@/lib/cafeStats";
+import {
+  EMPTY_FILTERS,
+  FILTER_LABELS,
+  countActive,
+  passesFilters,
+  type CafeFilters,
+} from "@/lib/cafeFilters";
+import { getFavorites } from "@/lib/favorites";
 import type { CafeStats } from "@/lib/types";
 
 // Googleマップ版。現地で見比べた結果「Googleのほうが店にたどり着きやすい」
 // という判断になったため、本体を移行する前段として実用レベルまで作る。
 //
-// 本体(/)はまだ Leaflet のまま。絞り込み・混雑報告・カード列は移していない。
-// ここで確かめたいのは、日常的に使えるかどうか。
+// このページは比較用ではなく「新しい本体」として育てている。機能を1つずつ
+// 移し、揃った時点で / を差し替えて Leaflet 版を削除する。
+// 二重に作らないことと、途中で止めても壊れないことを優先している。
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID";
@@ -171,8 +179,11 @@ function GoogleMapView() {
   const [bounds, setBounds] = useState<MapBounds | null>(null);
   const [selected, setSelected] = useState<Cafe | null>(null);
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
-  const [onlyOutlet, setOnlyOutlet] = useState(false);
-  const [onlyWifi, setOnlyWifi] = useState(false);
+  const [filters, setFilters] = useState<CafeFilters>(EMPTY_FILTERS);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [favorites] = useState<Set<string>>(() =>
+    typeof window === "undefined" ? new Set<string>() : getFavorites()
+  );
   const watchIdRef = useRef<number | null>(null);
   // 「地図はGoogleでいいが、載っている情報はカフェレーダーのもの」。
   // 直近30分の混雑報告を取り、ピンの色と店舗情報に反映する
@@ -198,9 +209,7 @@ function GoogleMapView() {
     const padded = bounds.pad(0.15);
     const inView = seedCafes.filter((c) => {
       if (!padded.contains([c.lat, c.lng])) return false;
-      if (onlyOutlet && !hasOutlet(c, new Set())) return false;
-      if (onlyWifi && !hasWifi(c)) return false;
-      return true;
+      return passesFilters(c, filters, statsByCafe[c.id] ?? null, favorites);
     });
     if (inView.length <= MAX_MARKERS) return inView;
     // 引いた表示だと1,000件を超える。クラスタでまとめても、その数の
@@ -213,7 +222,7 @@ function GoogleMapView() {
           ((b.lat - cLat) ** 2 + (b.lng - cLng) ** 2)
       )
       .slice(0, MAX_MARKERS);
-  }, [bounds, onlyOutlet, onlyWifi]);
+  }, [bounds, filters, statsByCafe, favorites]);
   const capped = visible.length >= MAX_MARKERS;
 
   const locate = useCallback(() => {
@@ -343,26 +352,62 @@ function GoogleMapView() {
         )}
       </GMap>
 
-      <div className="absolute left-2 top-2 flex flex-col gap-1 items-start">
-        <div className="bg-white/95 rounded shadow px-2 py-1 text-[11px] text-gray-700">
-          表示中 {visible.length}軒{capped ? "(上限)" : ""}
+      {/* 絞り込み。開いていない間は1行しか占めないようにして、
+          地図を隠さないようにする */}
+      <div className="absolute left-2 top-2 flex flex-col gap-1 items-start max-w-[calc(100%-1rem)]">
+        <div className="flex gap-1 items-center">
+          <button
+            onClick={() => setFilterOpen((v) => !v)}
+            className={`rounded-full shadow px-3 py-1 text-[11px] font-semibold border ${
+              countActive(filters) > 0
+                ? "bg-blue-600 text-white border-blue-600"
+                : "bg-white text-gray-700 border-gray-300"
+            }`}
+          >
+            絞り込み{countActive(filters) > 0 ? ` ${countActive(filters)}` : ""}{" "}
+            {filterOpen ? "▲" : "▼"}
+          </button>
+          <div className="bg-white/95 rounded shadow px-2 py-1 text-[11px] text-gray-700 whitespace-nowrap">
+            {visible.length}軒{capped ? "(上限)" : ""}
+          </div>
         </div>
-        <button
-          onClick={() => setOnlyOutlet((v) => !v)}
-          className={`rounded-full shadow px-3 py-1 text-[11px] font-semibold border ${
-            onlyOutlet ? "bg-blue-600 text-white border-blue-600" : "bg-white text-gray-700 border-gray-300"
-          }`}
-        >
-          🔌 電源あり
-        </button>
-        <button
-          onClick={() => setOnlyWifi((v) => !v)}
-          className={`rounded-full shadow px-3 py-1 text-[11px] font-semibold border ${
-            onlyWifi ? "bg-sky-600 text-white border-sky-600" : "bg-white text-gray-700 border-gray-300"
-          }`}
-        >
-          📶 Wi-Fiあり
-        </button>
+
+        {filterOpen && (
+          <div className="bg-white/97 rounded-lg shadow-lg border border-gray-200 p-2 flex flex-wrap gap-1 max-w-[300px]">
+            {FILTER_LABELS.map(({ key, label, note }) => (
+              <button
+                key={key}
+                onClick={() =>
+                  setFilters((prev) => ({ ...prev, [key]: !prev[key] }))
+                }
+                className={`rounded-full px-2 py-1 text-[11px] font-semibold border ${
+                  filters[key]
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-gray-700 border-gray-300"
+                }`}
+              >
+                {label}
+                {note && (
+                  <span
+                    className={`ml-1 text-[9px] font-normal ${
+                      filters[key] ? "text-blue-100" : "text-gray-400"
+                    }`}
+                  >
+                    {note}
+                  </span>
+                )}
+              </button>
+            ))}
+            {countActive(filters) > 0 && (
+              <button
+                onClick={() => setFilters(EMPTY_FILTERS)}
+                className="rounded-full px-2 py-1 text-[11px] text-gray-500 underline"
+              >
+                すべて解除
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <button
