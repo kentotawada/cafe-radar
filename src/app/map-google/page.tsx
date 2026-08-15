@@ -19,8 +19,10 @@ import { hasOutlet } from "@/lib/cafeAmenities";
 import { hasWifi } from "@/lib/cafeStats";
 import { getCafeUsageStyle } from "@/lib/cafeUsageStyle";
 import { cupPinSvgMarkup } from "@/lib/cupPinIcon";
-import { PIN_COLORS } from "@/lib/pinColors";
 import { MapBounds } from "@/lib/mapBounds";
+import { useLiveReports, statusColorForStats } from "@/lib/useLiveReports";
+import { pickMajority } from "@/lib/cafeStats";
+import type { CafeStats, OccupancyLevel } from "@/lib/types";
 
 // Googleマップ版。現地で見比べた結果「Googleのほうが店にたどり着きやすい」
 // という判断になったため、本体を移行する前段として実用レベルまで作る。
@@ -37,16 +39,23 @@ const GOTANDA: google.maps.LatLngLiteral = { lat: 35.6257, lng: 139.7233 };
 const MAX_MARKERS = 400;
 const PIN_SIZE = 42;
 
+const OCCUPANCY_LABEL: Record<OccupancyLevel, string> = {
+  empty: "空いている",
+  sparse: "やや空いている",
+  moderate: "やや混雑",
+  full: "満席",
+};
+
 // ピンのSVGは (利用スタイル × 電源の有無) の組み合わせでしか変わらない。
 // 毎回組み立てると、パンのたびに数百回の文字列生成が走る
 const pinHtmlCache = new Map<string, string>();
-function pinHtml(cafe: Cafe) {
+function pinHtml(cafe: Cafe, statusColor: string) {
   const style = getCafeUsageStyle(cafe);
   const outlet = hasOutlet(cafe, new Set());
-  const key = `${style}|${outlet}`;
+  const key = `${statusColor}|${style}|${outlet}`;
   let html = pinHtmlCache.get(key);
   if (!html) {
-    html = cupPinSvgMarkup(PIN_COLORS.unknown, style, outlet, PIN_SIZE);
+    html = cupPinSvgMarkup(statusColor, style, outlet, PIN_SIZE);
     pinHtmlCache.set(key, html);
   }
   return html;
@@ -62,10 +71,12 @@ function pinHtml(cafe: Cafe) {
 // スマホが落ちていた原因はこれだった
 function ClusteredCafeMarker({
   cafe,
+  stats,
   onSelect,
   register,
 }: {
   cafe: Cafe;
+  stats: CafeStats | null;
   onSelect: (cafe: Cafe) => void;
   register: (id: string, marker: Marker | null) => void;
 }) {
@@ -82,7 +93,7 @@ function ClusteredCafeMarker({
     >
       <div
         style={{ width: PIN_SIZE, height: PIN_SIZE }}
-        dangerouslySetInnerHTML={{ __html: pinHtml(cafe) }}
+        dangerouslySetInnerHTML={{ __html: pinHtml(cafe, statusColorForStats(stats)) }}
       />
     </AdvancedMarker>
   );
@@ -93,9 +104,11 @@ function ClusteredCafeMarker({
 // ピンが重なって地図が読めなくなる
 function CafeMarkers({
   cafes,
+  statsByCafe,
   onSelect,
 }: {
   cafes: Cafe[];
+  statsByCafe: Record<string, CafeStats>;
   onSelect: (cafe: Cafe) => void;
 }) {
   const map = useMap();
@@ -132,6 +145,7 @@ function CafeMarkers({
         <ClusteredCafeMarker
           key={cafe.id}
           cafe={cafe}
+          stats={statsByCafe[cafe.id] ?? null}
           onSelect={onSelect}
           register={register}
         />
@@ -159,6 +173,10 @@ function GoogleMapView() {
   const [onlyOutlet, setOnlyOutlet] = useState(false);
   const [onlyWifi, setOnlyWifi] = useState(false);
   const watchIdRef = useRef<number | null>(null);
+  // 「地図はGoogleでいいが、載っている情報はカフェレーダーのもの」。
+  // 直近30分の混雑報告を取り、ピンの色と店舗情報に反映する
+  const { statsByCafe, submitting, error: reportError, submitOccupancy } =
+    useLiveReports();
 
   // 指を動かしている間ずっと発火する onCameraChanged を使っていたら、
   // スマホでタブごと落ちた。1フレームごとに 1,989軒の絞り込みと
@@ -239,7 +257,7 @@ function GoogleMapView() {
         onIdle={handleIdle}
         style={{ width: "100%", height: "100%" }}
       >
-        <CafeMarkers cafes={visible} onSelect={setSelected} />
+        <CafeMarkers cafes={visible} statsByCafe={statsByCafe} onSelect={setSelected} />
         <UserLocationMarker position={userPosition} />
         {selected && (
           <InfoWindow
@@ -252,6 +270,48 @@ function GoogleMapView() {
               {selected.address && (
                 <div className="text-[11px] text-gray-500 mt-0.5">{selected.address}</div>
               )}
+
+              {/* Googleの地図には無い情報。ここがこのアプリを使う理由になる */}
+              <div className="mt-2 rounded border border-orange-200 bg-orange-50 px-2 py-1.5">
+                {statsByCafe[selected.id] ? (
+                  <div className="text-[11px] text-orange-900 font-semibold">
+                    いま
+                    {
+                      OCCUPANCY_LABEL[
+                        pickMajority(statsByCafe[selected.id].seatingOccupancyCounts)
+                      ]
+                    }
+                    <span className="font-normal text-orange-700">
+                      （{statsByCafe[selected.id].totalReporters}人の報告・30分以内）
+                    </span>
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-orange-900">
+                    いまの混雑はまだ報告がありません
+                  </div>
+                )}
+                <div className="flex gap-1 mt-1.5">
+                  <button
+                    disabled={submitting === selected.id}
+                    onClick={() => submitOccupancy(selected.id, "empty")}
+                    className="text-[11px] rounded-full border border-green-300 bg-white px-2 py-0.5 font-semibold text-green-800 disabled:opacity-50"
+                  >
+                    😊 空いてる
+                  </button>
+                  <button
+                    disabled={submitting === selected.id}
+                    onClick={() => submitOccupancy(selected.id, "full")}
+                    className="text-[11px] rounded-full border border-orange-300 bg-white px-2 py-0.5 font-semibold text-orange-800 disabled:opacity-50"
+                  >
+                    😣 混んでる
+                  </button>
+                </div>
+                {reportError && (
+                  <div className="text-[11px] text-red-600 mt-1">
+                    送信に失敗しました({reportError})
+                  </div>
+                )}
+              </div>
               {selected.outletInfo && (
                 <div className="text-[11px] mt-1.5 bg-blue-50 rounded px-1.5 py-1 text-blue-900">
                   🔌 {selected.outletInfo}
