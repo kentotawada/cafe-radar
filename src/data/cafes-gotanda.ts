@@ -94,5 +94,5 @@ export const cafes: Cafe[] = [
   { id: "gotanda-70", name: "快活CLUB 五反田駅東口店", address: "東京都品川区東五反田1-16-4 MINAMIビル 6F", lat: 35.626652, lng: 139.725449 },
   { id: "gotanda-71", name: "Bakerys", address: "東京都品川区西五反田8-5-1 グリーンプラザ五反田", lat: 35.62207, lng: 139.721588 },
   { id: "gotanda-72", name: "池田山 garden café COFFEE SHOP", address: "東京都品川区東五反田5-9-22 NTT東日本関東病院 2F", lat: 35.63055, lng: 139.726303, wifiInfo: "無料Wi-Fiあり", smokingInfo: "全席禁煙", hoursInfo: "月〜金9:00〜15:00", closedDaysInfo: "土日祝定休" },
-  { id: "gotanda-73", name: "サブウェイ 五反田西口店", address: "東京都品川区西五反田1-4-2 秀和五反田駅前レジデンス 101", lat: 35.6253516, lng: 139.7233614 },
+  { id: "gotanda-73", name: "サブウェイ 五反田西口店", address: "東京都品川区西五反田1-4-2 秀和五反田駅前レジデンス 101", lat: 35.6251511, lng: 139.7234258 },
 ];
