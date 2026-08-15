@@ -25,6 +25,7 @@ import {
   statusColorForStats,
   OCCUPANCY_LABEL,
   OCCUPANCY_EMOJI,
+  OCCUPANCY_SHORT,
   OCCUPANCY_ORDER,
 } from "@/lib/useLiveReports";
 import { pickMajority } from "@/lib/cafeStats";
@@ -265,68 +266,65 @@ function GoogleMapView() {
             onCloseClick={() => setSelected(null)}
             pixelOffset={[0, -38]}
           >
-            <div className="text-gray-900 max-w-[250px]">
-              <div className="font-bold text-sm">{selected.name}</div>
-              {selected.address && (
-                <div className="text-[11px] text-gray-500 mt-0.5">{selected.address}</div>
+            {/* 狭い画面で読まれるので、文章は削って要点だけ並べる。
+                住所や長い説明は詳細ページにある。ここで答えるのは
+                「座れるか」「電源はあるか」の2つに絞る */}
+            <div className="text-gray-900 w-[240px]">
+              <div className="font-bold text-sm leading-snug">{selected.name}</div>
+
+              {(() => {
+                const stats = statsByCafe[selected.id];
+                const level = stats
+                  ? pickMajority(stats.seatingOccupancyCounts)
+                  : null;
+                return (
+                  <div className="mt-1.5 text-[12px] font-semibold">
+                    {level ? (
+                      <>
+                        {OCCUPANCY_EMOJI[level]} {OCCUPANCY_LABEL[level]}
+                        <span className="font-normal text-gray-500">
+                          {" "}
+                          {stats.totalReporters}人
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-gray-400 font-normal">報告なし</span>
+                    )}
+                  </div>
+                );
+              })()}
+
+              <div className="flex gap-1 mt-1.5">
+                {OCCUPANCY_ORDER.map((level) => (
+                  <button
+                    key={level}
+                    disabled={submitting === selected.id}
+                    onClick={() => submitOccupancy(selected.id, level)}
+                    title={OCCUPANCY_LABEL[level]}
+                    className="flex-1 text-[10px] rounded border border-gray-300 bg-white py-1 font-semibold text-gray-700 disabled:opacity-50"
+                  >
+                    {OCCUPANCY_EMOJI[level]}
+                    <br />
+                    {OCCUPANCY_SHORT[level]}
+                  </button>
+                ))}
+              </div>
+              {reportError && (
+                <div className="text-[10px] text-red-600 mt-1">送信できませんでした</div>
               )}
 
-              {/* Googleの地図には無い情報。ここがこのアプリを使う理由になる */}
-              <div className="mt-2 rounded border border-orange-200 bg-orange-50 px-2 py-1.5">
-                {statsByCafe[selected.id] ? (
-                  (() => {
-                    const level = pickMajority(
-                      statsByCafe[selected.id].seatingOccupancyCounts
-                    );
-                    return (
-                      <div className="text-[11px] text-orange-900 font-semibold">
-                        {OCCUPANCY_EMOJI[level]} いま{OCCUPANCY_LABEL[level]}
-                        <span className="font-normal text-orange-700">
-                          （{statsByCafe[selected.id].totalReporters}人・30分以内）
-                        </span>
-                      </div>
-                    );
-                  })()
-                ) : (
-                  <div className="text-[11px] text-orange-900">
-                    いまの様子はまだ報告がありません
-                  </div>
-                )}
-                {/* 「混んでいるか」は人によって基準が違う。座れるかどうかを聞く */}
-                <div className="text-[10px] text-orange-800 mt-1.5">
-                  いま行くと、座れますか?
-                </div>
-                <div className="grid grid-cols-2 gap-1 mt-1">
-                  {OCCUPANCY_ORDER.map((level) => (
-                    <button
-                      key={level}
-                      disabled={submitting === selected.id}
-                      onClick={() => submitOccupancy(selected.id, level)}
-                      className="text-[11px] rounded border border-gray-300 bg-white px-1.5 py-1 font-semibold text-gray-800 disabled:opacity-50 text-left"
-                    >
-                      {OCCUPANCY_EMOJI[level]} {OCCUPANCY_LABEL[level]}
-                    </button>
-                  ))}
-                </div>
-                {reportError && (
-                  <div className="text-[11px] text-red-600 mt-1">
-                    送信に失敗しました({reportError})
-                  </div>
-                )}
-              </div>
               {selected.outletInfo && (
-                <div className="text-[11px] mt-1.5 bg-blue-50 rounded px-1.5 py-1 text-blue-900">
+                <div className="text-[11px] mt-2 text-gray-700 leading-snug">
                   🔌 {selected.outletInfo}
                 </div>
               )}
-              {selected.wifiInfo && (
-                <div className="text-[11px] mt-1 text-gray-600">📶 {selected.wifiInfo}</div>
-              )}
-              {selected.seatCountInfo && (
-                <div className="text-[11px] mt-1 text-gray-600">🪑 {selected.seatCountInfo}</div>
-              )}
-              <div className="flex gap-2 mt-2">
-                <Link href={`/cafe/${selected.id}`} className="text-[11px] text-blue-600 underline">
+              <div className="flex flex-wrap gap-x-2 text-[11px] text-gray-500 mt-1">
+                {selected.wifiInfo && <span>📶 Wi-Fi</span>}
+                {selected.seatCountInfo && <span>🪑 {selected.seatCountInfo}</span>}
+              </div>
+
+              <div className="flex gap-3 mt-2 text-[11px]">
+                <Link href={`/cafe/${selected.id}`} className="text-blue-600 underline">
                   詳細
                 </Link>
                 <a
@@ -335,7 +333,7 @@ function GoogleMapView() {
                   )}`}
                   target="_blank"
                   rel="noreferrer noopener"
-                  className="text-[11px] text-blue-600 underline"
+                  className="text-blue-600 underline"
                 >
                   経路
                 </a>

@@ -28,6 +28,15 @@ export const OCCUPANCY_LABEL: Record<OccupancyLevel, string> = {
   full: "満席・待ちあり",
 };
 
+// 報告ボタン用の短い言い方。ポップアップは画面が狭く、説明が長いほど
+// 読まれずに閉じられる。意味は色と並び順で補う
+export const OCCUPANCY_SHORT: Record<OccupancyLevel, string> = {
+  empty: "すぐ",
+  sparse: "探せば",
+  moderate: "ほぼ満席",
+  full: "満席",
+};
+
 export const OCCUPANCY_EMOJI: Record<OccupancyLevel, string> = {
   empty: "🟢",
   sparse: "🟡",
