@@ -73,3 +73,29 @@ Google Maps 自体のJS(約200KB)はこの上に乗るが、地図の描画開�
 - **実測のLCP**。プレビューURLは Vercel のログイン保護が掛かっていて
   PageSpeed Insights から叩けない。本番へ入れる前に、保護を一時的に外すか
   本番ドメインの別パスに置いて測る。
+
+## LCPの実測(2026-08-16)
+
+PageSpeed Insights の匿名APIは日次上限に達していて使えない。ブラウザペインも
+タブが hidden 状態で動くため paint/LCP が記録されない。Lighthouse をローカルの
+Chrome で直接動かす方法なら測れる。同じコマンドで両方を測れば比較になる。
+
+```
+CHROME_PATH="/c/Program Files/Google/Chrome/Application/chrome.exe" \
+npx lighthouse@12 "https://cafe-radar.com/" \
+  --only-categories=performance --form-factor=mobile \
+  --screenEmulation.mobile --throttling-method=simulate \
+  --output=json --output-path=./lh.json \
+  --chrome-flags="--headless=new --no-sandbox" --quiet
+```
+
+| | `/` (Leaflet版) | `/map-google` |
+|---|---|---|
+| Performance | 77 | 未測定 |
+| LCP | **2.9s** | 未測定 |
+| FCP | 1.2s | 未測定 |
+| TBT | 730ms | 未測定 |
+| CLS | 0 | 未測定 |
+
+`/map-google` を測るには本番環境に `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` が要る。
+現状このキーは Preview 環境にしか設定されていない。
