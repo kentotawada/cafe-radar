@@ -20,9 +20,15 @@ import { hasWifi } from "@/lib/cafeStats";
 import { getCafeUsageStyle } from "@/lib/cafeUsageStyle";
 import { cupPinSvgMarkup } from "@/lib/cupPinIcon";
 import { MapBounds } from "@/lib/mapBounds";
-import { useLiveReports, statusColorForStats } from "@/lib/useLiveReports";
+import {
+  useLiveReports,
+  statusColorForStats,
+  OCCUPANCY_LABEL,
+  OCCUPANCY_EMOJI,
+  OCCUPANCY_ORDER,
+} from "@/lib/useLiveReports";
 import { pickMajority } from "@/lib/cafeStats";
-import type { CafeStats, OccupancyLevel } from "@/lib/types";
+import type { CafeStats } from "@/lib/types";
 
 // Googleマップ版。現地で見比べた結果「Googleのほうが店にたどり着きやすい」
 // という判断になったため、本体を移行する前段として実用レベルまで作る。
@@ -39,12 +45,6 @@ const GOTANDA: google.maps.LatLngLiteral = { lat: 35.6257, lng: 139.7233 };
 const MAX_MARKERS = 400;
 const PIN_SIZE = 42;
 
-const OCCUPANCY_LABEL: Record<OccupancyLevel, string> = {
-  empty: "空いている",
-  sparse: "やや空いている",
-  moderate: "やや混雑",
-  full: "満席",
-};
 
 // ピンのSVGは (利用スタイル × 電源の有無) の組み合わせでしか変わらない。
 // 毎回組み立てると、パンのたびに数百回の文字列生成が走る
@@ -274,37 +274,39 @@ function GoogleMapView() {
               {/* Googleの地図には無い情報。ここがこのアプリを使う理由になる */}
               <div className="mt-2 rounded border border-orange-200 bg-orange-50 px-2 py-1.5">
                 {statsByCafe[selected.id] ? (
-                  <div className="text-[11px] text-orange-900 font-semibold">
-                    いま
-                    {
-                      OCCUPANCY_LABEL[
-                        pickMajority(statsByCafe[selected.id].seatingOccupancyCounts)
-                      ]
-                    }
-                    <span className="font-normal text-orange-700">
-                      （{statsByCafe[selected.id].totalReporters}人の報告・30分以内）
-                    </span>
-                  </div>
+                  (() => {
+                    const level = pickMajority(
+                      statsByCafe[selected.id].seatingOccupancyCounts
+                    );
+                    return (
+                      <div className="text-[11px] text-orange-900 font-semibold">
+                        {OCCUPANCY_EMOJI[level]} いま{OCCUPANCY_LABEL[level]}
+                        <span className="font-normal text-orange-700">
+                          （{statsByCafe[selected.id].totalReporters}人・30分以内）
+                        </span>
+                      </div>
+                    );
+                  })()
                 ) : (
                   <div className="text-[11px] text-orange-900">
-                    いまの混雑はまだ報告がありません
+                    いまの様子はまだ報告がありません
                   </div>
                 )}
-                <div className="flex gap-1 mt-1.5">
-                  <button
-                    disabled={submitting === selected.id}
-                    onClick={() => submitOccupancy(selected.id, "empty")}
-                    className="text-[11px] rounded-full border border-green-300 bg-white px-2 py-0.5 font-semibold text-green-800 disabled:opacity-50"
-                  >
-                    😊 空いてる
-                  </button>
-                  <button
-                    disabled={submitting === selected.id}
-                    onClick={() => submitOccupancy(selected.id, "full")}
-                    className="text-[11px] rounded-full border border-orange-300 bg-white px-2 py-0.5 font-semibold text-orange-800 disabled:opacity-50"
-                  >
-                    😣 混んでる
-                  </button>
+                {/* 「混んでいるか」は人によって基準が違う。座れるかどうかを聞く */}
+                <div className="text-[10px] text-orange-800 mt-1.5">
+                  いま行くと、座れますか?
+                </div>
+                <div className="grid grid-cols-2 gap-1 mt-1">
+                  {OCCUPANCY_ORDER.map((level) => (
+                    <button
+                      key={level}
+                      disabled={submitting === selected.id}
+                      onClick={() => submitOccupancy(selected.id, level)}
+                      className="text-[11px] rounded border border-gray-300 bg-white px-1.5 py-1 font-semibold text-gray-800 disabled:opacity-50 text-left"
+                    >
+                      {OCCUPANCY_EMOJI[level]} {OCCUPANCY_LABEL[level]}
+                    </button>
+                  ))}
                 </div>
                 {reportError && (
                   <div className="text-[11px] text-red-600 mt-1">

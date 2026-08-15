@@ -15,6 +15,33 @@ import type { CafeStats, OccupancyLevel, Report } from "@/lib/types";
 // 地図を差し替えてもここは共通で使える形にしておく。
 export const STALE_MINUTES = 30;
 
+// 「空いている / 混んでいる」だと人によって基準が違い、同じ店でも
+// 報告がばらつく。座れるかどうかは事実なので、その形で聞く。
+// 探している側が知りたいのも「入って座れるか」であって、混雑の印象ではない。
+//
+// 値(empty/sparse/moderate/full)はDBの定義そのままなので、
+// 表示の言葉を変えるだけでデータの移行は要らない。
+export const OCCUPANCY_LABEL: Record<OccupancyLevel, string> = {
+  empty: "すぐ座れる",
+  sparse: "探せば座れる",
+  moderate: "ほぼ埋まっている",
+  full: "満席・待ちあり",
+};
+
+export const OCCUPANCY_EMOJI: Record<OccupancyLevel, string> = {
+  empty: "🟢",
+  sparse: "🟡",
+  moderate: "🟠",
+  full: "🔴",
+};
+
+export const OCCUPANCY_ORDER: OccupancyLevel[] = [
+  "empty",
+  "sparse",
+  "moderate",
+  "full",
+];
+
 export function statusColorForStats(stats: CafeStats | null): string {
   if (!stats) return PIN_COLORS.unknown;
   if (pickMajority(stats.outletOccupancyCounts) === "full") return PIN_COLORS.full;
