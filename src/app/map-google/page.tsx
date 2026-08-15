@@ -5,12 +5,12 @@ import Link from "next/link";
 import {
   APIProvider,
   APILoadingStatus,
-  Map,
+  // JavaScript の Map と名前がぶつかるので別名にする
+  Map as GMap,
   AdvancedMarker,
   InfoWindow,
   useApiLoadingStatus,
   useMap,
-  type MapCameraChangedEvent,
 } from "@vis.gl/react-google-maps";
 import { MarkerClusterer } from "@googlemaps/markerclusterer";
 import type { Marker } from "@googlemaps/markerclusterer";
@@ -34,13 +34,19 @@ const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID";
 const GOTANDA: google.maps.LatLngLiteral = { lat: 35.6257, lng: 139.7233 };
 const PIN_SIZE = 42;
 
+// ピンのSVGは (利用スタイル × 電源の有無) の組み合わせでしか変わらない。
+// 毎回組み立てると、パンのたびに数百回の文字列生成が走る
+const pinHtmlCache = new Map<string, string>();
 function pinHtml(cafe: Cafe) {
-  return cupPinSvgMarkup(
-    PIN_COLORS.unknown,
-    getCafeUsageStyle(cafe),
-    hasOutlet(cafe, new Set()),
-    PIN_SIZE
-  );
+  const style = getCafeUsageStyle(cafe);
+  const outlet = hasOutlet(cafe, new Set());
+  const key = `${style}|${outlet}`;
+  let html = pinHtmlCache.get(key);
+  if (!html) {
+    html = cupPinSvgMarkup(PIN_COLORS.unknown, style, outlet, PIN_SIZE);
+    pinHtmlCache.set(key, html);
+  }
+  return html;
 }
 
 // AdvancedMarker と MarkerClusterer をつなぐ。クラスタリングは
@@ -120,15 +126,19 @@ function GoogleMapView() {
   const [onlyWifi, setOnlyWifi] = useState(false);
   const watchIdRef = useRef<number | null>(null);
 
-  const handleCameraChanged = useCallback((e: MapCameraChangedEvent) => {
-    const b = e.detail.bounds;
-    setBounds((prev) => {
-      const next = MapBounds.fromLiteral(b);
-      // 座標が変わっていない時に state を更新すると、再描画が延々と続く。
-      // Leaflet 版で踏んだのと同じ罠
-      return prev?.equals(next) ? prev : next;
-    });
-  }, []);
+  // 指を動かしている間ずっと発火する onCameraChanged を使っていたら、
+  // スマホでタブごと落ちた。1フレームごとに 1,989軒の絞り込みと
+  // 数百個のピンの再描画、クラスタの全再構築が走っていたため。
+  //
+  // Leaflet 版が moveend / zoomend を使っていたのと同じ理由で、
+  // 操作が終わって地図が落ち着いた時(idle)だけ更新する
+  const handleIdle = useCallback(() => {
+    if (!map) return;
+    const b = map.getBounds();
+    if (!b) return;
+    const next = MapBounds.fromGoogle(b);
+    setBounds((prev) => (prev?.equals(next) ? prev : next));
+  }, [map]);
 
   const visible = useMemo(() => {
     if (!bounds) return [];
@@ -174,13 +184,13 @@ function GoogleMapView() {
 
   return (
     <div className="relative flex-1">
-      <Map
+      <GMap
         mapId={MAP_ID}
         defaultCenter={GOTANDA}
         defaultZoom={16}
         gestureHandling="greedy"
         clickableIcons={false}
-        onCameraChanged={handleCameraChanged}
+        onIdle={handleIdle}
         style={{ width: "100%", height: "100%" }}
       >
         <CafeMarkers cafes={visible} onSelect={setSelected} />
@@ -225,7 +235,7 @@ function GoogleMapView() {
             </div>
           </InfoWindow>
         )}
-      </Map>
+      </GMap>
 
       <div className="absolute left-2 top-2 flex flex-col gap-1 items-start">
         <div className="bg-white/95 rounded shadow px-2 py-1 text-[11px] text-gray-700">
