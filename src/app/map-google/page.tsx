@@ -4,9 +4,11 @@ import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   APIProvider,
+  APILoadingStatus,
   Map,
   AdvancedMarker,
   InfoWindow,
+  useApiLoadingStatus,
   type MapCameraChangedEvent,
 } from "@vis.gl/react-google-maps";
 import { seedCafes, type Cafe } from "@/lib/seedCafes";
@@ -133,6 +135,55 @@ function GoogleMapView() {
   );
 }
 
+// 地図の読み込みに失敗したとき、そのまま <Map> を描くとライブラリが
+// 未初期化のAPIに触り続け、getRootNode のエラーが延々と出てタブごと
+// 落ちる(実際に起きた)。読み込みが終わるまでは地図を組み立てない。
+//
+// 失敗したときは、原因を切り分けるための情報も出しておく。設定を
+// 手探りで触るより、画面に出ているものを見たほうが早い。
+function MapGate() {
+  const status = useApiLoadingStatus();
+
+  if (status === APILoadingStatus.FAILED) {
+    return (
+      <div className="flex-1 p-6 text-sm text-gray-800">
+        <p className="font-bold text-red-700 mb-3">Googleマップを読み込めませんでした</p>
+        <p className="mb-4">
+          ブラウザのコンソールに Google が出しているエラー名(
+          <code>InvalidKeyMapError</code> など)が原因です。
+        </p>
+        <dl className="text-xs bg-gray-100 rounded p-3 leading-relaxed">
+          <dt className="font-semibold">使用中のキー(先頭12文字)</dt>
+          <dd className="mb-2 font-mono">
+            {GOOGLE_MAPS_API_KEY ? `${GOOGLE_MAPS_API_KEY.slice(0, 12)}…` : "未設定"}
+          </dd>
+          <dt className="font-semibold">キーの長さ</dt>
+          <dd className="mb-2">{GOOGLE_MAPS_API_KEY?.length ?? 0} 文字(正しくは39)</dd>
+          <dt className="font-semibold">Map ID</dt>
+          <dd className="mb-2 font-mono">{MAP_ID}</dd>
+          <dt className="font-semibold">このページのURL</dt>
+          <dd className="font-mono break-all">
+            {typeof window !== "undefined" ? window.location.origin : ""}
+          </dd>
+        </dl>
+        <Link href="/" className="text-blue-600 underline mt-4 inline-block">
+          通常の地図に戻る
+        </Link>
+      </div>
+    );
+  }
+
+  if (status !== APILoadingStatus.LOADED) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-sm text-gray-500">
+        地図を読み込んでいます…
+      </div>
+    );
+  }
+
+  return <GoogleMapView />;
+}
+
 export default function MapGooglePage() {
   if (!GOOGLE_MAPS_API_KEY) {
     return (
@@ -165,7 +216,7 @@ export default function MapGooglePage() {
         </Link>
       </header>
       <APIProvider apiKey={GOOGLE_MAPS_API_KEY} language="ja" region="JP">
-        <GoogleMapView />
+        <MapGate />
       </APIProvider>
     </div>
   );
