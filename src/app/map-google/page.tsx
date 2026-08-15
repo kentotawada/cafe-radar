@@ -8,6 +8,7 @@ import {
   // JavaScript の Map と名前がぶつかるので別名にする
   Map as GMap,
   AdvancedMarker,
+  AdvancedMarkerAnchorPoint,
   InfoWindow,
   useApiLoadingStatus,
   useMap,
@@ -74,12 +75,16 @@ function pinHtml(cafe: Cafe, statusColor: string) {
 // 電源プラグが付く場合はプラグの先まで伸びて33px。Leaflet では
 // iconAnchor でこの点を指定していた。
 //
-// Google のマーカーは要素の「下端中央」を座標に合わせるので、そのままだと
-// 先端が座標より 42-21=21px 上を指す。ズーム17で約25m、ズーム16なら約50m。
-// 五反田で「道を挟んで隣のビル」に見えたのはこれ
-function pinTipOffset(cafe: Cafe): number {
+// Google のマーカーは既定で要素の「下端中央」を座標に合わせるため、
+// そのままだと先端が座標より上を指す。ズーム17で約25m、ズーム16なら約50m。
+// 五反田で「道を挟んで隣のビル」に見えたのはこれ。
+//
+// 最初 CSS の transform でずらしたが、それでは見た目が動くだけで
+// ライブラリが持っている位置は元のまま。クラスタリングやタップ判定が
+// ずれた位置を使い続ける。anchorPoint で正しく指定する
+function pinAnchorPoint(cafe: Cafe): [string, string] {
   const anchorY = hasOutlet(cafe, new Set()) ? 33 : 21;
-  return PIN_SIZE - anchorY;
+  return ["50%", `${(anchorY / PIN_SIZE) * 100}%`];
 }
 
 // ピン1個ぶん。ref に渡す関数を useCallback で固定するために、
@@ -111,14 +116,10 @@ function ClusteredCafeMarker({
       ref={ref}
       onClick={() => onSelect(cafe)}
       title={cafe.name}
+      anchorPoint={pinAnchorPoint(cafe)}
     >
       <div
-        style={{
-          width: PIN_SIZE,
-          height: PIN_SIZE,
-          // 先端が座標を指すように下へずらす。詳細は pinTipOffset のコメント
-          transform: `translateY(${pinTipOffset(cafe)}px)`,
-        }}
+        style={{ width: PIN_SIZE, height: PIN_SIZE }}
         dangerouslySetInnerHTML={{ __html: pinHtml(cafe, statusColorForStats(stats)) }}
       />
     </AdvancedMarker>
@@ -182,11 +183,14 @@ function CafeMarkers({
 
 function UserLocationMarker({ position }: { position: [number, number] | null }) {
   if (!position) return null;
+  // 現在地は点の中心が位置。既定の「下端中央」だと半径ぶん北にずれる
   return (
-    <AdvancedMarker position={{ lat: position[0], lng: position[1] }} title="現在地">
-      {/* 現在地は点の中心が位置。Googleは要素の下端を座標に合わせるので、
-          半径ぶん(18pxの半分)下へずらして中心を合わせる */}
-      <div className="cf-user-dot" style={{ transform: "translateY(9px)" }}>
+    <AdvancedMarker
+      position={{ lat: position[0], lng: position[1] }}
+      title="現在地"
+      anchorPoint={AdvancedMarkerAnchorPoint.CENTER}
+    >
+      <div className="cf-user-dot">
         <span className="cf-user-pulse-ring" />
       </div>
     </AdvancedMarker>
