@@ -24,14 +24,17 @@ import {
   useLiveReports,
   statusColorForStats,
   OCCUPANCY_LABEL,
+  OCCUPANCY_LABEL_EN,
   OCCUPANCY_EMOJI,
   OCCUPANCY_SHORT,
+  OCCUPANCY_SHORT_EN,
   OCCUPANCY_ORDER,
 } from "@/lib/useLiveReports";
 import { pickMajority } from "@/lib/cafeStats";
 import {
   EMPTY_FILTERS,
   FILTER_LABELS,
+  FILTER_LABELS_EN,
   countActive,
   passesFilters,
   type CafeFilters,
@@ -43,11 +46,13 @@ import {
   useCafeFacts,
   summarise,
   WIFI_SPEED_LABEL,
+  WIFI_SPEED_LABEL_EN,
   WIFI_SPEED_ORDER,
 } from "@/lib/useCafeFacts";
 import { isNonSmoking } from "@/lib/cafeStats";
 import { useUserCafes } from "@/lib/useUserCafes";
 import { PIN_COLORS, PIN_LEGEND } from "@/lib/pinColors";
+import { LangProvider, useLang, type TranslationKey } from "@/lib/i18n";
 import type { CafeStats } from "@/lib/types";
 
 // Googleマップ版。現地で見比べた結果「Googleのほうが店にたどり着きやすい」
@@ -193,12 +198,13 @@ function CafeMarkers({
 }
 
 function UserLocationMarker({ position }: { position: [number, number] | null }) {
+  const { t } = useLang();
   if (!position) return null;
   // 現在地は点の中心が位置。既定の「下端中央」だと半径ぶん北にずれる
   return (
     <AdvancedMarker
       position={{ lat: position[0], lng: position[1] }}
-      title="現在地"
+      title={t("gmap.myLocation")}
       anchorPoint={AdvancedMarkerAnchorPoint.CENTER}
     >
       <div className="cf-user-dot">
@@ -210,6 +216,13 @@ function UserLocationMarker({ position }: { position: [number, number] | null })
 
 function GoogleMapView() {
   const map = useMap();
+  // 訳すのは画面の文言だけ。店名・住所・営業時間・利用者の書き込みは
+  // 実データなので、そのまま出す
+  const { lang, t } = useLang();
+  const occLabel = lang === "en" ? OCCUPANCY_LABEL_EN : OCCUPANCY_LABEL;
+  const occShort = lang === "en" ? OCCUPANCY_SHORT_EN : OCCUPANCY_SHORT;
+  const wifiLabel = lang === "en" ? WIFI_SPEED_LABEL_EN : WIFI_SPEED_LABEL;
+  const filterLabels = lang === "en" ? FILTER_LABELS_EN : FILTER_LABELS;
   const [bounds, setBounds] = useState<MapBounds | null>(null);
   const [selected, setSelected] = useState<Cafe | null>(null);
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
@@ -386,7 +399,7 @@ function GoogleMapView() {
         {pendingLocation && (
           <AdvancedMarker
             position={pendingLocation}
-            title="追加する場所"
+            title={t("gmap.pendingPin")}
             anchorPoint={AdvancedMarkerAnchorPoint.CENTER}
           >
             <div className="w-5 h-5 rounded-full bg-blue-600 border-2 border-white shadow-lg" />
@@ -406,7 +419,7 @@ function GoogleMapView() {
                 <div className="font-bold text-sm leading-snug">{selected.name}</div>
                 <button
                   onClick={() => handleToggleFavorite(selected.id)}
-                  aria-label="お気に入り"
+                  aria-label={t("gmap.favorite")}
                   className="text-lg leading-none text-yellow-500 shrink-0"
                 >
                   {favorites.has(selected.id) ? "★" : "☆"}
@@ -417,7 +430,7 @@ function GoogleMapView() {
                   同じ見た目にすると、確認済みの情報と区別がつかなくなる */}
               {userCafeIds.has(selected.id) && (
                 <div className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-1.5 py-1 mt-1">
-                  利用者が追加したお店です
+                  {t("gmap.userAdded")}
                 </div>
               )}
 
@@ -430,14 +443,15 @@ function GoogleMapView() {
                   <div className="mt-1.5 text-[12px] font-semibold">
                     {level ? (
                       <>
-                        {OCCUPANCY_EMOJI[level]} {OCCUPANCY_LABEL[level]}
+                        {OCCUPANCY_EMOJI[level]} {occLabel[level]}
                         <span className="font-normal text-gray-500">
                           {" "}
-                          {stats.totalReporters}人
+                          {stats.totalReporters}
+                          {t("gmap.people")}
                         </span>
                       </>
                     ) : (
-                      <span className="text-gray-400 font-normal">報告なし</span>
+                      <span className="text-gray-400 font-normal">{t("gmap.noReports")}</span>
                     )}
                   </div>
                 );
@@ -449,17 +463,17 @@ function GoogleMapView() {
                     key={level}
                     disabled={submitting === selected.id}
                     onClick={() => submitOccupancy(selected.id, level)}
-                    title={OCCUPANCY_LABEL[level]}
+                    title={occLabel[level]}
                     className="flex-1 text-[10px] rounded border border-gray-300 bg-white py-1 font-semibold text-gray-700 disabled:opacity-50"
                   >
                     {OCCUPANCY_EMOJI[level]}
                     <br />
-                    {OCCUPANCY_SHORT[level]}
+                    {occShort[level]}
                   </button>
                 ))}
               </div>
               {reportError && (
-                <div className="text-[10px] text-red-600 mt-1">送信できませんでした</div>
+                <div className="text-[10px] text-red-600 mt-1">{t("gmap.sendFailed")}</div>
               )}
 
               {(() => {
@@ -470,7 +484,7 @@ function GoogleMapView() {
                         ネット調べの記載より先に出す */}
                     {f.outletUnusable && (
                       <div className="text-[11px] mt-2 rounded bg-red-50 border border-red-200 px-1.5 py-1 text-red-900 font-semibold">
-                        ⚡ 電源が使えなかったとの報告
+                        {t("gmap.outletUnusable")}
                       </div>
                     )}
                     {selected.outletInfo && (
@@ -482,14 +496,22 @@ function GoogleMapView() {
                         ネット調べと混ぜると、どこまで確かなのか分からなくなる */}
                     <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-gray-600 mt-1">
                       {f.outletSeatCount != null && (
-                        <span>🔌 電源席{f.outletSeatCount}席</span>
+                        <span>
+                          🔌 {t("gmap.outletSeats")}
+                          {f.outletSeatCount}
+                          {t("gmap.seatsUnit")}
+                        </span>
                       )}
-                      {f.wifiSpeed && <span>📶 {WIFI_SPEED_LABEL[f.wifiSpeed]}</span>}
+                      {f.wifiSpeed && <span>📶 {wifiLabel[f.wifiSpeed]}</span>}
                       {f.webMeetingOk != null && (
-                        <span>🎧 通話{f.webMeetingOk ? "OK" : "NG"}</span>
+                        <span>🎧 {f.webMeetingOk ? t("gmap.callOk") : t("gmap.callNg")}</span>
                       )}
                       {f.reporters > 0 && (
-                        <span className="text-gray-400">報告{f.reporters}件</span>
+                        <span className="text-gray-400">
+                          {t("gmap.reportsCount")}
+                          {f.reporters}
+                          {t("gmap.reportsUnit")}
+                        </span>
                       )}
                     </div>
                     {f.notes.length > 0 && (
@@ -502,7 +524,11 @@ function GoogleMapView() {
                       {selected.wifiInfo && <span>📶 Wi-Fi</span>}
                       {selected.seatCountInfo && <span>🪑 {selected.seatCountInfo}</span>}
                       {selected.smokingInfo && (
-                        <span>{isNonSmoking(selected) ? "🚭 禁煙" : "🚬 喫煙可"}</span>
+                        <span>
+                          {isNonSmoking(selected)
+                            ? `🚭 ${t("gmap.nonSmoking")}`
+                            : `🚬 ${t("gmap.smokingOk")}`}
+                        </span>
                       )}
                       {selected.hoursInfo && <span>⏰ {selected.hoursInfo}</span>}
                     </div>
@@ -516,11 +542,11 @@ function GoogleMapView() {
                         実際にいて答えられる人だけでいい */}
                     <details className="mt-2">
                       <summary className="text-[11px] text-blue-600 cursor-pointer">
-                        もっと報告する
+                        {t("gmap.reportMore")}
                       </summary>
                       <div className="mt-1.5 flex flex-col gap-1.5">
                         <div>
-                          <div className="text-[10px] text-gray-500">Wi-Fiの速度</div>
+                          <div className="text-[10px] text-gray-500">{t("gmap.wifiSpeedLabel")}</div>
                           <div className="flex gap-1 mt-0.5">
                             {WIFI_SPEED_ORDER.map((sp) => (
                               <button
@@ -529,13 +555,13 @@ function GoogleMapView() {
                                 onClick={() => submitFact(selected.id, { wifi_speed: sp })}
                                 className="flex-1 text-[10px] rounded border border-gray-300 bg-white py-1 disabled:opacity-50"
                               >
-                                {WIFI_SPEED_LABEL[sp]}
+                                {wifiLabel[sp]}
                               </button>
                             ))}
                           </div>
                         </div>
                         <div>
-                          <div className="text-[10px] text-gray-500">通話・WEB会議</div>
+                          <div className="text-[10px] text-gray-500">{t("gmap.webMeetingLabel")}</div>
                           <div className="flex gap-1 mt-0.5">
                             <button
                               disabled={factSubmitting === selected.id}
@@ -544,7 +570,7 @@ function GoogleMapView() {
                               }
                               className="flex-1 text-[10px] rounded border border-gray-300 bg-white py-1 disabled:opacity-50"
                             >
-                              できそう
+                              {t("gmap.webMeetingYes")}
                             </button>
                             <button
                               disabled={factSubmitting === selected.id}
@@ -553,7 +579,7 @@ function GoogleMapView() {
                               }
                               className="flex-1 text-[10px] rounded border border-gray-300 bg-white py-1 disabled:opacity-50"
                             >
-                              厳しい
+                              {t("gmap.webMeetingNo")}
                             </button>
                           </div>
                         </div>
@@ -562,11 +588,11 @@ function GoogleMapView() {
                           onClick={() => submitFact(selected.id, { outlet_usable: false })}
                           className="text-[10px] rounded border border-red-300 bg-white py-1 text-red-800 disabled:opacity-50"
                         >
-                          ⚡ 電源が使えなかった
+                          {t("gmap.outletDead")}
                         </button>
                         {factError && (
                           <div className="text-[10px] text-red-600">
-                            送信できませんでした({factError})
+                            {t("gmap.sendFailed")}({factError})
                           </div>
                         )}
                       </div>
@@ -580,7 +606,7 @@ function GoogleMapView() {
                     まだページが無いので出さない */}
                 {!userCafeIds.has(selected.id) && (
                   <Link href={`/cafe/${selected.id}`} className="text-blue-600 underline">
-                    詳細
+                    {t("gmap.detail")}
                   </Link>
                 )}
                 <a
@@ -591,7 +617,7 @@ function GoogleMapView() {
                   rel="noreferrer noopener"
                   className="text-blue-600 underline"
                 >
-                  経路
+                  {t("gmap.directions")}
                 </a>
                 {userCafeIds.has(selected.id) && (
                   <button
@@ -599,7 +625,7 @@ function GoogleMapView() {
                     disabled={flaggedByMe.has(selected.id)}
                     className="text-gray-500 underline disabled:no-underline disabled:text-gray-400"
                   >
-                    {flaggedByMe.has(selected.id) ? "報告済み" : "この店は無い/違う"}
+                    {flaggedByMe.has(selected.id) ? t("gmap.flagged") : t("gmap.flag")}
                   </button>
                 )}
               </div>
@@ -620,11 +646,14 @@ function GoogleMapView() {
                 : "bg-white text-gray-700 border-gray-300"
             }`}
           >
-            絞り込み{countActive(filters) > 0 ? ` ${countActive(filters)}` : ""}{" "}
+            {t("filter.toggle")}
+            {countActive(filters) > 0 ? ` ${countActive(filters)}` : ""}{" "}
             {filterOpen ? "▲" : "▼"}
           </button>
           <div className="bg-white/95 rounded shadow px-2 py-1 text-[11px] text-gray-700 whitespace-nowrap">
-            {visible.length}軒{capped ? "(上限)" : ""}
+            {visible.length}
+            {t("gmap.countUnit")}
+            {capped ? t("gmap.capped") : ""}
           </div>
         </div>
 
@@ -640,7 +669,7 @@ function GoogleMapView() {
           }}
           className="rounded-full shadow px-2 py-1 text-[11px] bg-white text-gray-700 border border-gray-300 max-w-[150px]"
         >
-          <option value="">駅で探す</option>
+          <option value="">{t("filter.area")}</option>
           {areas.map((a) => (
             <option key={a.id} value={a.id}>
               {a.name.replace("駅", "")}
@@ -650,7 +679,7 @@ function GoogleMapView() {
 
         {filterOpen && (
           <div className="bg-white/97 rounded-lg shadow-lg border border-gray-200 p-2 flex flex-wrap gap-1 max-w-[300px]">
-            {FILTER_LABELS.map(({ key, label, note }) => (
+            {filterLabels.map(({ key, label, note }) => (
               <button
                 key={key}
                 onClick={() =>
@@ -679,7 +708,7 @@ function GoogleMapView() {
                 onClick={() => setFilters(EMPTY_FILTERS)}
                 className="rounded-full px-2 py-1 text-[11px] text-gray-500 underline"
               >
-                すべて解除
+                {t("gmap.clearFilters")}
               </button>
             )}
           </div>
@@ -697,26 +726,26 @@ function GoogleMapView() {
               : "bg-white text-gray-700 border-gray-300"
           }`}
         >
-          {addingCafe ? "追加をやめる" : "＋ お店を追加"}
+          {addingCafe ? t("gmap.addCancel") : t("addCafe.button")}
         </button>
         {addingCafe && (
           <div className="bg-white/97 rounded-lg shadow-lg border border-gray-200 p-2 w-[220px]">
             {!pendingLocation ? (
               <p className="text-[11px] text-gray-700 leading-snug">
-                地図でお店の場所をタップしてください
+                {t("gmap.addTapHint")}
               </p>
             ) : (
               <div className="flex flex-col gap-1.5">
                 <input
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  placeholder="店名(必須)"
+                  placeholder={t("gmap.addNamePlaceholder")}
                   className="border border-gray-300 rounded px-2 py-1 text-[12px]"
                 />
                 <input
                   value={newAddress}
                   onChange={(e) => setNewAddress(e.target.value)}
-                  placeholder="住所(任意)"
+                  placeholder={t("gmap.addAddressPlaceholder")}
                   className="border border-gray-300 rounded px-2 py-1 text-[12px]"
                 />
                 <div className="text-[10px] text-gray-400">
@@ -724,7 +753,7 @@ function GoogleMapView() {
                 </div>
                 {cafeError && (
                   <div className="text-[10px] text-red-600">
-                    追加できませんでした({cafeError})
+                    {t("gmap.addFailed")}({cafeError})
                   </div>
                 )}
                 <div className="flex gap-1">
@@ -733,13 +762,13 @@ function GoogleMapView() {
                     disabled={cafeSubmitting || newName.trim() === ""}
                     className="flex-1 rounded bg-blue-600 text-white text-[11px] py-1 font-semibold disabled:opacity-50"
                   >
-                    追加する
+                    {t("gmap.addSubmit")}
                   </button>
                   <button
                     onClick={() => setPendingLocation(null)}
                     className="rounded border border-gray-300 text-[11px] px-2 text-gray-600"
                   >
-                    場所を選び直す
+                    {t("gmap.addRepick")}
                   </button>
                 </div>
               </div>
@@ -750,7 +779,7 @@ function GoogleMapView() {
 
       <button
         onClick={locate}
-        aria-label="現在地"
+        aria-label={t("gmap.myLocation")}
         className={`absolute right-3 ${listOpen ? "bottom-16" : "bottom-32"} bg-white rounded-full shadow-lg border border-gray-300 w-11 h-11 flex items-center justify-center text-lg`}
       >
         ◎
@@ -779,12 +808,15 @@ function GoogleMapView() {
                 <div className="flex flex-wrap gap-x-2 text-[10px] text-gray-500 mt-0.5">
                   {level && (
                     <span>
-                      {OCCUPANCY_EMOJI[level]} {OCCUPANCY_LABEL[level]}
+                      {OCCUPANCY_EMOJI[level]} {occLabel[level]}
                     </span>
                   )}
                   {hasOutlet(cafe) && <span>🔌</span>}
                   {cafe.wifiInfo && <span>📶</span>}
-                  <span>🚶 {nearestStationWalkMinutes(cafe.lat, cafe.lng)}分</span>
+                  <span>
+                    🚶 {nearestStationWalkMinutes(cafe.lat, cafe.lng)}
+                    {t("gmap.walkUnit")}
+                  </span>
                 </div>
               </button>
             );
@@ -800,9 +832,11 @@ function GoogleMapView() {
           className="w-full px-3 py-2 flex items-center justify-between text-[12px] font-semibold text-gray-800"
         >
           <span>
-            この範囲の{visible.length}軒
+            {t("gmap.inThisArea")}
+            {visible.length}
+            {t("gmap.countUnit")}
             {countActive(filters) > 0 && (
-              <span className="font-normal text-gray-500">（絞り込み中）</span>
+              <span className="font-normal text-gray-500">{t("gmap.filtering")}</span>
             )}
           </span>
           <span className="text-gray-400">{listOpen ? "▼" : "▲"}</span>
@@ -831,15 +865,16 @@ function GoogleMapView() {
                         <div className="flex flex-wrap gap-x-2 text-[10px] text-gray-500 mt-0.5">
                           {level && (
                             <span>
-                              {OCCUPANCY_EMOJI[level]} {OCCUPANCY_LABEL[level]}
+                              {OCCUPANCY_EMOJI[level]} {occLabel[level]}
                             </span>
                           )}
-                          {hasOutlet(cafe) && <span>🔌 電源</span>}
+                          {hasOutlet(cafe) && <span>🔌</span>}
                           {cafe.wifiInfo && <span>📶 Wi-Fi</span>}
                         </div>
                       </div>
                       <span className="text-[10px] text-blue-700 bg-blue-50 rounded-full px-1.5 py-0.5 shrink-0">
-                        🚶 {nearestStationWalkMinutes(cafe.lat, cafe.lng)}分
+                        🚶 {nearestStationWalkMinutes(cafe.lat, cafe.lng)}
+                        {t("gmap.walkUnit")}
                       </span>
                     </div>
                   </button>
@@ -848,7 +883,7 @@ function GoogleMapView() {
             })}
             {listed.length === 0 && (
               <li className="px-3 py-4 text-[12px] text-gray-500">
-                この範囲に該当するお店がありません
+                {t("gmap.emptyArea")}
               </li>
             )}
           </ul>
@@ -857,17 +892,19 @@ function GoogleMapView() {
     </div>
   );
 }
-
 // 地図の読み込みに失敗したとき、そのまま <Map> を描くとライブラリが
 // 未初期化のAPIに触り続け、getRootNode のエラーが延々と出てタブごと
 // 落ちる(実際に起きた)。読み込みが終わるまでは地図を組み立てない。
 function MapGate() {
   const status = useApiLoadingStatus();
+  const { t } = useLang();
 
   if (status === APILoadingStatus.FAILED) {
+    // ここは利用者向けではなく、自分が原因を切り分けるための画面。
+    // 訳し分けても意味が無いので日本語のままにしてある
     return (
       <div className="flex-1 p-6 text-sm text-gray-800">
-        <p className="font-bold text-red-700 mb-3">Googleマップを読み込めませんでした</p>
+        <p className="font-bold text-red-700 mb-3">{t("gmap.loadFailed")}</p>
         <dl className="text-xs bg-gray-100 rounded p-3 leading-relaxed">
           <dt className="font-semibold">使用中のキー(先頭12文字)</dt>
           <dd className="mb-2 font-mono">
@@ -883,7 +920,7 @@ function MapGate() {
           </dd>
         </dl>
         <Link href="/" className="text-blue-600 underline mt-4 inline-block">
-          通常の地図に戻る
+          {t("gmap.backToLeaflet")}
         </Link>
       </div>
     );
@@ -892,7 +929,7 @@ function MapGate() {
   if (status !== APILoadingStatus.LOADED) {
     return (
       <div className="flex-1 flex items-center justify-center text-sm text-gray-500">
-        地図を読み込んでいます…
+        {t("gmap.loading")}
       </div>
     );
   }
@@ -900,18 +937,29 @@ function MapGate() {
   return <GoogleMapView />;
 }
 
-export default function MapGooglePage() {
+// ピンの形の見本。色は「まだ報告が無い」の色に固定して、形の違いだけが
+// 目に入るようにする
+const SHAPE_LEGEND = [
+  { style: "chain", outlet: false, key: "gmap.shapeChain" },
+  { style: "coworking", outlet: false, key: "gmap.shapeCoworking" },
+  { style: "independent", outlet: false, key: "gmap.shapeIndependent" },
+  { style: "night", outlet: false, key: "gmap.shapeNight" },
+  { style: "chain", outlet: true, key: "gmap.shapeOutlet" },
+] as const;
+
+function MapGoogleContent() {
   const [legendOpen, setLegendOpen] = useState(false);
+  const { lang, setLang, t } = useLang();
 
   if (!GOOGLE_MAPS_API_KEY) {
     return (
       <div className="p-6 text-sm text-gray-700">
-        <p className="font-semibold mb-2">Googleマップのキーが未設定です</p>
+        <p className="font-semibold mb-2">{t("gmap.keyMissing")}</p>
         <p>
           環境変数 <code>NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</code> を設定してください。
         </p>
         <Link href="/" className="text-blue-600 underline mt-4 inline-block">
-          通常の地図に戻る
+          {t("gmap.backToLeaflet")}
         </Link>
       </div>
     );
@@ -921,23 +969,27 @@ export default function MapGooglePage() {
     <div className="flex flex-col h-screen">
       <header className="border-b px-3 py-2 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-base font-bold">Googleマップ版</h1>
-          <p className="text-[11px] text-gray-500">
-            本体はまだ差し替えていません
-          </p>
+          <h1 className="text-base font-bold">{t("gmap.title")}</h1>
+          <p className="text-[11px] text-gray-500">{t("gmap.subtitle")}</p>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            onClick={() => setLang(lang === "ja" ? "en" : "ja")}
+            className="text-xs text-gray-600 border border-gray-300 rounded-full px-3 py-1 whitespace-nowrap"
+          >
+            {t("app.langToggle")}
+          </button>
           <button
             onClick={() => setLegendOpen((v) => !v)}
             className="text-xs text-gray-600 border border-gray-300 rounded-full px-3 py-1 whitespace-nowrap"
           >
-            ピンの説明 {legendOpen ? "▲" : "▼"}
+            {t("legend.toggle")} {legendOpen ? "▲" : "▼"}
           </button>
           <Link
             href="/"
             className="text-xs text-blue-600 border border-blue-300 rounded-full px-3 py-1 whitespace-nowrap"
           >
-            今の地図
+            {t("gmap.backToLeaflet")}
           </Link>
         </div>
       </header>
@@ -945,16 +997,16 @@ export default function MapGooglePage() {
           問い合わせ先も規約も辿れなくなる */}
       <nav className="px-3 py-1 flex flex-wrap gap-x-3 gap-y-0.5 border-b text-[11px] text-gray-500">
         <Link href="/favorites" className="underline">
-          お気に入り
+          {t("gmap.navFavorites")}
         </Link>
         <Link href="/privacy" className="underline">
-          プライバシーポリシー
+          {t("privacy.link")}
         </Link>
         <Link href="/contact" className="underline">
-          お問い合わせ
+          {t("gmap.navContact")}
         </Link>
         <Link href="/business" className="underline">
-          店舗掲載・法人の方
+          {t("gmap.navBusiness")}
         </Link>
       </nav>
       {/* ピンの説明。色と形の意味が分からないと、地図がただの点の集まりになる。
@@ -971,21 +1023,13 @@ export default function MapGooglePage() {
                   className="inline-block w-2.5 h-2.5 rounded-full border border-white shadow"
                   style={{ backgroundColor: PIN_COLORS[item.key] }}
                 />
-                {item.label}
+                {t(`legend.status.${item.key}` as TranslationKey)}
               </span>
             ))}
           </div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500">
-            <span>形</span>
-            {(
-              [
-                ["chain", false, "チェーン"],
-                ["coworking", false, "コワーキング"],
-                ["independent", false, "個人店"],
-                ["night", false, "夜も営業"],
-                ["chain", true, "電源あり"],
-              ] as const
-            ).map(([style, outlet, label]) => (
+            <span>{t("gmap.shapeLabel")}</span>
+            {SHAPE_LEGEND.map(({ style, outlet, key }) => (
               <span key={`${style}-${outlet}`} className="flex items-center gap-1">
                 <span
                   className="inline-block w-4 h-4 shrink-0"
@@ -993,15 +1037,27 @@ export default function MapGooglePage() {
                     __html: cupPinSvgMarkup(PIN_COLORS.unknown, style, outlet, 16),
                   }}
                 />
-                {label}
+                {t(key)}
               </span>
             ))}
           </div>
         </div>
       )}
+      {/* 地図そのものの言語は日本語で固定する。Google Maps の JS API は
+          一度読み込むと言語を切り替えられず、切り替えようとすると
+          「別のパラメータで二重に読み込んだ」と警告が出る。
+          東京の地図なので、看板と同じ日本語表記のほうが現地で照合しやすい */}
       <APIProvider apiKey={GOOGLE_MAPS_API_KEY} language="ja" region="JP">
         <MapGate />
       </APIProvider>
     </div>
+  );
+}
+
+export default function MapGooglePage() {
+  return (
+    <LangProvider>
+      <MapGoogleContent />
+    </LangProvider>
   );
 }

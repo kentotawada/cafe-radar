@@ -20,6 +20,13 @@ export const WIFI_SPEED_LABEL: Record<WifiSpeed, string> = {
   none: "つながらない",
 };
 
+export const WIFI_SPEED_LABEL_EN: Record<WifiSpeed, string> = {
+  fast: "Fast",
+  standard: "OK",
+  restricted: "Limited",
+  none: "Not working",
+};
+
 export const WIFI_SPEED_ORDER: WifiSpeed[] = [
   "fast",
   "standard",

@@ -75,7 +75,22 @@ export function passesFilters(
   return true;
 }
 
-export const FILTER_LABELS: { key: keyof CafeFilters; label: string; note?: string }[] = [
+export type FilterLabel = { key: keyof CafeFilters; label: string; note?: string };
+
+// note は「利用者の報告が要る条件」の印。0件だったときに
+// 「該当が無い」のか「まだ誰も報告していない」のかを見分けられるようにする
+export const FILTER_LABELS_EN: FilterLabel[] = [
+  { key: "outlet", label: "🔌 Outlets" },
+  { key: "outletAllSeats", label: "🔌 All seats" },
+  { key: "wifi", label: "📶 Wi-Fi" },
+  { key: "nonSmoking", label: "🚭 Non-smoking" },
+  { key: "smokingOk", label: "🚬 Smoking OK" },
+  { key: "outletFree", label: "⚡ Outlet free", note: "reported" },
+  { key: "quiet", label: "🔇 Quiet", note: "reported" },
+  { key: "favoritesOnly", label: "★ Favorites" },
+];
+
+export const FILTER_LABELS: FilterLabel[] = [
   { key: "outlet", label: "🔌 電源あり" },
   { key: "outletAllSeats", label: "🔌 全席に電源" },
   { key: "wifi", label: "📶 Wi-Fiあり" },

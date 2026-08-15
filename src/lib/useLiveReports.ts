@@ -37,6 +37,22 @@ export const OCCUPANCY_SHORT: Record<OccupancyLevel, string> = {
   full: "満席",
 };
 
+// 英語版。表示の言葉だけを訳す。ここも「混雑の印象」ではなく
+// 「座れるかどうか」で書く
+export const OCCUPANCY_LABEL_EN: Record<OccupancyLevel, string> = {
+  empty: "Seats open",
+  sparse: "A few seats left",
+  moderate: "Nearly full",
+  full: "Full / waiting",
+};
+
+export const OCCUPANCY_SHORT_EN: Record<OccupancyLevel, string> = {
+  empty: "Open",
+  sparse: "Few",
+  moderate: "Nearly",
+  full: "Full",
+};
+
 export const OCCUPANCY_EMOJI: Record<OccupancyLevel, string> = {
   empty: "🟢",
   sparse: "🟡",
