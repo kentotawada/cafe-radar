@@ -32,6 +32,9 @@ const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID";
 
 const GOTANDA: google.maps.LatLngLiteral = { lat: 35.6257, lng: 139.7233 };
+// 一度に作るピンの上限。引いた表示では1,000件を超えることがあり、
+// クラスタでまとめても、その数のDOMを作る負荷自体がスマホに効く
+const MAX_MARKERS = 400;
 const PIN_SIZE = 42;
 
 // ピンのSVGは (利用スタイル × 電源の有無) の組み合わせでしか変わらない。
@@ -49,6 +52,42 @@ function pinHtml(cafe: Cafe) {
   return html;
 }
 
+// ピン1個ぶん。ref に渡す関数を useCallback で固定するために、
+// あえてコンポーネントを分けている。
+//
+// 親のJSXに ref={(m) => register(m, cafe.id)} と直接書くと、描画のたびに
+// 新しい関数になる。React は ref の関数が変わると null で呼び直してから
+// 付け直すので、そこで state を更新していると
+// 「更新 → 再描画 → refが変わる → 付け直し → 更新」で止まらなくなる。
+// スマホが落ちていた原因はこれだった
+function ClusteredCafeMarker({
+  cafe,
+  onSelect,
+  register,
+}: {
+  cafe: Cafe;
+  onSelect: (cafe: Cafe) => void;
+  register: (id: string, marker: Marker | null) => void;
+}) {
+  const ref = useCallback(
+    (marker: Marker | null) => register(cafe.id, marker),
+    [cafe.id, register]
+  );
+  return (
+    <AdvancedMarker
+      position={{ lat: cafe.lat, lng: cafe.lng }}
+      ref={ref}
+      onClick={() => onSelect(cafe)}
+      title={cafe.name}
+    >
+      <div
+        style={{ width: PIN_SIZE, height: PIN_SIZE }}
+        dangerouslySetInnerHTML={{ __html: pinHtml(cafe) }}
+      />
+    </AdvancedMarker>
+  );
+}
+
 // AdvancedMarker と MarkerClusterer をつなぐ。クラスタリングは
 // Leaflet 版と同じ理由で要る。都心では表示範囲だけでも数百件が同時に出て、
 // ピンが重なって地図が読めなくなる
@@ -60,47 +99,42 @@ function CafeMarkers({
   onSelect: (cafe: Cafe) => void;
 }) {
   const map = useMap();
-  const [markers, setMarkers] = useState<Record<string, Marker>>({});
+  // 集めたマーカーは ref に持つ。state にすると ref が付くたびに再描画が
+  // 走り、上記のループに戻る
+  const markersRef = useRef<Record<string, Marker>>({});
   const clusterer = useRef<MarkerClusterer | null>(null);
+
+  const register = useCallback((id: string, marker: Marker | null) => {
+    if (marker) markersRef.current[id] = marker;
+    else delete markersRef.current[id];
+  }, []);
 
   useEffect(() => {
     if (!map) return;
-    if (!clusterer.current) {
-      clusterer.current = new MarkerClusterer({ map });
-    }
+    if (!clusterer.current) clusterer.current = new MarkerClusterer({ map });
+    return () => {
+      clusterer.current?.clearMarkers();
+    };
   }, [map]);
 
+  // 表示対象が変わった時だけクラスタを組み直す。ref の付け外しは
+  // このeffectより前に終わっているので、markersRef は埋まっている
   useEffect(() => {
-    if (!clusterer.current) return;
-    clusterer.current.clearMarkers();
-    clusterer.current.addMarkers(Object.values(markers));
-  }, [markers]);
-
-  const setMarkerRef = useCallback((marker: Marker | null, id: string) => {
-    setMarkers((prev) => {
-      if ((marker && prev[id]) || (!marker && !prev[id])) return prev;
-      if (marker) return { ...prev, [id]: marker };
-      const next = { ...prev };
-      delete next[id];
-      return next;
-    });
-  }, []);
+    const c = clusterer.current;
+    if (!c) return;
+    c.clearMarkers(true);
+    c.addMarkers(Object.values(markersRef.current));
+  }, [cafes, map]);
 
   return (
     <>
       {cafes.map((cafe) => (
-        <AdvancedMarker
+        <ClusteredCafeMarker
           key={cafe.id}
-          position={{ lat: cafe.lat, lng: cafe.lng }}
-          ref={(marker) => setMarkerRef(marker, cafe.id)}
-          onClick={() => onSelect(cafe)}
-          title={cafe.name}
-        >
-          <div
-            style={{ width: PIN_SIZE, height: PIN_SIZE }}
-            dangerouslySetInnerHTML={{ __html: pinHtml(cafe) }}
-          />
-        </AdvancedMarker>
+          cafe={cafe}
+          onSelect={onSelect}
+          register={register}
+        />
       ))}
     </>
   );
@@ -143,13 +177,25 @@ function GoogleMapView() {
   const visible = useMemo(() => {
     if (!bounds) return [];
     const padded = bounds.pad(0.15);
-    return seedCafes.filter((c) => {
+    const inView = seedCafes.filter((c) => {
       if (!padded.contains([c.lat, c.lng])) return false;
       if (onlyOutlet && !hasOutlet(c, new Set())) return false;
       if (onlyWifi && !hasWifi(c)) return false;
       return true;
     });
+    if (inView.length <= MAX_MARKERS) return inView;
+    // 引いた表示だと1,000件を超える。クラスタでまとめても、その数の
+    // React要素とDOMノードを作る負荷は残るので、中心に近い順で打ち切る
+    const [cLat, cLng] = bounds.getCenter();
+    return [...inView]
+      .sort(
+        (a, b) =>
+          (a.lat - cLat) ** 2 + (a.lng - cLng) ** 2 -
+          ((b.lat - cLat) ** 2 + (b.lng - cLng) ** 2)
+      )
+      .slice(0, MAX_MARKERS);
   }, [bounds, onlyOutlet, onlyWifi]);
+  const capped = visible.length >= MAX_MARKERS;
 
   const locate = useCallback(() => {
     if (!("geolocation" in navigator)) return;
@@ -239,7 +285,7 @@ function GoogleMapView() {
 
       <div className="absolute left-2 top-2 flex flex-col gap-1 items-start">
         <div className="bg-white/95 rounded shadow px-2 py-1 text-[11px] text-gray-700">
-          表示中 {visible.length}軒
+          表示中 {visible.length}軒{capped ? "(上限)" : ""}
         </div>
         <button
           onClick={() => setOnlyOutlet((v) => !v)}
