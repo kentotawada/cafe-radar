@@ -54,6 +54,8 @@ import { useUserCafes } from "@/lib/useUserCafes";
 import { useVerifiedOutlets } from "@/lib/useVerifiedOutlets";
 import { PIN_COLORS, PIN_LEGEND } from "@/lib/pinColors";
 import { LangProvider, useLang, type TranslationKey } from "@/lib/i18n";
+import AdBanner from "@/components/AdBanner";
+import { supabase } from "@/lib/supabaseClient";
 import type { CafeStats } from "@/lib/types";
 
 // Googleマップ版。現地で見比べた結果「Googleのほうが店にたどり着きやすい」
@@ -310,14 +312,33 @@ function GoogleMapView() {
     useState<google.maps.LatLngLiteral | null>(null);
   const [newName, setNewName] = useState("");
   const [newAddress, setNewAddress] = useState("");
+  // 細かい報告の入力欄。店ごとに持つ。1組だけにすると、別の店を開いた
+  // ときに書きかけの文字が残り、違う店の情報として送られてしまう。
+  // 店ごとなら書きかけのまま地図を見に戻っても消えない
+  const [draft, setDraft] = useState<
+    Record<string, { seats?: string; outletSeats?: string; note?: string; fix?: string }>
+  >({});
+  const [correctionSent, setCorrectionSent] = useState<Set<string>>(new Set());
+  const [correctionError, setCorrectionError] = useState<string | null>(null);
+
+  const setDraftField = useCallback(
+    (cafeId: string, field: "seats" | "outletSeats" | "note" | "fix", value: string) =>
+      setDraft((prev) => ({ ...prev, [cafeId]: { ...prev[cafeId], [field]: value } })),
+    []
+  );
   const watchIdRef = useRef<number | null>(null);
   // 自分で地図を動かしたか。動かした後に現在地へ勝手に飛ばされると、
   // 見ていた場所を見失う
   const hasMovedRef = useRef(false);
   // 「地図はGoogleでいいが、載っている情報はカフェレーダーのもの」。
   // 直近30分の混雑報告を取り、ピンの色と店舗情報に反映する
-  const { statsByCafe, submitting, error: reportError, submitOccupancy } =
-    useLiveReports();
+  const {
+    statsByCafe,
+    reporterId,
+    submitting,
+    error: reportError,
+    submitOccupancy,
+  } = useLiveReports();
   const {
     factsByCafe,
     submitting: factSubmitting,
@@ -464,6 +485,37 @@ function GoogleMapView() {
       cancelled = true;
     };
   }, [map, locate]);
+
+  // 席数は「数えられる人が数えた値」なので、整数で正のものだけ受ける
+  const submitCount = useCallback(
+    (cafeId: string, field: "seat_count" | "outlet_seat_count", raw: string) => {
+      const n = Number(raw.trim());
+      if (!raw.trim() || !Number.isInteger(n) || n <= 0) return;
+      submitFact(cafeId, { [field]: n });
+      setDraftField(cafeId, field === "seat_count" ? "seats" : "outletSeats", "");
+    },
+    [submitFact, setDraftField]
+  );
+
+  // 編集部調べの記載が実際と違うときの報告。五反田で「席すらなかった」
+  // 「閉店していた」が続いたので、地図側にこの口が要る
+  const submitCorrection = useCallback(
+    async (cafeId: string) => {
+      const message = (draft[cafeId]?.fix ?? "").trim();
+      if (!message || !supabase) return;
+      setCorrectionError(null);
+      const { error: err } = await supabase
+        .from("info_corrections")
+        .insert({ cafe_id: cafeId, reporter_id: reporterId, message });
+      if (err) {
+        setCorrectionError(err.message);
+        return;
+      }
+      setDraftField(cafeId, "fix", "");
+      setCorrectionSent((prev) => new Set(prev).add(cafeId));
+    },
+    [draft, reporterId, setDraftField]
+  );
 
   const cancelAdding = useCallback(() => {
     setAddingCafe(false);
@@ -710,6 +762,94 @@ function GoogleMapView() {
                             </button>
                           </div>
                         </div>
+                        {/* 席数と電源席数。数えられる人にしか答えられない
+                            ぶん、答えが入れば公表情報より確かな値になる */}
+                        <div className="flex gap-1">
+                          <div className="flex-1">
+                            <div className="text-[10px] text-gray-500">
+                              {t("gmap.seatCountLabel")}
+                            </div>
+                            <div className="flex gap-1 mt-0.5">
+                              <input
+                                value={draft[selected.id]?.seats ?? ""}
+                                onChange={(e) => setDraftField(selected.id, "seats", e.target.value)}
+                                inputMode="numeric"
+                                placeholder="例 40"
+                                className="w-full border border-gray-300 rounded px-1.5 py-1 text-[11px] min-w-0"
+                              />
+                              <button
+                                disabled={factSubmitting === selected.id}
+                                onClick={() =>
+                                  submitCount(selected.id, "seat_count", draft[selected.id]?.seats ?? "")
+                                }
+                                className="rounded border border-gray-300 bg-white px-2 text-[10px] disabled:opacity-50"
+                              >
+                                {t("gmap.send")}
+                              </button>
+                            </div>
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-[10px] text-gray-500">
+                              {t("gmap.outletSeatCountLabel")}
+                            </div>
+                            <div className="flex gap-1 mt-0.5">
+                              <input
+                                value={draft[selected.id]?.outletSeats ?? ""}
+                                onChange={(e) =>
+                                  setDraftField(selected.id, "outletSeats", e.target.value)
+                                }
+                                inputMode="numeric"
+                                placeholder="例 8"
+                                className="w-full border border-gray-300 rounded px-1.5 py-1 text-[11px] min-w-0"
+                              />
+                              <button
+                                disabled={factSubmitting === selected.id}
+                                onClick={() =>
+                                  submitCount(
+                                    selected.id,
+                                    "outlet_seat_count",
+                                    draft[selected.id]?.outletSeats ?? ""
+                                  )
+                                }
+                                className="rounded border border-gray-300 bg-white px-2 text-[10px] disabled:opacity-50"
+                              >
+                                {t("gmap.send")}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 電源席がどこにあるか。「窓際だけ」「2階のカウンター」
+                            のような一言が、実際に行く人には一番効く */}
+                        <div>
+                          <div className="text-[10px] text-gray-500">
+                            {t("gmap.noteLabel")}
+                          </div>
+                          <div className="flex gap-1 mt-0.5">
+                            <input
+                              value={draft[selected.id]?.note ?? ""}
+                              onChange={(e) => setDraftField(selected.id, "note", e.target.value)}
+                              placeholder={t("gmap.notePlaceholder")}
+                              className="w-full border border-gray-300 rounded px-1.5 py-1 text-[11px] min-w-0"
+                            />
+                            <button
+                              disabled={
+                                factSubmitting === selected.id ||
+                                (draft[selected.id]?.note ?? "").trim() === ""
+                              }
+                              onClick={() => {
+                                submitFact(selected.id, {
+                                  note: (draft[selected.id]?.note ?? "").trim(),
+                                });
+                                setDraftField(selected.id, "note", "");
+                              }}
+                              className="rounded border border-gray-300 bg-white px-2 text-[10px] disabled:opacity-50"
+                            >
+                              {t("gmap.send")}
+                            </button>
+                          </div>
+                        </div>
+
                         <button
                           disabled={factSubmitting === selected.id}
                           onClick={() => submitFact(selected.id, { outlet_usable: false })}
@@ -722,6 +862,43 @@ function GoogleMapView() {
                             {t("gmap.sendFailed")}({factError})
                           </div>
                         )}
+
+                        {/* 編集部調べの記載が実際と違うときの報告。
+                            五反田では「席すらなかった」「閉店していた」が
+                            続いた。載っている情報が違うことは普通に起きる */}
+                        <div className="border-t border-gray-200 pt-1.5">
+                          <div className="text-[10px] text-gray-500">
+                            {t("gmap.correctionLabel")}
+                          </div>
+                          {correctionSent.has(selected.id) ? (
+                            <div className="text-[10px] text-gray-500 mt-0.5">
+                              {t("gmap.correctionThanks")}
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex gap-1 mt-0.5">
+                                <input
+                                  value={draft[selected.id]?.fix ?? ""}
+                                  onChange={(e) => setDraftField(selected.id, "fix", e.target.value)}
+                                  placeholder={t("gmap.correctionPlaceholder")}
+                                  className="w-full border border-gray-300 rounded px-1.5 py-1 text-[11px] min-w-0"
+                                />
+                                <button
+                                  disabled={(draft[selected.id]?.fix ?? "").trim() === ""}
+                                  onClick={() => submitCorrection(selected.id)}
+                                  className="rounded border border-gray-300 bg-white px-2 text-[10px] disabled:opacity-50"
+                                >
+                                  {t("gmap.send")}
+                                </button>
+                              </div>
+                              {correctionError && (
+                                <div className="text-[10px] text-red-600 mt-0.5">
+                                  {t("gmap.sendFailed")}({correctionError})
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </div>
                     </details>
                   </>
@@ -756,6 +933,10 @@ function GoogleMapView() {
                   </button>
                 )}
               </div>
+
+              {/* Leaflet版と同じ枠。差し替えた時点で広告がゼロにならないよう、
+                  移行前に入れておく */}
+              <AdBanner slot="cafe-popup" minHeight={56} className="mt-2" />
             </div>
           </InfoWindow>
         )}
