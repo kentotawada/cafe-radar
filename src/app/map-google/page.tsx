@@ -37,6 +37,13 @@ import {
   type CafeFilters,
 } from "@/lib/cafeFilters";
 import { getFavorites } from "@/lib/favorites";
+import {
+  useCafeFacts,
+  summarise,
+  WIFI_SPEED_LABEL,
+  WIFI_SPEED_ORDER,
+} from "@/lib/useCafeFacts";
+import { isNonSmoking } from "@/lib/cafeStats";
 import type { CafeStats } from "@/lib/types";
 
 // Googleマップ版。現地で見比べた結果「Googleのほうが店にたどり着きやすい」
@@ -212,6 +219,12 @@ function GoogleMapView() {
   // 直近30分の混雑報告を取り、ピンの色と店舗情報に反映する
   const { statsByCafe, submitting, error: reportError, submitOccupancy } =
     useLiveReports();
+  const {
+    factsByCafe,
+    submitting: factSubmitting,
+    error: factError,
+    submitFact,
+  } = useCafeFacts();
 
   // 指を動かしている間ずっと発火する onCameraChanged を使っていたら、
   // スマホでタブごと落ちた。1フレームごとに 1,989軒の絞り込みと
@@ -301,7 +314,7 @@ function GoogleMapView() {
             {/* 狭い画面で読まれるので、文章は削って要点だけ並べる。
                 住所や長い説明は詳細ページにある。ここで答えるのは
                 「座れるか」「電源はあるか」の2つに絞る */}
-            <div className="text-gray-900 w-[240px]">
+            <div className="text-gray-900 w-[240px] max-h-[60vh] overflow-y-auto">
               <div className="font-bold text-sm leading-snug">{selected.name}</div>
 
               {(() => {
@@ -345,15 +358,118 @@ function GoogleMapView() {
                 <div className="text-[10px] text-red-600 mt-1">送信できませんでした</div>
               )}
 
-              {selected.outletInfo && (
-                <div className="text-[11px] mt-2 text-gray-700 leading-snug">
-                  🔌 {selected.outletInfo}
-                </div>
-              )}
-              <div className="flex flex-wrap gap-x-2 text-[11px] text-gray-500 mt-1">
-                {selected.wifiInfo && <span>📶 Wi-Fi</span>}
-                {selected.seatCountInfo && <span>🪑 {selected.seatCountInfo}</span>}
-              </div>
+              {(() => {
+                const f = summarise(factsByCafe[selected.id] ?? []);
+                return (
+                  <>
+                    {/* 公表情報では電源ありでも、現地で塞がれていることがある。
+                        ネット調べの記載より先に出す */}
+                    {f.outletUnusable && (
+                      <div className="text-[11px] mt-2 rounded bg-red-50 border border-red-200 px-1.5 py-1 text-red-900 font-semibold">
+                        ⚡ 電源が使えなかったとの報告
+                      </div>
+                    )}
+                    {selected.outletInfo && (
+                      <div className="text-[11px] mt-2 text-gray-700 leading-snug">
+                        🔌 {selected.outletInfo}
+                      </div>
+                    )}
+                    {/* 報告で分かったことは「報告」と分かる形で出す。
+                        ネット調べと混ぜると、どこまで確かなのか分からなくなる */}
+                    <div className="flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-gray-600 mt-1">
+                      {f.outletSeatCount != null && (
+                        <span>🔌 電源席{f.outletSeatCount}席</span>
+                      )}
+                      {f.wifiSpeed && <span>📶 {WIFI_SPEED_LABEL[f.wifiSpeed]}</span>}
+                      {f.webMeetingOk != null && (
+                        <span>🎧 通話{f.webMeetingOk ? "OK" : "NG"}</span>
+                      )}
+                      {f.reporters > 0 && (
+                        <span className="text-gray-400">報告{f.reporters}件</span>
+                      )}
+                    </div>
+                    {f.notes.length > 0 && (
+                      <div className="text-[11px] text-gray-600 mt-1 leading-snug">
+                        ・{f.notes[0]}
+                      </div>
+                    )}
+
+                    <div className="flex flex-wrap gap-x-2 text-[11px] text-gray-500 mt-1">
+                      {selected.wifiInfo && <span>📶 Wi-Fi</span>}
+                      {selected.seatCountInfo && <span>🪑 {selected.seatCountInfo}</span>}
+                      {selected.smokingInfo && (
+                        <span>{isNonSmoking(selected) ? "🚭 禁煙" : "🚬 喫煙可"}</span>
+                      )}
+                      {selected.hoursInfo && <span>⏰ {selected.hoursInfo}</span>}
+                    </div>
+                    {selected.webMeetingInfo && (
+                      <div className="text-[11px] text-gray-600 mt-1 leading-snug">
+                        🎧 {selected.webMeetingInfo}
+                      </div>
+                    )}
+
+                    {/* 細かい報告は普段は畳んでおく。開くのは、その店に
+                        実際にいて答えられる人だけでいい */}
+                    <details className="mt-2">
+                      <summary className="text-[11px] text-blue-600 cursor-pointer">
+                        もっと報告する
+                      </summary>
+                      <div className="mt-1.5 flex flex-col gap-1.5">
+                        <div>
+                          <div className="text-[10px] text-gray-500">Wi-Fiの速度</div>
+                          <div className="flex gap-1 mt-0.5">
+                            {WIFI_SPEED_ORDER.map((sp) => (
+                              <button
+                                key={sp}
+                                disabled={factSubmitting === selected.id}
+                                onClick={() => submitFact(selected.id, { wifi_speed: sp })}
+                                className="flex-1 text-[10px] rounded border border-gray-300 bg-white py-1 disabled:opacity-50"
+                              >
+                                {WIFI_SPEED_LABEL[sp]}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] text-gray-500">通話・WEB会議</div>
+                          <div className="flex gap-1 mt-0.5">
+                            <button
+                              disabled={factSubmitting === selected.id}
+                              onClick={() =>
+                                submitFact(selected.id, { web_meeting_ok: true })
+                              }
+                              className="flex-1 text-[10px] rounded border border-gray-300 bg-white py-1 disabled:opacity-50"
+                            >
+                              できそう
+                            </button>
+                            <button
+                              disabled={factSubmitting === selected.id}
+                              onClick={() =>
+                                submitFact(selected.id, { web_meeting_ok: false })
+                              }
+                              className="flex-1 text-[10px] rounded border border-gray-300 bg-white py-1 disabled:opacity-50"
+                            >
+                              厳しい
+                            </button>
+                          </div>
+                        </div>
+                        <button
+                          disabled={factSubmitting === selected.id}
+                          onClick={() => submitFact(selected.id, { outlet_usable: false })}
+                          className="text-[10px] rounded border border-red-300 bg-white py-1 text-red-800 disabled:opacity-50"
+                        >
+                          ⚡ 電源が使えなかった
+                        </button>
+                        {factError && (
+                          <div className="text-[10px] text-red-600">
+                            送信できませんでした({factError})
+                          </div>
+                        )}
+                      </div>
+                    </details>
+                  </>
+                );
+              })()}
 
               <div className="flex gap-3 mt-2 text-[11px]">
                 <Link href={`/cafe/${selected.id}`} className="text-blue-600 underline">
