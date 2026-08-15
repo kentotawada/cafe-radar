@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { PIN_COLORS, PIN_LEGEND } from "@/lib/pinColors";
@@ -43,6 +43,30 @@ const GoogleMapPane = dynamic(() => import("@/components/GoogleMapPane"), {
   loading: () => <MapSkeleton />,
 });
 
+// 最初の1フレームが実際に描かれるまで待つ。
+//
+// 分割しただけでは足りなかった。Lighthouse で測ると、DOM は 100〜570ms で
+// 用意できているのに、画面に何も出ない時間が 1.2〜2.6秒続いていた(3回とも)。
+// ハイドレーションと同時に地図の読み込みと初期化が始まり、それがメイン
+// スレッドを掴んだまま離さないので、ブラウザが描画に入れない。
+//
+// requestAnimationFrame を2回重ねると「1フレーム描き終えた後」になる。
+// そこで初めて地図を読みに行けば、ヘッダーと読み込み中の表示が先に出る。
+function useAfterFirstPaint(): boolean {
+  const [painted, setPainted] = useState(false);
+  useEffect(() => {
+    let id2 = 0;
+    const id1 = requestAnimationFrame(() => {
+      id2 = requestAnimationFrame(() => setPainted(true));
+    });
+    return () => {
+      cancelAnimationFrame(id1);
+      cancelAnimationFrame(id2);
+    };
+  }, []);
+  return painted;
+}
+
 // ピンの形の見本。色は「まだ報告が無い」の色に固定して、形の違いだけが
 // 目に入るようにする
 const SHAPE_LEGEND = [
@@ -56,6 +80,7 @@ const SHAPE_LEGEND = [
 function MapGoogleContent() {
   const [legendOpen, setLegendOpen] = useState(false);
   const { lang, setLang, t } = useLang();
+  const painted = useAfterFirstPaint();
 
   if (!GOOGLE_MAPS_API_KEY) {
     return (
@@ -149,7 +174,7 @@ function MapGoogleContent() {
           </div>
         </div>
       )}
-      <GoogleMapPane />
+      {painted ? <GoogleMapPane /> : <MapSkeleton />}
     </div>
   );
 }
