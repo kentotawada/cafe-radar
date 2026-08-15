@@ -36,7 +36,9 @@ import {
   passesFilters,
   type CafeFilters,
 } from "@/lib/cafeFilters";
-import { getFavorites } from "@/lib/favorites";
+import { getFavorites, toggleFavorite } from "@/lib/favorites";
+import { areas } from "@/data/areas";
+import { nearestStationWalkMinutes } from "@/lib/lookupCafe";
 import {
   useCafeFacts,
   summarise,
@@ -211,9 +213,10 @@ function GoogleMapView() {
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
   const [filters, setFilters] = useState<CafeFilters>(EMPTY_FILTERS);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [favorites] = useState<Set<string>>(() =>
+  const [favorites, setFavorites] = useState<Set<string>>(() =>
     typeof window === "undefined" ? new Set<string>() : getFavorites()
   );
+  const [listOpen, setListOpen] = useState(false);
   const watchIdRef = useRef<number | null>(null);
   // 「地図はGoogleでいいが、載っている情報はカフェレーダーのもの」。
   // 直近30分の混雑報告を取り、ピンの色と店舗情報に反映する
@@ -261,6 +264,32 @@ function GoogleMapView() {
   }, [bounds, filters, statsByCafe, favorites]);
   const capped = visible.length >= MAX_MARKERS;
 
+  // 縦リスト用。地図の中心に近い順に並べる。地図とリストで順番が
+  // 食い違うと、どれを見ているのか分からなくなる
+  const listed = useMemo(() => {
+    if (!bounds) return [];
+    const [cLat, cLng] = bounds.getCenter();
+    return [...visible]
+      .sort(
+        (a, b) =>
+          (a.lat - cLat) ** 2 + (a.lng - cLng) ** 2 -
+          ((b.lat - cLat) ** 2 + (b.lng - cLng) ** 2)
+      )
+      .slice(0, 60);
+  }, [visible, bounds]);
+
+  const focusCafe = useCallback(
+    (cafe: Cafe) => {
+      setSelected(cafe);
+      map?.panTo({ lat: cafe.lat, lng: cafe.lng });
+    },
+    [map]
+  );
+
+  const handleToggleFavorite = useCallback((cafeId: string) => {
+    setFavorites(toggleFavorite(cafeId));
+  }, []);
+
   const locate = useCallback(() => {
     if (!("geolocation" in navigator)) return;
     navigator.geolocation.getCurrentPosition(
@@ -300,6 +329,10 @@ function GoogleMapView() {
         defaultZoom={16}
         gestureHandling="greedy"
         clickableIcons={false}
+        zoomControl={true}
+        mapTypeControl={false}
+        streetViewControl={false}
+        fullscreenControl={false}
         onIdle={handleIdle}
         style={{ width: "100%", height: "100%" }}
       >
@@ -315,7 +348,16 @@ function GoogleMapView() {
                 住所や長い説明は詳細ページにある。ここで答えるのは
                 「座れるか」「電源はあるか」の2つに絞る */}
             <div className="text-gray-900 w-[240px] max-h-[60vh] overflow-y-auto">
-              <div className="font-bold text-sm leading-snug">{selected.name}</div>
+              <div className="flex items-start justify-between gap-1">
+                <div className="font-bold text-sm leading-snug">{selected.name}</div>
+                <button
+                  onClick={() => handleToggleFavorite(selected.id)}
+                  aria-label="お気に入り"
+                  className="text-lg leading-none text-yellow-500 shrink-0"
+                >
+                  {favorites.has(selected.id) ? "★" : "☆"}
+                </button>
+              </div>
 
               {(() => {
                 const stats = statsByCafe[selected.id];
@@ -511,6 +553,26 @@ function GoogleMapView() {
           </div>
         </div>
 
+        {/* 駅で探す。全23エリアぶん。中身は駅の一覧なので「エリア」ではなく
+            「駅」と書く(Redditで区で絞れると誤解された) */}
+        <select
+          value=""
+          onChange={(e) => {
+            const area = areas.find((a) => a.id === e.target.value);
+            if (!area || !map) return;
+            map.panTo({ lat: area.lat, lng: area.lng });
+            map.setZoom(16);
+          }}
+          className="rounded-full shadow px-2 py-1 text-[11px] bg-white text-gray-700 border border-gray-300 max-w-[150px]"
+        >
+          <option value="">駅で探す</option>
+          {areas.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name.replace("駅", "")}
+            </option>
+          ))}
+        </select>
+
         {filterOpen && (
           <div className="bg-white/97 rounded-lg shadow-lg border border-gray-200 p-2 flex flex-wrap gap-1 max-w-[300px]">
             {FILTER_LABELS.map(({ key, label, note }) => (
@@ -556,6 +618,69 @@ function GoogleMapView() {
       >
         ◎
       </button>
+
+      {/* 縦リスト。地図だけだと「この範囲に何軒あるか」が掴めない。
+          中心に近い順に並べ、タップで地図がその店へ動く */}
+      <div className="absolute left-0 right-0 bottom-0 bg-white border-t border-gray-200 shadow-[0_-2px_8px_rgba(0,0,0,0.08)]">
+        <button
+          onClick={() => setListOpen((v) => !v)}
+          className="w-full px-3 py-2 flex items-center justify-between text-[12px] font-semibold text-gray-800"
+        >
+          <span>
+            この範囲の{visible.length}軒
+            {countActive(filters) > 0 && (
+              <span className="font-normal text-gray-500">（絞り込み中）</span>
+            )}
+          </span>
+          <span className="text-gray-400">{listOpen ? "▼" : "▲"}</span>
+        </button>
+        {listOpen && (
+          <ul className="max-h-[45vh] overflow-y-auto border-t border-gray-100">
+            {listed.map((cafe) => {
+              const stats = statsByCafe[cafe.id] ?? null;
+              const level = stats
+                ? pickMajority(stats.seatingOccupancyCounts)
+                : null;
+              return (
+                <li key={cafe.id}>
+                  <button
+                    onClick={() => focusCafe(cafe)}
+                    className={`w-full text-left px-3 py-2 border-b border-gray-100 ${
+                      selected?.id === cafe.id ? "bg-blue-50" : ""
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="text-[12px] font-semibold text-gray-900 truncate">
+                          {favorites.has(cafe.id) && "★ "}
+                          {cafe.name}
+                        </div>
+                        <div className="flex flex-wrap gap-x-2 text-[10px] text-gray-500 mt-0.5">
+                          {level && (
+                            <span>
+                              {OCCUPANCY_EMOJI[level]} {OCCUPANCY_LABEL[level]}
+                            </span>
+                          )}
+                          {hasOutlet(cafe) && <span>🔌 電源</span>}
+                          {cafe.wifiInfo && <span>📶 Wi-Fi</span>}
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-blue-700 bg-blue-50 rounded-full px-1.5 py-0.5 shrink-0">
+                        🚶 {nearestStationWalkMinutes(cafe.lat, cafe.lng)}分
+                      </span>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+            {listed.length === 0 && (
+              <li className="px-3 py-4 text-[12px] text-gray-500">
+                この範囲に該当するお店がありません
+              </li>
+            )}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
@@ -633,6 +758,22 @@ export default function MapGooglePage() {
           今の地図
         </Link>
       </header>
+      {/* Leaflet版のヘッダーにあった導線。移行後に消えると、
+          問い合わせ先も規約も辿れなくなる */}
+      <nav className="px-3 py-1 flex flex-wrap gap-x-3 gap-y-0.5 border-b text-[11px] text-gray-500">
+        <Link href="/favorites" className="underline">
+          お気に入り
+        </Link>
+        <Link href="/privacy" className="underline">
+          プライバシーポリシー
+        </Link>
+        <Link href="/contact" className="underline">
+          お問い合わせ
+        </Link>
+        <Link href="/business" className="underline">
+          店舗掲載・法人の方
+        </Link>
+      </nav>
       <APIProvider apiKey={GOOGLE_MAPS_API_KEY} language="ja" region="JP">
         <MapGate />
       </APIProvider>
