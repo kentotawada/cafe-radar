@@ -614,10 +614,46 @@ function GoogleMapView() {
       <button
         onClick={locate}
         aria-label="現在地"
-        className="absolute right-3 bottom-6 bg-white rounded-full shadow-lg border border-gray-300 w-11 h-11 flex items-center justify-center text-lg"
+        className={`absolute right-3 ${listOpen ? "bottom-16" : "bottom-32"} bg-white rounded-full shadow-lg border border-gray-300 w-11 h-11 flex items-center justify-center text-lg`}
       >
         ◎
       </button>
+
+      {/* 横カード列。地図を見ながら1軒ずつ流し見するための並び。
+          縦リストと同時に出すと画面がほぼ埋まるので、リストを閉じている
+          間だけ出す */}
+      {!listOpen && listed.length > 0 && (
+        <div className="absolute left-0 right-0 bottom-11 overflow-x-auto flex gap-2 px-2 pb-1 snap-x snap-mandatory [scrollbar-width:none]">
+          {listed.slice(0, 20).map((cafe) => {
+            const stats = statsByCafe[cafe.id] ?? null;
+            const level = stats ? pickMajority(stats.seatingOccupancyCounts) : null;
+            return (
+              <button
+                key={cafe.id}
+                onClick={() => focusCafe(cafe)}
+                className={`snap-center shrink-0 w-[190px] text-left rounded-lg border bg-white/97 shadow px-2 py-1.5 ${
+                  selected?.id === cafe.id ? "border-blue-500" : "border-gray-200"
+                }`}
+              >
+                <div className="text-[12px] font-semibold text-gray-900 truncate">
+                  {favorites.has(cafe.id) && "★ "}
+                  {cafe.name}
+                </div>
+                <div className="flex flex-wrap gap-x-2 text-[10px] text-gray-500 mt-0.5">
+                  {level && (
+                    <span>
+                      {OCCUPANCY_EMOJI[level]} {OCCUPANCY_LABEL[level]}
+                    </span>
+                  )}
+                  {hasOutlet(cafe) && <span>🔌</span>}
+                  {cafe.wifiInfo && <span>📶</span>}
+                  <span>🚶 {nearestStationWalkMinutes(cafe.lat, cafe.lng)}分</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* 縦リスト。地図だけだと「この範囲に何軒あるか」が掴めない。
           中心に近い順に並べ、タップで地図がその店へ動く */}
