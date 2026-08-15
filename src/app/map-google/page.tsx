@@ -46,6 +46,8 @@ import {
   WIFI_SPEED_ORDER,
 } from "@/lib/useCafeFacts";
 import { isNonSmoking } from "@/lib/cafeStats";
+import { useUserCafes } from "@/lib/useUserCafes";
+import { PIN_COLORS, PIN_LEGEND } from "@/lib/pinColors";
 import type { CafeStats } from "@/lib/types";
 
 // Googleマップ版。現地で見比べた結果「Googleのほうが店にたどり着きやすい」
@@ -217,6 +219,13 @@ function GoogleMapView() {
     typeof window === "undefined" ? new Set<string>() : getFavorites()
   );
   const [listOpen, setListOpen] = useState(false);
+  // お店を追加。地図をタップして場所を決める方式にしている。住所を打つより
+  // 「今いる店の場所を指す」ほうが早く、座標もずれない
+  const [addingCafe, setAddingCafe] = useState(false);
+  const [pendingLocation, setPendingLocation] =
+    useState<google.maps.LatLngLiteral | null>(null);
+  const [newName, setNewName] = useState("");
+  const [newAddress, setNewAddress] = useState("");
   const watchIdRef = useRef<number | null>(null);
   // 「地図はGoogleでいいが、載っている情報はカフェレーダーのもの」。
   // 直近30分の混雑報告を取り、ピンの色と店舗情報に反映する
@@ -228,6 +237,18 @@ function GoogleMapView() {
     error: factError,
     submitFact,
   } = useCafeFacts();
+  const {
+    cafes: userCafes,
+    userCafeIds,
+    flaggedByMe,
+    submitting: cafeSubmitting,
+    error: cafeError,
+    addCafe,
+    flagCafe,
+  } = useUserCafes();
+
+  // 編集部調べの店と、利用者が追加した店をひとつの一覧にする
+  const allCafes = useMemo(() => [...seedCafes, ...userCafes], [userCafes]);
 
   // 指を動かしている間ずっと発火する onCameraChanged を使っていたら、
   // スマホでタブごと落ちた。1フレームごとに 1,989軒の絞り込みと
@@ -246,7 +267,7 @@ function GoogleMapView() {
   const visible = useMemo(() => {
     if (!bounds) return [];
     const padded = bounds.pad(0.15);
-    const inView = seedCafes.filter((c) => {
+    const inView = allCafes.filter((c) => {
       if (!padded.contains([c.lat, c.lng])) return false;
       return passesFilters(c, filters, statsByCafe[c.id] ?? null, favorites);
     });
@@ -261,7 +282,7 @@ function GoogleMapView() {
           ((b.lat - cLat) ** 2 + (b.lng - cLng) ** 2)
       )
       .slice(0, MAX_MARKERS);
-  }, [bounds, filters, statsByCafe, favorites]);
+  }, [bounds, filters, statsByCafe, favorites, allCafes]);
   const capped = visible.length >= MAX_MARKERS;
 
   // 縦リスト用。地図の中心に近い順に並べる。地図とリストで順番が
@@ -312,6 +333,26 @@ function GoogleMapView() {
     );
   }, [map]);
 
+  const cancelAdding = useCallback(() => {
+    setAddingCafe(false);
+    setPendingLocation(null);
+    setNewName("");
+    setNewAddress("");
+  }, []);
+
+  const submitNewCafe = useCallback(async () => {
+    if (!pendingLocation) return;
+    const name = newName.trim();
+    if (!name) return;
+    const ok = await addCafe({
+      name,
+      address: newAddress.trim(),
+      lat: pendingLocation.lat,
+      lng: pendingLocation.lng,
+    });
+    if (ok) cancelAdding();
+  }, [pendingLocation, newName, newAddress, addCafe, cancelAdding]);
+
   useEffect(
     () => () => {
       if (watchIdRef.current !== null) {
@@ -334,10 +375,23 @@ function GoogleMapView() {
         streetViewControl={false}
         fullscreenControl={false}
         onIdle={handleIdle}
+        onClick={(e) => {
+          if (!addingCafe || !e.detail.latLng) return;
+          setPendingLocation(e.detail.latLng);
+        }}
         style={{ width: "100%", height: "100%" }}
       >
         <CafeMarkers cafes={visible} statsByCafe={statsByCafe} onSelect={setSelected} />
         <UserLocationMarker position={userPosition} />
+        {pendingLocation && (
+          <AdvancedMarker
+            position={pendingLocation}
+            title="追加する場所"
+            anchorPoint={AdvancedMarkerAnchorPoint.CENTER}
+          >
+            <div className="w-5 h-5 rounded-full bg-blue-600 border-2 border-white shadow-lg" />
+          </AdvancedMarker>
+        )}
         {selected && (
           <InfoWindow
             position={{ lat: selected.lat, lng: selected.lng }}
@@ -358,6 +412,14 @@ function GoogleMapView() {
                   {favorites.has(selected.id) ? "★" : "☆"}
                 </button>
               </div>
+
+              {/* 利用者が追加した店は、編集部で裏を取っていない。
+                  同じ見た目にすると、確認済みの情報と区別がつかなくなる */}
+              {userCafeIds.has(selected.id) && (
+                <div className="text-[10px] text-amber-800 bg-amber-50 border border-amber-200 rounded px-1.5 py-1 mt-1">
+                  利用者が追加したお店です
+                </div>
+              )}
 
               {(() => {
                 const stats = statsByCafe[selected.id];
@@ -514,9 +576,13 @@ function GoogleMapView() {
               })()}
 
               <div className="flex gap-3 mt-2 text-[11px]">
-                <Link href={`/cafe/${selected.id}`} className="text-blue-600 underline">
-                  詳細
-                </Link>
+                {/* 詳細ページは編集部調べの店だけ。利用者が追加した店は
+                    まだページが無いので出さない */}
+                {!userCafeIds.has(selected.id) && (
+                  <Link href={`/cafe/${selected.id}`} className="text-blue-600 underline">
+                    詳細
+                  </Link>
+                )}
                 <a
                   href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
                     selected.address ? `${selected.name} ${selected.address}` : selected.name
@@ -527,6 +593,15 @@ function GoogleMapView() {
                 >
                   経路
                 </a>
+                {userCafeIds.has(selected.id) && (
+                  <button
+                    onClick={() => flagCafe(selected.id)}
+                    disabled={flaggedByMe.has(selected.id)}
+                    className="text-gray-500 underline disabled:no-underline disabled:text-gray-400"
+                  >
+                    {flaggedByMe.has(selected.id) ? "報告済み" : "この店は無い/違う"}
+                  </button>
+                )}
               </div>
             </div>
           </InfoWindow>
@@ -606,6 +681,68 @@ function GoogleMapView() {
               >
                 すべて解除
               </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* お店を追加。載っていない店を見つけた人がその場で足せる導線。
+          押した瞬間に入力欄を出すのではなく、まず場所を指してもらう */}
+      <div className="absolute right-3 top-2 flex flex-col items-end gap-1 max-w-[70%]">
+        <button
+          onClick={() => (addingCafe ? cancelAdding() : setAddingCafe(true))}
+          className={`rounded-full shadow px-3 py-1 text-[11px] font-semibold border ${
+            addingCafe
+              ? "bg-gray-700 text-white border-gray-700"
+              : "bg-white text-gray-700 border-gray-300"
+          }`}
+        >
+          {addingCafe ? "追加をやめる" : "＋ お店を追加"}
+        </button>
+        {addingCafe && (
+          <div className="bg-white/97 rounded-lg shadow-lg border border-gray-200 p-2 w-[220px]">
+            {!pendingLocation ? (
+              <p className="text-[11px] text-gray-700 leading-snug">
+                地図でお店の場所をタップしてください
+              </p>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                <input
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="店名(必須)"
+                  className="border border-gray-300 rounded px-2 py-1 text-[12px]"
+                />
+                <input
+                  value={newAddress}
+                  onChange={(e) => setNewAddress(e.target.value)}
+                  placeholder="住所(任意)"
+                  className="border border-gray-300 rounded px-2 py-1 text-[12px]"
+                />
+                <div className="text-[10px] text-gray-400">
+                  {pendingLocation.lat.toFixed(5)}, {pendingLocation.lng.toFixed(5)}
+                </div>
+                {cafeError && (
+                  <div className="text-[10px] text-red-600">
+                    追加できませんでした({cafeError})
+                  </div>
+                )}
+                <div className="flex gap-1">
+                  <button
+                    onClick={submitNewCafe}
+                    disabled={cafeSubmitting || newName.trim() === ""}
+                    className="flex-1 rounded bg-blue-600 text-white text-[11px] py-1 font-semibold disabled:opacity-50"
+                  >
+                    追加する
+                  </button>
+                  <button
+                    onClick={() => setPendingLocation(null)}
+                    className="rounded border border-gray-300 text-[11px] px-2 text-gray-600"
+                  >
+                    場所を選び直す
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         )}
@@ -764,6 +901,8 @@ function MapGate() {
 }
 
 export default function MapGooglePage() {
+  const [legendOpen, setLegendOpen] = useState(false);
+
   if (!GOOGLE_MAPS_API_KEY) {
     return (
       <div className="p-6 text-sm text-gray-700">
@@ -781,18 +920,26 @@ export default function MapGooglePage() {
   return (
     <div className="flex flex-col h-screen">
       <header className="border-b px-3 py-2 flex items-center justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-base font-bold">Googleマップ版</h1>
           <p className="text-[11px] text-gray-500">
-            本体は変更していません。絞り込みと混雑報告はまだ未移植です
+            本体はまだ差し替えていません
           </p>
         </div>
-        <Link
-          href="/"
-          className="text-xs text-blue-600 border border-blue-300 rounded-full px-3 py-1 whitespace-nowrap"
-        >
-          今の地図
-        </Link>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            onClick={() => setLegendOpen((v) => !v)}
+            className="text-xs text-gray-600 border border-gray-300 rounded-full px-3 py-1 whitespace-nowrap"
+          >
+            ピンの説明 {legendOpen ? "▲" : "▼"}
+          </button>
+          <Link
+            href="/"
+            className="text-xs text-blue-600 border border-blue-300 rounded-full px-3 py-1 whitespace-nowrap"
+          >
+            今の地図
+          </Link>
+        </div>
       </header>
       {/* Leaflet版のヘッダーにあった導線。移行後に消えると、
           問い合わせ先も規約も辿れなくなる */}
@@ -810,6 +957,48 @@ export default function MapGooglePage() {
           店舗掲載・法人の方
         </Link>
       </nav>
+      {/* ピンの説明。色と形の意味が分からないと、地図がただの点の集まりになる。
+          地図に重ねると絞り込みや追加ボタンを覆うので、ヘッダー側に出す */}
+      {legendOpen && (
+        <div className="px-3 py-2 border-b bg-gray-50 space-y-1.5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {PIN_LEGEND.map((item) => (
+              <span
+                key={item.key}
+                className="flex items-center gap-1 text-[11px] text-gray-600"
+              >
+                <span
+                  className="inline-block w-2.5 h-2.5 rounded-full border border-white shadow"
+                  style={{ backgroundColor: PIN_COLORS[item.key] }}
+                />
+                {item.label}
+              </span>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-500">
+            <span>形</span>
+            {(
+              [
+                ["chain", false, "チェーン"],
+                ["coworking", false, "コワーキング"],
+                ["independent", false, "個人店"],
+                ["night", false, "夜も営業"],
+                ["chain", true, "電源あり"],
+              ] as const
+            ).map(([style, outlet, label]) => (
+              <span key={`${style}-${outlet}`} className="flex items-center gap-1">
+                <span
+                  className="inline-block w-4 h-4 shrink-0"
+                  dangerouslySetInnerHTML={{
+                    __html: cupPinSvgMarkup(PIN_COLORS.unknown, style, outlet, 16),
+                  }}
+                />
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
       <APIProvider apiKey={GOOGLE_MAPS_API_KEY} language="ja" region="JP">
         <MapGate />
       </APIProvider>
