@@ -52,6 +52,7 @@ import { supabase } from "@/lib/supabaseClient";
 import CafePopup from "@/components/CafePopup";
 import BookmarkIcon from "@/components/BookmarkIcon";
 import { distanceMeters, formatDistance } from "@/lib/geoDistance";
+import { useReporterProgress } from "@/lib/useReporterProgress";
 import type { CafeStats } from "@/lib/types";
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -367,6 +368,8 @@ function GoogleMapView() {
   const [suggestOpen, setSuggestOpen] = useState(false);
   // 地図を動かしたか。動かした後だけ「この範囲で再検索」を出す
   const [drifted, setDrifted] = useState(false);
+  // 送信の手応え。押しただけでは送れたのか分からない
+  const [thanks, setThanks] = useState<string | null>(null);
   const [addingCafe, setAddingCafe] = useState(false);
   const [pendingLocation, setPendingLocation] =
     useState<google.maps.LatLngLiteral | null>(null);
@@ -411,6 +414,8 @@ function GoogleMapView() {
     flagCafe,
   } = useUserCafes();
   const verifiedOutletIds = useVerifiedOutlets();
+  // 送った件数と称号。報告しても本人には何も返らないので、ここで返す
+  const progress = useReporterProgress();
 
   const allCafes = useMemo(() => [...seedCafes, ...userCafes], [userCafes]);
 
@@ -480,7 +485,7 @@ function GoogleMapView() {
   }, [visible, sortCenter]);
 
   const focusCafe = useCallback(
-    (cafe: Cafe) => {
+    (cafe: Cafe, zoomIn = true) => {
       selectedIdRef.current = cafe.id;
       setSelected(cafe);
       hasMovedRef.current = true;
@@ -489,7 +494,9 @@ function GoogleMapView() {
       map.panTo({ lat: cafe.lat, lng: cafe.lng });
       // クラスタに埋もれたままだと、選んだ店のピンが見えない。
       // まとまりがほどける寄りまで一段寄せる
-      if ((map.getZoom() ?? 16) < 18) map.setZoom(18);
+      // 横カード列を送っているときは寄せない。勝手に拡大されると、
+      // それまで見ていた範囲が分からなくなる
+      if (zoomIn && (map.getZoom() ?? 16) < 18) map.setZoom(18);
       // 吹き出しはピンの上に出るので、ピンが画面の上のほうにあると
       // 店名がヘッダーに重なる。地図を少し上へ送って、ピンを画面の
       // 下寄りに置き、上に吹き出しのぶんの余地を作る
@@ -519,7 +526,7 @@ function GoogleMapView() {
       }
       if (!bestId) return;
       const cafe = listed.find((c) => c.id === bestId);
-      if (cafe && cafe.id !== selectedIdRef.current) focusCafe(cafe);
+      if (cafe && cafe.id !== selectedIdRef.current) focusCafe(cafe, false);
     }, 140);
   }, [listed, focusCafe]);
 
@@ -662,6 +669,18 @@ function GoogleMapView() {
     map.fitBounds(b, 48);
   }, [matches, map, focusCafe]);
 
+  // 送信のあとに「送れた」と出す。押しただけでは分からないという指摘への対応。
+  // ついでに、あと何件で称号が上がるかも出す。報告しても本人には何も返って
+  // こないので、ここで返す
+  const reportedOk = useCallback(() => {
+    const next =
+      progress.remaining == null
+        ? t("gmap.topLevel")
+        : t("gmap.nextLevel").replace("{n}", String(Math.max(1, progress.remaining)));
+    setThanks(`${t("gmap.thanksSent")}\n${next}`);
+    window.setTimeout(() => setThanks(null), 3000);
+  }, [progress.remaining, t]);
+
   const submitCorrection = useCallback(
     async (cafeId: string, message: string) => {
       if (!supabase) return false;
@@ -794,8 +813,14 @@ function GoogleMapView() {
                     setSelected(null);
                   }}
                   onToggleFavorite={() => handleToggleFavorite(selected.id)}
-                  onReportOccupancy={(lv) => submitOccupancy(selected.id, lv)}
-                  onSubmitFact={(patch) => submitFact(selected.id, patch)}
+                  onReportOccupancy={async (lv) => {
+                    await submitOccupancy(selected.id, lv);
+                    reportedOk();
+                  }}
+                  onSubmitFact={async (patch) => {
+                    await submitFact(selected.id, patch);
+                    reportedOk();
+                  }}
                   onFlag={() => flagCafe(selected.id)}
                   onSubmitCorrection={(m) => submitCorrection(selected.id, m)}
                 />
@@ -957,7 +982,17 @@ function GoogleMapView() {
           </div>
         )}
 
-        {/* この範囲で再検索。地図を動かした後だけ出す。上から順に操作する
+          {/* 送信の手応え。押した場所の近くではなく画面の中ほどに出す。
+            吹き出しの中に出すと、開いている報告欄に埋もれて気づかれない */}
+      {thanks && (
+        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 z-40 flex justify-center pointer-events-none px-6">
+          <p className="bg-gray-900/92 text-white rounded-xl px-4 py-3 text-[13px] font-bold text-center whitespace-pre-line shadow-xl">
+            {thanks}
+          </p>
+        </div>
+      )}
+
+      {/* この範囲で再検索。地図を動かした後だけ出す。上から順に操作する
             並びなので、絞り込みのすぐ下に置く */}
         {drifted && (
           <button
@@ -1106,8 +1141,12 @@ function GoogleMapView() {
                     </span>
                     <span className="flex gap-x-1.5 text-[10px] text-gray-700 mt-0.5 whitespace-nowrap">
                       {lv && <span>{OCCUPANCY_EMOJI[lv]}</span>}
-                      {hasOutlet(cafe, verifiedOutletIds) && <span>🔌</span>}
-                      {cafe.wifiInfo && <span>📶</span>}
+                      {hasOutlet(cafe, verifiedOutletIds) && (
+                        <span className="bg-amber-100 text-amber-900 rounded px-1">🔌</span>
+                      )}
+                      {cafe.wifiInfo && (
+                        <span className="bg-sky-100 text-sky-900 rounded px-1">📶</span>
+                      )}
                       {userPosition ? (
                         <span className="text-blue-800 font-semibold">
                           {`📍 ${formatDistance(
@@ -1141,7 +1180,15 @@ function GoogleMapView() {
                   </span>
                 )}
               </span>
-              <span className="text-gray-500">{listOpen ? "▼" : "▲"}</span>
+              <span className="flex items-center gap-2">
+                {/* 送った件数と称号。報告する気になる材料として常に見せる */}
+                {progress.level && (
+                  <span className="text-[10px] font-bold text-amber-800 bg-amber-100 rounded-full px-2 py-0.5">
+                    {progress.level.emoji} Lv.{progress.level.level}
+                  </span>
+                )}
+                <span className="text-gray-500">{listOpen ? "▼" : "▲"}</span>
+              </span>
             </button>
             {listOpen && !selected && (
               <ul className="max-h-[30vh] overflow-y-auto border-t border-gray-100">
@@ -1162,9 +1209,15 @@ function GoogleMapView() {
                           </span>
                           <span className="flex flex-wrap gap-x-1.5 text-[10px] text-gray-700">
                             {lv && <span>{OCCUPANCY_EMOJI[lv]}</span>}
-                            {hasOutlet(cafe, verifiedOutletIds) && <span>🔌</span>}
-                            {cafe.wifiInfo && <span>📶</span>}
-                            {isNonSmoking(cafe) && <span>🚭</span>}
+                            {hasOutlet(cafe, verifiedOutletIds) && (
+                        <span className="bg-amber-100 text-amber-900 rounded px-1">🔌</span>
+                      )}
+                            {cafe.wifiInfo && (
+                        <span className="bg-sky-100 text-sky-900 rounded px-1">📶</span>
+                      )}
+                            {isNonSmoking(cafe) && (
+                        <span className="bg-emerald-100 text-emerald-900 rounded px-1">🚭</span>
+                      )}
                           </span>
                         </span>
                         <span className="text-[10px] text-blue-800 bg-blue-50 rounded-full px-1.5 py-0.5 shrink-0 whitespace-nowrap">

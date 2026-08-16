@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { dedupeByReporter, pickMajorityFromList } from "@/lib/cafeStats";
 import { getReporterId } from "@/lib/reporterId";
+import { emitReportSubmitted } from "@/lib/reportEvents";
 import type { CafeFact, WifiSpeed } from "@/lib/types";
 
 // cafe_facts は「時間が経っても変わらない情報」。混雑報告(reports)と違って
@@ -129,6 +130,8 @@ export function useCafeFacts(): CafeFactsApi {
         setError(err.message);
         return;
       }
+      // 送れた数が増えたことをレベル表示へ伝える
+      emitReportSubmitted();
       setFactsByCafe((prev) => ({
         ...prev,
         [cafeId]: [

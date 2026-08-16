@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { computeStats, pickMajority } from "@/lib/cafeStats";
 import { PIN_COLORS } from "@/lib/pinColors";
 import { getReporterId } from "@/lib/reporterId";
+import { emitReportSubmitted } from "@/lib/reportEvents";
 import type { CafeStats, OccupancyLevel, Report } from "@/lib/types";
 
 // 直近30分の混雑報告を取り、店舗ごとに集計する。
@@ -144,6 +145,8 @@ export function useLiveReports(): LiveReports {
         setError(err.message);
         return;
       }
+      // 送れた数が増えたことをレベル表示へ伝える
+      emitReportSubmitted();
       // 送信直後に自分の報告を反映させる。取り直しを待つと
       // 押した手応えが無い
       setReportsByCafe((prev) => ({

@@ -103,16 +103,28 @@ export default function CafePopup(props: Props) {
 
   // 設備は短い札を並べる。文章のままだと読む気にならないと言われたので、
   // 「電源」「Wi-Fi」のように単語で出し、詳しい説明は開いた人だけが見る
-  const chips: string[] = [];
-  if (hasOutlet(cafe)) chips.push(`🔌 ${t("gmap.outlet")}`);
-  if (cafe.wifiInfo) chips.push(`📶 ${t("gmap.wifi")}`);
+  const chips: { text: string; tone: string }[] = [];
+  const TONE = {
+    outlet: "bg-amber-100 text-amber-900",
+    wifi: "bg-sky-100 text-sky-900",
+    smoke: "bg-emerald-100 text-emerald-900",
+    call: "bg-violet-100 text-violet-900",
+  };
+  if (hasOutlet(cafe)) chips.push({ text: `🔌 ${t("gmap.outlet")}`, tone: TONE.outlet });
+  if (cafe.wifiInfo) chips.push({ text: `📶 ${t("gmap.wifi")}`, tone: TONE.wifi });
   if (cafe.smokingInfo)
-    chips.push(isNonSmoking(cafe) ? `🚭 ${t("gmap.isNonSmoking")}` : "🚬 OK");
+    chips.push({
+      text: isNonSmoking(cafe) ? `🚭 ${t("gmap.isNonSmoking")}` : "🚬 OK",
+      tone: TONE.smoke,
+    });
   if (f.outletSeatCount != null)
-    chips.push(`🔌 ${f.outletSeatCount}${t("gmap.seats")}`);
-  if (f.wifiSpeed) chips.push(`📶 ${wifiLabel[f.wifiSpeed]}`);
+    chips.push({ text: `🔌 ${f.outletSeatCount}${t("gmap.seats")}`, tone: TONE.outlet });
+  if (f.wifiSpeed) chips.push({ text: `📶 ${wifiLabel[f.wifiSpeed]}`, tone: TONE.wifi });
   if (f.webMeetingOk != null)
-    chips.push(f.webMeetingOk ? `🎧 ${t("gmap.callable")}` : `🎧 ${t("gmap.notCallable")}`);
+    chips.push({
+      text: f.webMeetingOk ? `🎧 ${t("gmap.callable")}` : `🎧 ${t("gmap.notCallable")}`,
+      tone: TONE.call,
+    });
 
   const mapsQuery = encodeURIComponent(
     cafe.address ? `${cafe.name} ${cafe.address}` : cafe.name
@@ -221,10 +233,10 @@ export default function CafePopup(props: Props) {
             <div className="flex flex-wrap gap-1.5">
               {chips.map((c) => (
                 <span
-                  key={c}
-                  className="text-[10px] text-gray-800 bg-gray-100 rounded-full px-1.5 py-0.5"
+                  key={c.text}
+                  className={`text-[10px] font-semibold rounded-full px-1.5 py-0.5 whitespace-nowrap ${c.tone}`}
                 >
-                  {c}
+                  {c.text}
                 </span>
               ))}
             </div>
