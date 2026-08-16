@@ -362,6 +362,8 @@ function GoogleMapView() {
   const [listOpen, setListOpen] = useState(true);
   const [query, setQuery] = useState("");
   const [suggestOpen, setSuggestOpen] = useState(false);
+  // 地図を動かしたか。動かした後だけ「この範囲で再検索」を出す
+  const [drifted, setDrifted] = useState(false);
   const [addingCafe, setAddingCafe] = useState(false);
   const [pendingLocation, setPendingLocation] =
     useState<google.maps.LatLngLiteral | null>(null);
@@ -434,6 +436,17 @@ function GoogleMapView() {
   }, [bounds, filters, statsByCafe, favorites, allCafes, verifiedOutletIds]);
   const capped = visible.length >= MAX_MARKERS;
 
+  // クラスタに載せるピン。選んだ店だけは単独で出すので外す。
+  //
+  // ここを JSX の中で visible.filter(...) と書いていたら、描画のたびに新しい
+  // 配列になり、クラスタを作り直す effect が毎回走っていた。作り直しは
+  // 「全部消す → 付け直す」なので、付け直しが済む前の一瞬はピンが0個になる。
+  // 「地図にピンが出ない」のはこれだった
+  const clustered = useMemo(
+    () => visible.filter((c) => c.id !== selected?.id),
+    [visible, selected?.id]
+  );
+
   const listed = useMemo(() => {
     if (!sortCenter) return [];
     const [cLat, cLng] = sortCenter;
@@ -451,11 +464,17 @@ function GoogleMapView() {
       setSelected(cafe);
       hasMovedRef.current = true;
       freezeListRef.current = true;
-      map?.panTo({ lat: cafe.lat, lng: cafe.lng });
+      if (!map) return;
+      map.panTo({ lat: cafe.lat, lng: cafe.lng });
       // クラスタに埋もれたままだと、選んだ店のピンが見えない。
       // まとまりがほどける寄りまで一段寄せる
-      const z = map?.getZoom() ?? 16;
-      if (z < 18) map?.setZoom(18);
+      if ((map.getZoom() ?? 16) < 18) map.setZoom(18);
+      // 吹き出しはピンの上に出るので、ピンが画面の上のほうにあると
+      // 店名がヘッダーに重なる。地図を少し上へ送って、ピンを画面の
+      // 下寄りに置き、上に吹き出しのぶんの余地を作る
+      const el = map.getDiv();
+      const shift = Math.round((el?.clientHeight ?? 0) * 0.2);
+      if (shift > 0) window.setTimeout(() => map.panBy(0, -shift), 0);
     },
     [map]
   );
@@ -660,8 +679,8 @@ function GoogleMapView() {
         onIdle={handleIdle}
         onDragstart={() => {
           hasMovedRef.current = true;
-          freezeListRef.current = false;
           setSuggestOpen(false);
+          setDrifted(true);
         }}
         onClick={(e) => {
           if (addingCafe && e.detail.latLng) {
@@ -673,7 +692,7 @@ function GoogleMapView() {
         style={{ width: "100%", height: "100%" }}
       >
         <CafeMarkers
-          cafes={visible.filter((c) => c.id !== selected?.id)}
+          cafes={clustered}
           statsByCafe={statsByCafe}
           onSelect={focusCafe}
           verifiedOutletIds={verifiedOutletIds}
@@ -970,6 +989,22 @@ function GoogleMapView() {
           </div>
         )}
       </div>
+
+      {/* この範囲で再検索。地図を動かした後だけ出す。
+          自動でも取り直しているが、店を選んだ後は並びを止めているので、
+          その場で今の範囲に取り直せる口が要る */}
+      {drifted && !selected && (
+        <button
+          onClick={() => {
+            freezeListRef.current = false;
+            setDrifted(false);
+            handleIdle();
+          }}
+          className="absolute left-1/2 -translate-x-1/2 bottom-[196px] z-20 rounded-full bg-blue-600 text-white shadow-lg px-4 py-2 text-[12px] font-bold"
+        >
+          {t("gmap.researchHere")}
+        </button>
+      )}
 
       {/* 現在地。拡大縮小の下、横カード列の上に置いて重ならないようにする */}
       {!selected && (

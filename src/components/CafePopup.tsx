@@ -63,8 +63,8 @@ type Props = {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="py-2.5 border-t border-gray-200 first:border-t-0">
-      <h3 className="text-[11px] font-bold text-gray-500 tracking-wide mb-1.5">{title}</h3>
+    <section className="py-2 border-t border-gray-200 first:border-t-0">
+      <h3 className="text-[10px] font-bold text-gray-500 tracking-wide mb-1">{title}</h3>
       {children}
     </section>
   );
@@ -116,13 +116,13 @@ export default function CafePopup(props: Props) {
   return (
     // 吹き出しの中身。高さの上限はここで決める。上限が無いと、報告欄を開いた
     // 瞬間に吹き出しが上へ伸びて店名が画面の外へ出る
-    <div className="w-[268px] max-h-[52vh] flex flex-col text-gray-900">
+    <div className="w-[232px] max-h-[42vh] flex flex-col text-gray-900 text-[12px]">
       {/* 店名は上に貼り付ける。中をスクロールしても、どの店を見ているかが消えない */}
       <div className="shrink-0 pb-2 border-b border-gray-200">
         <div className="flex items-start gap-1.5">
           <div className="min-w-0 flex-1">
-            <h2 className="text-[15px] font-bold text-gray-900 leading-snug">{cafe.name}</h2>
-            <p className="text-[12px] text-gray-600 mt-0.5">
+            <h2 className="text-[13px] font-bold text-gray-900 leading-snug">{cafe.name}</h2>
+            <p className="text-[11px] text-gray-600 mt-0.5">
               {lang === "en" ? `🚶 ${walk} min from the station` : `🚶 駅から${walk}分`}
               {props.isUserAdded && (
                 <span className="ml-2 text-amber-700">{t("gmap.userAdded")}</span>
@@ -142,7 +142,7 @@ export default function CafePopup(props: Props) {
         <button
           onClick={props.onToggleFavorite}
           aria-pressed={props.isFavorite}
-          className={`mt-1.5 w-full rounded-lg border py-1.5 text-[12px] font-bold ${
+          className={`mt-1.5 w-full rounded-md border py-1 text-[11px] font-bold ${
             props.isFavorite
               ? "bg-blue-600 border-blue-600 text-white"
               : "bg-white border-gray-300 text-gray-800"
@@ -155,7 +155,7 @@ export default function CafePopup(props: Props) {
       <div className="overflow-y-auto overscroll-contain">
         {/* いまの様子。30分で消える情報なので、いちばん上に置く */}
         <Section title={t("gmap.nowLabel")}>
-          <div className="text-[14px] font-bold text-gray-900">
+          <div className="text-[13px] font-bold text-gray-900">
             {level ? (
               <>
                 {OCCUPANCY_EMOJI[level]} {occLabel[level]}
@@ -170,13 +170,13 @@ export default function CafePopup(props: Props) {
               </span>
             )}
           </div>
-          <div className="flex gap-1.5 mt-2">
+          <div className="flex gap-1 mt-1.5">
             {OCCUPANCY_ORDER.map((lv) => (
               <button
                 key={lv}
                 disabled={props.reportSubmitting}
                 onClick={() => props.onReportOccupancy(lv)}
-                className="flex-1 rounded-lg border border-gray-300 bg-white py-1.5 text-[11px] font-semibold text-gray-800 disabled:opacity-50"
+                className="flex-1 min-w-0 rounded border border-gray-300 bg-white py-1 text-[10px] font-semibold text-gray-800 disabled:opacity-50"
               >
                 {OCCUPANCY_EMOJI[lv]}
                 <br />
@@ -240,7 +240,7 @@ export default function CafePopup(props: Props) {
               href={`https://www.google.com/maps/search/?api=1&query=${mapsQuery}`}
               target="_blank"
               rel="noreferrer noopener"
-              className="flex-1 min-w-[92px] text-center rounded-lg bg-blue-600 text-white text-[13px] font-semibold py-2"
+              className="flex-1 min-w-[64px] text-center rounded-md bg-blue-600 text-white text-[11px] font-bold py-1.5"
             >
               {t("gmap.route")}
             </a>
@@ -249,7 +249,7 @@ export default function CafePopup(props: Props) {
                 href={cafe.website}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="flex-1 min-w-[92px] text-center rounded-lg border border-gray-300 text-gray-800 text-[13px] font-semibold py-2"
+                className="flex-1 min-w-[64px] text-center rounded-md border border-gray-300 text-gray-800 text-[11px] font-bold py-1.5"
               >
                 {t("gmap.official")}
               </a>
@@ -261,7 +261,7 @@ export default function CafePopup(props: Props) {
                 href={`https://www.google.com/maps/search/?api=1&query=${mapsQuery}`}
                 target="_blank"
                 rel="noreferrer noopener"
-                className="flex-1 min-w-[92px] text-center rounded-lg border border-gray-300 text-gray-800 text-[13px] font-semibold py-2"
+                className="flex-1 min-w-[64px] text-center rounded-md border border-gray-300 text-gray-800 text-[11px] font-bold py-1.5"
               >
                 {t("gmap.menu")}
               </a>
@@ -277,7 +277,7 @@ export default function CafePopup(props: Props) {
                     // 使えない設定なら、戻り先の判定は referrer に任せる
                   }
                 }}
-                className="flex-1 min-w-[92px] text-center rounded-lg border border-gray-300 text-gray-800 text-[13px] font-semibold py-2"
+                className="flex-1 min-w-[64px] text-center rounded-md border border-gray-300 text-gray-800 text-[11px] font-bold py-1.5"
               >
                 {t("gmap.detail")}
               </Link>
@@ -303,7 +303,7 @@ export default function CafePopup(props: Props) {
                       key={sp}
                       disabled={props.factSubmitting}
                       onClick={() => props.onSubmitFact({ wifi_speed: sp })}
-                      className="flex-1 rounded-lg border border-gray-300 py-1.5 text-[11px] text-gray-800 disabled:opacity-50"
+                      className="flex-1 min-w-0 rounded border border-gray-300 py-1 text-[10px] text-gray-800 disabled:opacity-50"
                     >
                       {wifiLabel[sp]}
                     </button>
@@ -317,52 +317,52 @@ export default function CafePopup(props: Props) {
                   <button
                     disabled={props.factSubmitting}
                     onClick={() => props.onSubmitFact({ web_meeting_ok: true })}
-                    className="flex-1 rounded-lg border border-gray-300 py-1.5 text-[11px] text-gray-800 disabled:opacity-50"
+                    className="flex-1 min-w-0 rounded border border-gray-300 py-1 text-[10px] text-gray-800 disabled:opacity-50"
                   >
                     {t("gmap.callYes")}
                   </button>
                   <button
                     disabled={props.factSubmitting}
                     onClick={() => props.onSubmitFact({ web_meeting_ok: false })}
-                    className="flex-1 rounded-lg border border-gray-300 py-1.5 text-[11px] text-gray-800 disabled:opacity-50"
+                    className="flex-1 min-w-0 rounded border border-gray-300 py-1 text-[10px] text-gray-800 disabled:opacity-50"
                   >
                     {t("gmap.callNo")}
                   </button>
                 </div>
               </div>
 
-              <div className="flex gap-2">
-                <label className="flex-1 text-[11px] text-gray-600">
+              <div className="flex flex-col gap-2">
+                <label className="text-[11px] text-gray-600">
                   {t("gmap.seatCountLabel")}
                   <span className="flex gap-1 mt-1">
                     <input
                       value={seats}
                       onChange={(e) => setSeats(e.target.value)}
                       inputMode="numeric"
-                      className="w-full min-w-0 border border-gray-300 rounded px-2 py-1.5 text-[13px] text-gray-900"
+                      className="w-full min-w-0 border border-gray-300 rounded px-1.5 py-1 text-[12px] text-gray-900"
                     />
                     <button
                       disabled={props.factSubmitting}
                       onClick={() => submitCount(seats, "seat_count")}
-                      className="rounded border border-gray-300 px-2 text-[11px] text-gray-800 disabled:opacity-50"
+                      className="shrink-0 rounded border border-gray-300 px-2 text-[10px] text-gray-800 disabled:opacity-50"
                     >
                       {t("gmap.send")}
                     </button>
                   </span>
                 </label>
-                <label className="flex-1 text-[11px] text-gray-600">
+                <label className="text-[11px] text-gray-600">
                   {t("gmap.outletSeatCountLabel")}
                   <span className="flex gap-1 mt-1">
                     <input
                       value={outletSeats}
                       onChange={(e) => setOutletSeats(e.target.value)}
                       inputMode="numeric"
-                      className="w-full min-w-0 border border-gray-300 rounded px-2 py-1.5 text-[13px] text-gray-900"
+                      className="w-full min-w-0 border border-gray-300 rounded px-1.5 py-1 text-[12px] text-gray-900"
                     />
                     <button
                       disabled={props.factSubmitting}
                       onClick={() => submitCount(outletSeats, "outlet_seat_count")}
-                      className="rounded border border-gray-300 px-2 text-[11px] text-gray-800 disabled:opacity-50"
+                      className="shrink-0 rounded border border-gray-300 px-2 text-[10px] text-gray-800 disabled:opacity-50"
                     >
                       {t("gmap.send")}
                     </button>
@@ -377,7 +377,7 @@ export default function CafePopup(props: Props) {
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     placeholder={t("gmap.notePlaceholder")}
-                    className="w-full min-w-0 border border-gray-300 rounded px-2 py-1.5 text-[13px] text-gray-900"
+                    className="w-full min-w-0 border border-gray-300 rounded px-1.5 py-1 text-[12px] text-gray-900"
                   />
                   <button
                     disabled={props.factSubmitting || note.trim() === ""}
@@ -385,7 +385,7 @@ export default function CafePopup(props: Props) {
                       props.onSubmitFact({ note: note.trim() });
                       setNote("");
                     }}
-                    className="rounded border border-gray-300 px-2 text-[11px] text-gray-800 disabled:opacity-50"
+                    className="shrink-0 rounded border border-gray-300 px-2 text-[10px] text-gray-800 disabled:opacity-50"
                   >
                     {t("gmap.send")}
                   </button>
@@ -413,7 +413,7 @@ export default function CafePopup(props: Props) {
                       value={fix}
                       onChange={(e) => setFix(e.target.value)}
                       placeholder={t("gmap.wrongInfoPlaceholder")}
-                      className="w-full min-w-0 border border-gray-300 rounded px-2 py-1.5 text-[13px] text-gray-900"
+                      className="w-full min-w-0 border border-gray-300 rounded px-1.5 py-1 text-[12px] text-gray-900"
                     />
                     <button
                       disabled={fix.trim() === ""}
@@ -424,7 +424,7 @@ export default function CafePopup(props: Props) {
                           setFixSent(true);
                         } else setFixError(true);
                       }}
-                      className="rounded border border-gray-300 px-2 text-[11px] text-gray-800 disabled:opacity-50"
+                      className="shrink-0 rounded border border-gray-300 px-2 text-[10px] text-gray-800 disabled:opacity-50"
                     >
                       {t("gmap.send")}
                     </button>
