@@ -29,7 +29,21 @@ export default function BackToMapLink({
     } catch {
       // 読めない場合は素直に地図へ遷移する
     }
-    if (cameFromMap) {
+
+    // 目印が無くても、直前のページがこのサイトなら戻ってよい。
+    // 目印はもともと Leaflet 版の地図だけが置いていたので、Googleマップ版から
+    // 来た人は毎回 / (Leaflet版)へ送られてしまっていた。見ていた地図と違う
+    // 地図に着くので「前のカフェレーダーに戻る」ように見える
+    let sameSite = false;
+    try {
+      sameSite =
+        document.referrer !== "" &&
+        new URL(document.referrer).origin === window.location.origin;
+    } catch {
+      sameSite = false;
+    }
+
+    if (cameFromMap || sameSite) {
       router.back();
       return;
     }

@@ -18,6 +18,8 @@ import {
   Map as GMap,
   AdvancedMarker,
   AdvancedMarkerAnchorPoint,
+  InfoWindow,
+  useAdvancedMarkerRef,
   useApiLoadingStatus,
   useMap,
 } from "@vis.gl/react-google-maps";
@@ -46,7 +48,7 @@ import { useUserCafes } from "@/lib/useUserCafes";
 import { useVerifiedOutlets } from "@/lib/useVerifiedOutlets";
 import { useLang } from "@/lib/i18n";
 import { supabase } from "@/lib/supabaseClient";
-import CafeSheet from "@/components/CafeSheet";
+import CafePopup from "@/components/CafePopup";
 import type { CafeStats } from "@/lib/types";
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -343,6 +345,8 @@ function GoogleMapView() {
   const { lang, t } = useLang();
   const filterLabels = lang === "en" ? FILTER_LABELS_EN : FILTER_LABELS;
 
+  // 選んだピンの実体。吹き出しをこのピンに付ける
+  const [selectedMarkerRef, selectedMarker] = useAdvancedMarkerRef();
   const [bounds, setBounds] = useState<MapBounds | null>(null);
   // リストを並べる基準の点。地図の中心と別に持つ
   const [sortCenter, setSortCenter] = useState<[number, number] | null>(null);
@@ -675,23 +679,57 @@ function GoogleMapView() {
           verifiedOutletIds={verifiedOutletIds}
           favorites={favorites}
         />
-        {/* 選んだ店はクラスタに入れず、単独で出す。まとめられると、リストから
-            選んだのにピンが見えないという状態になる */}
+        {/* 選んだ店はクラスタに入れず単独で出し、そのピンに吹き出しを付ける。
+            まとめられていると、リストから選んだのにピンが見えなかった */}
         {selected && (
-          <AdvancedMarker
-            position={{ lat: selected.lat, lng: selected.lng }}
-            title={selected.name}
-            zIndex={999}
-            anchorPoint={pinAnchorPoint(selected, verifiedOutletIds)}
-          >
-            <PinBody
-              cafe={selected}
-              statusColor={statusColorForStats(statsByCafe[selected.id] ?? null)}
-              verifiedOutletIds={verifiedOutletIds}
-              saved={favorites.has(selected.id)}
-              selected
-            />
-          </AdvancedMarker>
+          <>
+            <AdvancedMarker
+              ref={selectedMarkerRef}
+              position={{ lat: selected.lat, lng: selected.lng }}
+              title={selected.name}
+              zIndex={999}
+              anchorPoint={pinAnchorPoint(selected, verifiedOutletIds)}
+            >
+              <PinBody
+                cafe={selected}
+                statusColor={statusColorForStats(statsByCafe[selected.id] ?? null)}
+                verifiedOutletIds={verifiedOutletIds}
+                saved={favorites.has(selected.id)}
+                selected
+              />
+            </AdvancedMarker>
+            {selectedMarker && (
+              <InfoWindow
+                anchor={selectedMarker}
+                onCloseClick={() => setSelected(null)}
+                // Google 既定のヘッダー(閉じるボタンの帯)を切る。中身の上に
+                // 余白として乗り、「上の空白が気になる」と言われていた
+                headerDisabled
+                maxWidth={300}
+                shouldFocus={false}
+                className="cf-iw"
+              >
+                <CafePopup
+                  cafe={selected}
+                  stats={statsByCafe[selected.id] ?? null}
+                  facts={factsByCafe[selected.id] ?? []}
+                  isUserAdded={userCafeIds.has(selected.id)}
+                  isFavorite={favorites.has(selected.id)}
+                  isFlagged={flaggedByMe.has(selected.id)}
+                  reportSubmitting={submitting === selected.id}
+                  factSubmitting={factSubmitting === selected.id}
+                  reportError={reportError}
+                  factError={factError}
+                  onClose={() => setSelected(null)}
+                  onToggleFavorite={() => handleToggleFavorite(selected.id)}
+                  onReportOccupancy={(lv) => submitOccupancy(selected.id, lv)}
+                  onSubmitFact={(patch) => submitFact(selected.id, patch)}
+                  onFlag={() => flagCafe(selected.id)}
+                  onSubmitCorrection={(m) => submitCorrection(selected.id, m)}
+                />
+              </InfoWindow>
+            )}
+          </>
         )}
         <UserLocationMarker position={userPosition} heading={heading} />
         {pendingLocation && (
@@ -944,10 +982,11 @@ function GoogleMapView() {
         </button>
       )}
 
-      {/* 横カード列と縦リスト。開いた時点で両方が画面に入るようにしている */}
-      {!selected && (
-        <div className="absolute inset-x-0 bottom-0 z-10">
-          {listed.length > 0 && (
+      {/* 横カード列と縦リスト。開いた時点で両方が画面に入るようにしている。
+          吹き出しを開いている間は、覆う面積を減らすため横カード列と
+          リストの中身を畳む(見出しの帯だけ残す) */}
+      <div className="absolute inset-x-0 bottom-0 z-10">
+          {!selected && listed.length > 0 && (
             <div className="overflow-x-auto flex gap-2 px-2 pb-2 snap-x snap-mandatory [scrollbar-width:none]">
               {listed.slice(0, 20).map((cafe) => {
                 const stats = statsByCafe[cafe.id] ?? null;
@@ -993,7 +1032,7 @@ function GoogleMapView() {
               </span>
               <span className="text-gray-500">{listOpen ? "▼" : "▲"}</span>
             </button>
-            {listOpen && (
+            {listOpen && !selected && (
               <ul className="max-h-[30vh] overflow-y-auto border-t border-gray-100">
                 {listed.map((cafe) => {
                   const stats = statsByCafe[cafe.id] ?? null;
@@ -1033,29 +1072,7 @@ function GoogleMapView() {
               </ul>
             )}
           </div>
-        </div>
-      )}
-
-      {selected && (
-        <CafeSheet
-          cafe={selected}
-          stats={statsByCafe[selected.id] ?? null}
-          facts={factsByCafe[selected.id] ?? []}
-          isUserAdded={userCafeIds.has(selected.id)}
-          isFavorite={favorites.has(selected.id)}
-          isFlagged={flaggedByMe.has(selected.id)}
-          reportSubmitting={submitting === selected.id}
-          factSubmitting={factSubmitting === selected.id}
-          reportError={reportError}
-          factError={factError}
-          onClose={() => setSelected(null)}
-          onToggleFavorite={() => handleToggleFavorite(selected.id)}
-          onReportOccupancy={(lv) => submitOccupancy(selected.id, lv)}
-          onSubmitFact={(patch) => submitFact(selected.id, patch)}
-          onFlag={() => flagCafe(selected.id)}
-          onSubmitCorrection={(m) => submitCorrection(selected.id, m)}
-        />
-      )}
+      </div>
     </div>
   );
 }

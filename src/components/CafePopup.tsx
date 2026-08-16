@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { FROM_MAP_KEY } from "@/lib/mapNavigation";
 import type { Cafe } from "@/lib/seedCafes";
 import type { CafeStats, OccupancyLevel, WifiSpeed } from "@/lib/types";
 import { hasOutlet } from "@/lib/cafeAmenities";
@@ -26,12 +27,14 @@ import { nearestStationWalkMinutes } from "@/lib/lookupCafe";
 import AdBanner from "@/components/AdBanner";
 import type { CafeFact } from "@/lib/types";
 
-// 店舗情報。Googleマップの吹き出し(InfoWindow)から、下から出るシートに変えた。
+// 店舗情報。ピンに付く吹き出しの中身。
 //
-// 吹き出しは中身が増えると上へ伸びるので、「もっと報告する」を開いた瞬間に
-// 店名ごと画面の外へ出てしまっていた。吹き出し自身の余白も上の空白として
-// 見えていた。シートなら高さは画面の下半分で固定でき、店名は常に上に残り、
-// 中だけがスクロールする。Googleマップのアプリと同じ動きなので迷いにくい。
+// 一度シート(画面下から出る形)にしたが、「ピンに吹き出しが付くほうがよい」と
+// いう希望に戻した。ただし前に困った点は残さない:
+//   ・高さに上限を付け、中だけをスクロールさせる。吹き出しは中身が増えると
+//     上へ伸びるので、報告欄を開いた瞬間に店名ごと画面の外へ出ていた。
+//   ・店名は上に貼り付けて、中をスクロールしても消えないようにする。
+//   ・Google 既定のヘッダー(閉じるボタンの帯)を切って、上の空白をなくす。
 //
 // 中身は3つに分けている。混ざっていると何を信じてよいか分からなくなる。
 //   いまの様子 … 30分以内の報告(すぐ古くなる)
@@ -60,14 +63,14 @@ type Props = {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="px-4 py-3 border-t border-gray-200 first:border-t-0">
+    <section className="py-2.5 border-t border-gray-200 first:border-t-0">
       <h3 className="text-[11px] font-bold text-gray-500 tracking-wide mb-1.5">{title}</h3>
       {children}
     </section>
   );
 }
 
-export default function CafeSheet(props: Props) {
+export default function CafePopup(props: Props) {
   const { cafe, stats, facts } = props;
   const { lang, t } = useLang();
   const occLabel = lang === "en" ? OCCUPANCY_LABEL_EN : OCCUPANCY_LABEL;
@@ -111,11 +114,12 @@ export default function CafeSheet(props: Props) {
   };
 
   return (
-    <div className="absolute inset-x-0 bottom-0 z-30 bg-white rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.18)] max-h-[62vh] flex flex-col">
-      {/* 店名は固定。中がどれだけ伸びても、どの店を見ているかが消えない */}
-      <div className="shrink-0 px-4 pt-2.5 pb-2 border-b border-gray-200">
-        <div className="w-9 h-1 bg-gray-300 rounded-full mx-auto mb-2" />
-        <div className="flex items-start gap-2">
+    // 吹き出しの中身。高さの上限はここで決める。上限が無いと、報告欄を開いた
+    // 瞬間に吹き出しが上へ伸びて店名が画面の外へ出る
+    <div className="w-[268px] max-h-[52vh] flex flex-col text-gray-900">
+      {/* 店名は上に貼り付ける。中をスクロールしても、どの店を見ているかが消えない */}
+      <div className="shrink-0 pb-2 border-b border-gray-200">
+        <div className="flex items-start gap-1.5">
           <div className="min-w-0 flex-1">
             <h2 className="text-[15px] font-bold text-gray-900 leading-snug">{cafe.name}</h2>
             <p className="text-[12px] text-gray-600 mt-0.5">
@@ -126,20 +130,26 @@ export default function CafeSheet(props: Props) {
             </p>
           </div>
           <button
-            onClick={props.onToggleFavorite}
-            aria-label={props.isFavorite ? t("gmap.saved") : t("gmap.save")}
-            className="shrink-0 text-[20px] leading-none w-8 h-8 flex items-center justify-center"
-          >
-            {props.isFavorite ? "🔖" : "🏷"}
-          </button>
-          <button
             onClick={props.onClose}
             aria-label={t("gmap.close")}
-            className="shrink-0 text-[18px] leading-none w-8 h-8 flex items-center justify-center text-gray-500"
+            className="shrink-0 text-[16px] leading-none w-7 h-7 flex items-center justify-center text-gray-500"
           >
             ✕
           </button>
         </div>
+        {/* 保存は絵文字だけだと、押したのか押していないのか分からないと言われた。
+            枠と文字で状態を出し、押した後は色ごと変える */}
+        <button
+          onClick={props.onToggleFavorite}
+          aria-pressed={props.isFavorite}
+          className={`mt-1.5 w-full rounded-lg border py-1.5 text-[12px] font-bold ${
+            props.isFavorite
+              ? "bg-blue-600 border-blue-600 text-white"
+              : "bg-white border-gray-300 text-gray-800"
+          }`}
+        >
+          {props.isFavorite ? `🔖 ${t("gmap.saved")}` : `＋ ${t("gmap.save")}`}
+        </button>
       </div>
 
       <div className="overflow-y-auto overscroll-contain">
@@ -259,6 +269,14 @@ export default function CafeSheet(props: Props) {
             {!props.isUserAdded && (
               <Link
                 href={`/cafe/${cafe.id}`}
+                onClick={() => {
+                  // 詳細から戻るときに、見ていた地図へ帰れるようにする目印
+                  try {
+                    window.sessionStorage.setItem(FROM_MAP_KEY, "1");
+                  } catch {
+                    // 使えない設定なら、戻り先の判定は referrer に任せる
+                  }
+                }}
                 className="flex-1 min-w-[92px] text-center rounded-lg border border-gray-300 text-gray-800 text-[13px] font-semibold py-2"
               >
                 {t("gmap.detail")}
@@ -431,7 +449,7 @@ export default function CafeSheet(props: Props) {
           )}
         </Section>
 
-        <div className="px-4 pb-4">
+        <div className="pt-2">
           <AdBanner slot="cafe-popup" minHeight={56} />
         </div>
       </div>
