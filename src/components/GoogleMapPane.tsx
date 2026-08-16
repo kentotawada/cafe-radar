@@ -20,6 +20,7 @@ import {
   AdvancedMarkerAnchorPoint,
   InfoWindow,
   useAdvancedMarkerRef,
+  ControlPosition,
   useApiLoadingStatus,
   useMap,
 } from "@vis.gl/react-google-maps";
@@ -31,7 +32,7 @@ import { getCafeUsageStyle } from "@/lib/cafeUsageStyle";
 import { cupPinSvgMarkup } from "@/lib/cupPinIcon";
 import { MapBounds } from "@/lib/mapBounds";
 import { useLiveReports, statusColorForStats, OCCUPANCY_EMOJI } from "@/lib/useLiveReports";
-import { pickMajority } from "@/lib/cafeStats";
+import { pickMajority, isNonSmoking } from "@/lib/cafeStats";
 import {
   EMPTY_FILTERS,
   FILTER_LABELS,
@@ -345,6 +346,9 @@ function GoogleMapView() {
   const { lang, t } = useLang();
   const filterLabels = lang === "en" ? FILTER_LABELS_EN : FILTER_LABELS;
 
+  // 今選んでいる店のid。スクロール中の判定で使う。state を依存に入れると
+  // 判定の関数が作り直されて、スクロールの途中で取りこぼす
+  const selectedIdRef = useRef<string | null>(null);
   // 選んだピンの実体。吹き出しをこのピンに付ける
   const [selectedMarkerRef, selectedMarker] = useAdvancedMarkerRef();
   const [bounds, setBounds] = useState<MapBounds | null>(null);
@@ -377,6 +381,9 @@ function GoogleMapView() {
   });
 
   const watchIdRef = useRef<number | null>(null);
+  // 横カード列。真ん中のカードを拾うために実体を持つ
+  const stripRef = useRef<HTMLDivElement | null>(null);
+  const stripTimerRef = useRef<number>(0);
   // 自分で地図を動かしたか。動かした後に現在地へ勝手に飛ばされると見失う
   const hasMovedRef = useRef(false);
   // リストから店を選んだ直後だけ、並べ替えを止める。選ぶと地図が動き、
@@ -461,6 +468,7 @@ function GoogleMapView() {
 
   const focusCafe = useCallback(
     (cafe: Cafe) => {
+      selectedIdRef.current = cafe.id;
       setSelected(cafe);
       hasMovedRef.current = true;
       freezeListRef.current = true;
@@ -473,11 +481,34 @@ function GoogleMapView() {
       // 店名がヘッダーに重なる。地図を少し上へ送って、ピンを画面の
       // 下寄りに置き、上に吹き出しのぶんの余地を作る
       const el = map.getDiv();
-      const shift = Math.round((el?.clientHeight ?? 0) * 0.2);
+      const shift = Math.round((el?.clientHeight ?? 0) * 0.26);
       if (shift > 0) window.setTimeout(() => map.panBy(0, -shift), 0);
     },
     [map]
   );
+
+  // 指が止まってから、いちばん真ん中に近いカードの店を選ぶ
+  const handleStripScroll = useCallback(() => {
+    window.clearTimeout(stripTimerRef.current);
+    stripTimerRef.current = window.setTimeout(() => {
+      const el = stripRef.current;
+      if (!el) return;
+      const mid = el.scrollLeft + el.clientWidth / 2;
+      let bestId: string | null = null;
+      let bestGap = Infinity;
+      for (const child of Array.from(el.children)) {
+        const card = child as HTMLElement;
+        const gap = Math.abs(card.offsetLeft + card.offsetWidth / 2 - mid);
+        if (gap < bestGap) {
+          bestGap = gap;
+          bestId = card.dataset.cafeId ?? null;
+        }
+      }
+      if (!bestId) return;
+      const cafe = listed.find((c) => c.id === bestId);
+      if (cafe && cafe.id !== selectedIdRef.current) focusCafe(cafe);
+    }, 140);
+  }, [listed, focusCafe]);
 
   const handleToggleFavorite = useCallback((cafeId: string) => {
     setFavorites(toggleFavorite(cafeId));
@@ -671,8 +702,10 @@ function GoogleMapView() {
         gestureHandling="greedy"
         clickableIcons={false}
         zoomControl
-        // 拡大縮小は右の中ほどへ。既定の右下だと横カード列と重なる
-        zoomControlOptions={{ position: 7 /* RIGHT_CENTER */ }}
+        // 拡大縮小は右の中ほどへ。既定の右下だと横カード列と重なる。
+        // 数値を直に書いていたら 7(=RIGHT_TOP)で、右上の「お店を追加」の
+        // 裏に隠れて見つからなくなっていた
+        zoomControlOptions={{ position: ControlPosition.RIGHT_CENTER }}
         mapTypeControl={false}
         streetViewControl={false}
         fullscreenControl={false}
@@ -720,7 +753,10 @@ function GoogleMapView() {
             {selectedMarker && (
               <InfoWindow
                 anchor={selectedMarker}
-                onCloseClick={() => setSelected(null)}
+                onCloseClick={() => {
+                  selectedIdRef.current = null;
+                  setSelected(null);
+                }}
                 // Google 既定のヘッダー(閉じるボタンの帯)を切る。中身の上に
                 // 余白として乗り、「上の空白が気になる」と言われていた
                 headerDisabled
@@ -739,7 +775,10 @@ function GoogleMapView() {
                   factSubmitting={factSubmitting === selected.id}
                   reportError={reportError}
                   factError={factError}
-                  onClose={() => setSelected(null)}
+                  onClose={() => {
+                    selectedIdRef.current = null;
+                    setSelected(null);
+                  }}
                   onToggleFavorite={() => handleToggleFavorite(selected.id)}
                   onReportOccupancy={(lv) => submitOccupancy(selected.id, lv)}
                   onSubmitFact={(patch) => submitFact(selected.id, patch)}
@@ -778,7 +817,7 @@ function GoogleMapView() {
               if (e.key === "Enter") showAllMatches();
             }}
             placeholder={t("gmap.searchPlaceholder")}
-            className="w-full rounded-full shadow-lg border border-gray-300 bg-white px-4 py-2 text-[14px] text-gray-900 placeholder:text-gray-500"
+            className="w-full rounded-full shadow-lg border border-gray-300 bg-white px-3.5 py-1.5 text-[13px] text-gray-900 placeholder:text-gray-500"
           />
           {query !== "" && (
             <button
@@ -844,7 +883,7 @@ function GoogleMapView() {
               map.panTo({ lat: area.lat, lng: area.lng });
               map.setZoom(16);
             }}
-            className="rounded-full shadow px-3 py-1.5 text-[12px] bg-white text-gray-800 border border-gray-300 max-w-[128px]"
+            className="rounded-full shadow px-2.5 py-1 text-[11px] bg-white text-gray-800 border border-gray-300 max-w-[116px]"
           >
             <option value="">{t("gmap.area")}</option>
             {areas.map((a) => (
@@ -856,7 +895,7 @@ function GoogleMapView() {
 
           <button
             onClick={() => setFilterOpen((v) => !v)}
-            className={`rounded-full shadow px-3 py-1.5 text-[12px] font-semibold border ${
+            className={`rounded-full shadow px-2.5 py-1 text-[11px] font-semibold border ${
               activeCount > 0
                 ? "bg-blue-600 text-white border-blue-600"
                 : "bg-white text-gray-800 border-gray-300"
@@ -875,7 +914,7 @@ function GoogleMapView() {
               <button
                 key={key}
                 onClick={() => setFilters((prev) => ({ ...prev, [key]: !prev[key] }))}
-                className={`rounded-full px-2.5 py-1 text-[12px] font-semibold border ${
+                className={`rounded-full px-2 py-0.5 text-[11px] font-semibold border ${
                   filters[key]
                     ? "bg-blue-600 text-white border-blue-600"
                     : "bg-white text-gray-800 border-gray-300"
@@ -903,13 +942,28 @@ function GoogleMapView() {
             )}
           </div>
         )}
+
+        {/* この範囲で再検索。地図を動かした後だけ出す。上から順に操作する
+            並びなので、絞り込みのすぐ下に置く */}
+        {drifted && (
+          <button
+            onClick={() => {
+              freezeListRef.current = false;
+              setDrifted(false);
+              handleIdle();
+            }}
+            className="pointer-events-auto rounded-full bg-blue-600 text-white shadow-lg px-3.5 py-1.5 text-[11px] font-bold"
+          >
+            ↻ {t("gmap.researchHere")}
+          </button>
+        )}
       </div>
 
       {/* お店を追加。右上に小さく置く */}
       <div className="absolute right-2 top-[52px] z-20 flex flex-col items-end gap-1 max-w-[74%]">
         <button
           onClick={() => (addingCafe ? cancelAdding() : setAddingCafe(true))}
-          className={`rounded-full shadow px-3 py-1.5 text-[12px] font-semibold border ${
+          className={`rounded-full shadow px-2.5 py-1 text-[11px] font-semibold border ${
             addingCafe
               ? "bg-gray-800 text-white border-gray-800"
               : "bg-white text-gray-800 border-gray-300"
@@ -990,22 +1044,6 @@ function GoogleMapView() {
         )}
       </div>
 
-      {/* この範囲で再検索。地図を動かした後だけ出す。
-          自動でも取り直しているが、店を選んだ後は並びを止めているので、
-          その場で今の範囲に取り直せる口が要る */}
-      {drifted && !selected && (
-        <button
-          onClick={() => {
-            freezeListRef.current = false;
-            setDrifted(false);
-            handleIdle();
-          }}
-          className="absolute left-1/2 -translate-x-1/2 bottom-[196px] z-20 rounded-full bg-blue-600 text-white shadow-lg px-4 py-2 text-[12px] font-bold"
-        >
-          {t("gmap.researchHere")}
-        </button>
-      )}
-
       {/* 現在地。拡大縮小の下、横カード列の上に置いて重ならないようにする */}
       {!selected && (
         <button
@@ -1021,18 +1059,27 @@ function GoogleMapView() {
           吹き出しを開いている間は、覆う面積を減らすため横カード列と
           リストの中身を畳む(見出しの帯だけ残す) */}
       <div className="absolute inset-x-0 bottom-0 z-10">
-          {!selected && listed.length > 0 && (
-            <div className="overflow-x-auto flex gap-2 px-2 pb-2 snap-x snap-mandatory [scrollbar-width:none]">
+          {listed.length > 0 && (
+            <div
+              ref={stripRef}
+              onScroll={handleStripScroll}
+              className="overflow-x-auto flex gap-2 px-[calc(50%-93px)] pb-2 snap-x snap-mandatory [scrollbar-width:none]"
+            >
               {listed.slice(0, 20).map((cafe) => {
                 const stats = statsByCafe[cafe.id] ?? null;
                 const lv = stats ? pickMajority(stats.seatingOccupancyCounts) : null;
                 return (
                   <button
                     key={cafe.id}
+                    data-cafe-id={cafe.id}
                     onClick={() => focusCafe(cafe)}
-                    className="snap-center shrink-0 w-[186px] text-left rounded-xl border border-gray-200 bg-white shadow-lg px-2.5 py-2"
+                    className={`snap-center shrink-0 w-[186px] text-left rounded-xl border bg-white shadow-lg px-2.5 py-2 ${
+                      selected?.id === cafe.id
+                        ? "border-blue-600 ring-2 ring-blue-500"
+                        : "border-gray-200"
+                    }`}
                   >
-                    <span className="block text-[13px] font-bold text-gray-900 truncate">
+                    <span className="block text-[12px] font-bold text-gray-900 truncate">
                       {favorites.has(cafe.id) && "🔖 "}
                       {cafe.name}
                     </span>
@@ -1054,7 +1101,7 @@ function GoogleMapView() {
           <div className="bg-white border-t border-gray-200 shadow-[0_-2px_8px_rgba(0,0,0,0.10)]">
             <button
               onClick={() => setListOpen((v) => !v)}
-              className="w-full px-3 py-2 flex items-center justify-between text-[13px] font-bold text-gray-900"
+              className="w-full px-3 py-1.5 flex items-center justify-between text-[12px] font-bold text-gray-900"
             >
               <span>
                 {t("gmap.listInView")} {visible.length}
@@ -1073,34 +1120,44 @@ function GoogleMapView() {
                   const stats = statsByCafe[cafe.id] ?? null;
                   const lv = stats ? pickMajority(stats.seatingOccupancyCounts) : null;
                   return (
-                    <li key={cafe.id}>
+                    // このリストは店を選んでいない間しか出ないので、
+                    // 選択中の行を塗り分ける必要はない
+                    <li key={cafe.id} className="flex items-center border-b border-gray-100">
                       <button
                         onClick={() => focusCafe(cafe)}
-                        className="w-full text-left px-3 py-2 border-b border-gray-100 flex items-start justify-between gap-2"
+                        className="flex-1 min-w-0 text-left pl-3 py-1.5 flex items-center justify-between gap-2"
                       >
                         <span className="min-w-0">
-                          <span className="block text-[13px] font-bold text-gray-900 truncate">
-                            {favorites.has(cafe.id) && "🔖 "}
+                          <span className="block text-[12px] font-bold text-gray-900 truncate">
                             {cafe.name}
                           </span>
-                          <span className="flex flex-wrap gap-x-2 text-[11px] text-gray-700 mt-0.5">
+                          <span className="flex flex-wrap gap-x-1.5 text-[10px] text-gray-700">
                             {lv && <span>{OCCUPANCY_EMOJI[lv]}</span>}
-                            {hasOutlet(cafe, verifiedOutletIds) && (
-                              <span>🔌 {t("gmap.outlet")}</span>
-                            )}
-                            {cafe.wifiInfo && <span>📶 Wi-Fi</span>}
+                            {hasOutlet(cafe, verifiedOutletIds) && <span>🔌</span>}
+                            {cafe.wifiInfo && <span>📶</span>}
+                            {isNonSmoking(cafe) && <span>🚭</span>}
                           </span>
                         </span>
-                        <span className="text-[11px] text-blue-800 bg-blue-50 rounded-full px-2 py-0.5 shrink-0">
+                        <span className="text-[10px] text-blue-800 bg-blue-50 rounded-full px-1.5 py-0.5 shrink-0">
                           🚶 {nearestStationWalkMinutes(cafe.lat, cafe.lng)}
                           {lang === "en" ? "m" : "分"}
                         </span>
+                      </button>
+                      {/* 一覧から直接しおりを付けられるようにする。行を押すと
+                          店が選ばれてしまうので、ボタンは分けておく */}
+                      <button
+                        onClick={() => handleToggleFavorite(cafe.id)}
+                        aria-label={favorites.has(cafe.id) ? t("gmap.saved") : t("gmap.save")}
+                        aria-pressed={favorites.has(cafe.id)}
+                        className="shrink-0 w-9 h-9 flex items-center justify-center text-[15px]"
+                      >
+                        {favorites.has(cafe.id) ? "🔖" : "🏷"}
                       </button>
                     </li>
                   );
                 })}
                 {listed.length === 0 && (
-                  <li className="px-3 py-4 text-[13px] text-gray-600">
+                  <li className="px-3 py-4 text-[12px] text-gray-600">
                     {t("gmap.listEmpty")}
                   </li>
                 )}

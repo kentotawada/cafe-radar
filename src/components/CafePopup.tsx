@@ -63,8 +63,8 @@ type Props = {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="py-2 border-t border-gray-200 first:border-t-0">
-      <h3 className="text-[10px] font-bold text-gray-500 tracking-wide mb-1">{title}</h3>
+    <section className="py-1.5 border-t border-gray-200 first:border-t-0">
+      <h3 className="text-[9px] font-bold text-gray-500 tracking-wide mb-1">{title}</h3>
       {children}
     </section>
   );
@@ -116,13 +116,13 @@ export default function CafePopup(props: Props) {
   return (
     // 吹き出しの中身。高さの上限はここで決める。上限が無いと、報告欄を開いた
     // 瞬間に吹き出しが上へ伸びて店名が画面の外へ出る
-    <div className="w-[232px] max-h-[42vh] flex flex-col text-gray-900 text-[12px]">
+    <div className="w-[212px] max-h-[34vh] flex flex-col text-gray-900 text-[11px]">
       {/* 店名は上に貼り付ける。中をスクロールしても、どの店を見ているかが消えない */}
       <div className="shrink-0 pb-2 border-b border-gray-200">
         <div className="flex items-start gap-1.5">
           <div className="min-w-0 flex-1">
-            <h2 className="text-[13px] font-bold text-gray-900 leading-snug">{cafe.name}</h2>
-            <p className="text-[11px] text-gray-600 mt-0.5">
+            <h2 className="text-[12px] font-bold text-gray-900 leading-snug">{cafe.name}</h2>
+            <p className="text-[10px] text-gray-600 mt-0.5">
               {lang === "en" ? `🚶 ${walk} min from the station` : `🚶 駅から${walk}分`}
               {props.isUserAdded && (
                 <span className="ml-2 text-amber-700">{t("gmap.userAdded")}</span>
@@ -132,7 +132,7 @@ export default function CafePopup(props: Props) {
           <button
             onClick={props.onClose}
             aria-label={t("gmap.close")}
-            className="shrink-0 text-[16px] leading-none w-7 h-7 flex items-center justify-center text-gray-500"
+            className="shrink-0 text-[14px] leading-none w-6 h-6 flex items-center justify-center text-gray-500"
           >
             ✕
           </button>
@@ -142,7 +142,7 @@ export default function CafePopup(props: Props) {
         <button
           onClick={props.onToggleFavorite}
           aria-pressed={props.isFavorite}
-          className={`mt-1.5 w-full rounded-md border py-1 text-[11px] font-bold ${
+          className={`mt-1 w-full rounded border py-0.5 text-[10px] font-bold ${
             props.isFavorite
               ? "bg-blue-600 border-blue-600 text-white"
               : "bg-white border-gray-300 text-gray-800"
@@ -155,7 +155,7 @@ export default function CafePopup(props: Props) {
       <div className="overflow-y-auto overscroll-contain">
         {/* いまの様子。30分で消える情報なので、いちばん上に置く */}
         <Section title={t("gmap.nowLabel")}>
-          <div className="text-[13px] font-bold text-gray-900">
+          <div className="text-[12px] font-bold text-gray-900">
             {level ? (
               <>
                 {OCCUPANCY_EMOJI[level]} {occLabel[level]}
@@ -201,7 +201,7 @@ export default function CafePopup(props: Props) {
               {chips.map((c) => (
                 <span
                   key={c}
-                  className="text-[12px] text-gray-800 bg-gray-100 rounded-full px-2 py-0.5"
+                  className="text-[10px] text-gray-800 bg-gray-100 rounded-full px-1.5 py-0.5"
                 >
                   {c}
                 </span>
@@ -210,7 +210,7 @@ export default function CafePopup(props: Props) {
           ) : (
             <p className="text-[12px] text-gray-500">{t("gmap.noFacility")}</p>
           )}
-          <dl className="mt-1.5 text-[12px] text-gray-700 leading-relaxed">
+          <dl className="mt-1 text-[10px] text-gray-700 leading-snug">
             {cafe.outletInfo && <dd>🔌 {cafe.outletInfo}</dd>}
             {cafe.seatCountInfo && <dd>🪑 {cafe.seatCountInfo}</dd>}
             {cafe.hoursInfo && (
@@ -225,7 +225,7 @@ export default function CafePopup(props: Props) {
         {/* 行った人のメモ。利用者が書いた文章はここだけに集める */}
         {f.notes.length > 0 && (
           <Section title={t("gmap.visitorNote")}>
-            <ul className="text-[12px] text-gray-800 leading-relaxed list-disc pl-4">
+            <ul className="text-[10px] text-gray-800 leading-snug list-disc pl-3.5">
               {f.notes.slice(0, 3).map((n, i) => (
                 <li key={i}>{n}</li>
               ))}
@@ -289,14 +289,14 @@ export default function CafePopup(props: Props) {
         <Section title=" ">
           <button
             onClick={() => setReportOpen((v) => !v)}
-            className="w-full text-left text-[13px] font-semibold text-blue-700"
+            className="w-full text-left text-[11px] font-bold text-blue-700"
           >
             {reportOpen ? "▲" : "▼"} {t("gmap.openReport")}
           </button>
           {reportOpen && (
             <div className="mt-2 flex flex-col gap-2.5">
               <div>
-                <p className="text-[11px] text-gray-600 mb-1">{t("gmap.wifiSpeedLabel")}</p>
+                <p className="text-[10px] text-gray-600 mb-0.5">{t("gmap.wifiSpeedLabel")}</p>
                 <div className="flex gap-1.5">
                   {WIFI_SPEED_ORDER.map((sp: WifiSpeed) => (
                     <button
@@ -312,7 +312,7 @@ export default function CafePopup(props: Props) {
               </div>
 
               <div>
-                <p className="text-[11px] text-gray-600 mb-1">{t("gmap.callLabel")}</p>
+                <p className="text-[10px] text-gray-600 mb-0.5">{t("gmap.callLabel")}</p>
                 <div className="flex gap-1.5">
                   <button
                     disabled={props.factSubmitting}
@@ -332,7 +332,7 @@ export default function CafePopup(props: Props) {
               </div>
 
               <div className="flex flex-col gap-2">
-                <label className="text-[11px] text-gray-600">
+                <label className="text-[10px] text-gray-600">
                   {t("gmap.seatCountLabel")}
                   <span className="flex gap-1 mt-1">
                     <input
@@ -350,7 +350,7 @@ export default function CafePopup(props: Props) {
                     </button>
                   </span>
                 </label>
-                <label className="text-[11px] text-gray-600">
+                <label className="text-[10px] text-gray-600">
                   {t("gmap.outletSeatCountLabel")}
                   <span className="flex gap-1 mt-1">
                     <input
@@ -370,7 +370,7 @@ export default function CafePopup(props: Props) {
                 </label>
               </div>
 
-              <label className="text-[11px] text-gray-600">
+              <label className="text-[10px] text-gray-600">
                 {t("gmap.noteLabel")}
                 <span className="flex gap-1 mt-1">
                   <input
@@ -401,7 +401,7 @@ export default function CafePopup(props: Props) {
               </button>
 
               {/* 載っている情報が違うときの報告。五反田では閉店や席なしが続いた */}
-              <label className="text-[11px] text-gray-600">
+              <label className="text-[10px] text-gray-600">
                 {t("gmap.wrongInfo")}
                 {fixSent ? (
                   <span className="block mt-1 text-[12px] text-gray-700">
