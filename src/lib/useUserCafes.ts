@@ -17,6 +17,42 @@ import type { CafeFlag } from "@/lib/types";
 // 1人の勘違いや悪意で消えないように、人数で見る
 export const FLAG_HIDE_THRESHOLD = 3;
 
+// DBの列は snake_case、画面で使う Cafe 型は camelCase。読むときに揃える。
+// これをやらないと、利用者が入れた電源やWi-Fiの情報が地図に出てこない
+type CafeRow = {
+  id: string;
+  name: string;
+  address: string | null;
+  lat: number;
+  lng: number;
+  reporter_id?: string | null;
+  created_at?: string;
+  website?: string | null;
+  outlet_info?: string | null;
+  wifi_info?: string | null;
+  smoking_info?: string | null;
+  seat_count_info?: string | null;
+  hours_info?: string | null;
+};
+
+function toCafe(row: CafeRow): Cafe {
+  return {
+    id: row.id,
+    name: row.name,
+    address: row.address,
+    lat: row.lat,
+    lng: row.lng,
+    reporter_id: row.reporter_id,
+    created_at: row.created_at,
+    website: row.website ?? null,
+    outletInfo: row.outlet_info ?? null,
+    wifiInfo: row.wifi_info ?? null,
+    smokingInfo: row.smoking_info ?? null,
+    seatCountInfo: row.seat_count_info ?? null,
+    hoursInfo: row.hours_info ?? null,
+  };
+}
+
 export type UserCafesApi = {
   /** 通報が閾値に達したものを除いた、表示してよいユーザー追加店舗 */
   cafes: Cafe[];
@@ -30,6 +66,11 @@ export type UserCafesApi = {
     address: string;
     lat: number;
     lng: number;
+    website?: string;
+    // 追加した人がその場で分かることを書ける。空なら列に入れない
+    outletInfo?: string;
+    wifiInfo?: string;
+    smokingInfo?: string;
   }) => Promise<boolean>;
   flagCafe: (cafeId: string) => Promise<void>;
 };
@@ -53,7 +94,7 @@ export function useUserCafes(): UserCafesApi {
         client.from("cafe_flags").select("*"),
       ]);
       if (!alive) return;
-      setRows((cafeRows as Cafe[]) ?? []);
+      setRows(((cafeRows as CafeRow[]) ?? []).map(toCafe));
       const grouped: Record<string, CafeFlag[]> = {};
       for (const f of (flagRows as CafeFlag[]) ?? []) (grouped[f.cafe_id] ??= []).push(f);
       setFlagsByCafe(grouped);
@@ -73,7 +114,7 @@ export function useUserCafes(): UserCafesApi {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "cafes" },
-        (payload) => setRows((prev) => [payload.new as Cafe, ...prev])
+        (payload) => setRows((prev) => [toCafe(payload.new as CafeRow), ...prev])
       )
       .on(
         "postgres_changes",
@@ -104,7 +145,16 @@ export function useUserCafes(): UserCafesApi {
   const userCafeIds = useMemo(() => new Set(rows.map((c) => c.id)), [rows]);
 
   const addCafe = useCallback(
-    async (input: { name: string; address: string; lat: number; lng: number }) => {
+    async (input: {
+      name: string;
+      address: string;
+      lat: number;
+      lng: number;
+      website?: string;
+      outletInfo?: string;
+      wifiInfo?: string;
+      smokingInfo?: string;
+    }) => {
       if (!supabase) {
         setError("保存先が未設定です");
         return false;
@@ -116,6 +166,10 @@ export function useUserCafes(): UserCafesApi {
         address: input.address || null,
         lat: input.lat,
         lng: input.lng,
+        website: input.website || null,
+        outlet_info: input.outletInfo || null,
+        wifi_info: input.wifiInfo || null,
+        smoking_info: input.smokingInfo || null,
         reporter_id: reporterId,
       });
       setSubmitting(false);

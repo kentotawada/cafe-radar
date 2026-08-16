@@ -79,26 +79,30 @@ export function passesFilters(
 
 export type FilterLabel = { key: keyof CafeFilters; label: string; note?: string };
 
-// note は「利用者の報告が要る条件」の印。0件だったときに
-// 「該当が無い」のか「まだ誰も報告していない」のかを見分けられるようにする
+// 言葉は短く、その場で意味が分かるものにする。
+//
+// 実地で使ってもらったところ「電源席に空き」「静か」が何を指すのか
+// 分からないという指摘があった。どちらも「今この店にいる人の報告が
+// 無いと出てこない」条件で、そこが伝わっていなかった。
+// note に「いま」と付けて、リアルタイムの話だと分かるようにする。
+//
+// 「全席に電源」は店名からの推測でしかなく、使わないので消した。
 export const FILTER_LABELS_EN: FilterLabel[] = [
-  { key: "outlet", label: "🔌 Outlets" },
-  { key: "outletAllSeats", label: "🔌 All seats" },
+  { key: "outlet", label: "🔌 Power" },
   { key: "wifi", label: "📶 Wi-Fi" },
-  { key: "nonSmoking", label: "🚭 Non-smoking" },
+  { key: "nonSmoking", label: "🚭 No smoking" },
   { key: "smokingOk", label: "🚬 Smoking OK" },
-  { key: "outletFree", label: "⚡ Outlet free", note: "reported" },
-  { key: "quiet", label: "🔇 Quiet", note: "reported" },
-  { key: "favoritesOnly", label: "★ Favorites" },
+  { key: "outletFree", label: "⚡ Power seat open", note: "now" },
+  { key: "quiet", label: "🔇 Quiet now", note: "now" },
+  { key: "favoritesOnly", label: "🔖 Saved" },
 ];
 
 export const FILTER_LABELS: FilterLabel[] = [
-  { key: "outlet", label: "🔌 電源あり" },
-  { key: "outletAllSeats", label: "🔌 全席に電源" },
-  { key: "wifi", label: "📶 Wi-Fiあり" },
+  { key: "outlet", label: "🔌 電源" },
+  { key: "wifi", label: "📶 Wi-Fi" },
   { key: "nonSmoking", label: "🚭 禁煙" },
   { key: "smokingOk", label: "🚬 喫煙可" },
-  { key: "outletFree", label: "⚡ 電源席に空き", note: "報告" },
-  { key: "quiet", label: "🔇 静か", note: "報告" },
-  { key: "favoritesOnly", label: "★ お気に入り" },
+  { key: "outletFree", label: "⚡ 電源席が空いてる", note: "いま" },
+  { key: "quiet", label: "🔇 静か", note: "いま" },
+  { key: "favoritesOnly", label: "🔖 保存した店" },
 ];
