@@ -50,6 +50,8 @@ import { useVerifiedOutlets } from "@/lib/useVerifiedOutlets";
 import { useLang } from "@/lib/i18n";
 import { supabase } from "@/lib/supabaseClient";
 import CafePopup from "@/components/CafePopup";
+import BookmarkIcon from "@/components/BookmarkIcon";
+import { distanceMeters, formatDistance } from "@/lib/geoDistance";
 import type { CafeStats } from "@/lib/types";
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -118,11 +120,8 @@ function PinBody({
     >
       <div dangerouslySetInnerHTML={{ __html: pinHtml(cafe, statusColor, verifiedOutletIds) }} />
       {saved && (
-        <span
-          className="absolute -top-0.5 -right-0.5 text-[13px] leading-none"
-          style={{ textShadow: "0 0 2px #fff, 0 0 2px #fff" }}
-        >
-          🔖
+        <span className="absolute -top-1 -right-1 rounded-full bg-white p-[1px] shadow leading-none">
+          <BookmarkIcon filled size={12} />
         </span>
       )}
     </div>
@@ -384,6 +383,10 @@ function GoogleMapView() {
   // 横カード列。真ん中のカードを拾うために実体を持つ
   const stripRef = useRef<HTMLDivElement | null>(null);
   const stripTimerRef = useRef<number>(0);
+  // 下の帯(横カード列＋リスト)の実際の高さ。現在地ボタンをこの上に置く。
+  // 数値を決め打ちにすると、リストを開いた時に必ず重なる
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const [bottomHeight, setBottomHeight] = useState(150);
   // 自分で地図を動かしたか。動かした後に現在地へ勝手に飛ばされると見失う
   const hasMovedRef = useRef(false);
   // リストから店を選んだ直後だけ、並べ替えを止める。選ぶと地図が動き、
@@ -410,6 +413,16 @@ function GoogleMapView() {
   const verifiedOutletIds = useVerifiedOutlets();
 
   const allCafes = useMemo(() => [...seedCafes, ...userCafes], [userCafes]);
+
+  // 下の帯の高さを測る。開閉や件数で変わるので、変化を監視する
+  useEffect(() => {
+    const el = bottomRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => setBottomHeight(el.offsetHeight));
+    ro.observe(el);
+    setBottomHeight(el.offsetHeight);
+    return () => ro.disconnect();
+  }, []);
 
   // 指を動かしている間ずっと発火する onCameraChanged を使っていたら、スマホで
   // タブごと落ちた。操作が終わって地図が落ち着いた時(idle)だけ更新する
@@ -769,6 +782,7 @@ function GoogleMapView() {
                   stats={statsByCafe[selected.id] ?? null}
                   facts={factsByCafe[selected.id] ?? []}
                   isUserAdded={userCafeIds.has(selected.id)}
+                  userPosition={userPosition}
                   isFavorite={favorites.has(selected.id)}
                   isFlagged={flaggedByMe.has(selected.id)}
                   reportSubmitting={submitting === selected.id}
@@ -1049,7 +1063,8 @@ function GoogleMapView() {
         <button
           onClick={locate}
           aria-label={t("gmap.myLocation")}
-          className="absolute right-3 bottom-[188px] z-20 bg-white rounded-full shadow-lg border border-gray-300 w-11 h-11 flex items-center justify-center text-[18px]"
+          style={{ bottom: bottomHeight + 12 }}
+          className="absolute right-3 z-20 bg-white rounded-full shadow-lg border border-gray-300 w-10 h-10 flex items-center justify-center text-[17px]"
         >
           ◎
         </button>
@@ -1058,7 +1073,7 @@ function GoogleMapView() {
       {/* 横カード列と縦リスト。開いた時点で両方が画面に入るようにしている。
           吹き出しを開いている間は、覆う面積を減らすため横カード列と
           リストの中身を畳む(見出しの帯だけ残す) */}
-      <div className="absolute inset-x-0 bottom-0 z-10">
+      <div ref={bottomRef} className="absolute inset-x-0 bottom-0 z-10">
           {listed.length > 0 && (
             <div
               ref={stripRef}
@@ -1079,18 +1094,32 @@ function GoogleMapView() {
                         : "border-gray-200"
                     }`}
                   >
-                    <span className="block text-[12px] font-bold text-gray-900 truncate">
-                      {favorites.has(cafe.id) && "🔖 "}
-                      {cafe.name}
+                    <span className="flex items-center gap-1">
+                      {favorites.has(cafe.id) && (
+                        <span className="shrink-0 leading-none">
+                          <BookmarkIcon filled size={11} />
+                        </span>
+                      )}
+                      <span className="block text-[12px] font-bold text-gray-900 truncate">
+                        {cafe.name}
+                      </span>
                     </span>
-                    <span className="flex flex-wrap gap-x-2 text-[11px] text-gray-700 mt-0.5">
+                    <span className="flex gap-x-1.5 text-[10px] text-gray-700 mt-0.5 whitespace-nowrap">
                       {lv && <span>{OCCUPANCY_EMOJI[lv]}</span>}
                       {hasOutlet(cafe, verifiedOutletIds) && <span>🔌</span>}
                       {cafe.wifiInfo && <span>📶</span>}
-                      <span>
-                        🚶 {nearestStationWalkMinutes(cafe.lat, cafe.lng)}
-                        {lang === "en" ? "m" : "分"}
-                      </span>
+                      {userPosition ? (
+                        <span className="text-blue-800 font-semibold">
+                          {`📍 ${formatDistance(
+                            distanceMeters(userPosition, [cafe.lat, cafe.lng])
+                          )}`}
+                        </span>
+                      ) : (
+                        <span>
+                          🚶 {nearestStationWalkMinutes(cafe.lat, cafe.lng)}
+                          {lang === "en" ? "m" : "分"}
+                        </span>
+                      )}
                     </span>
                   </button>
                 );
@@ -1138,9 +1167,14 @@ function GoogleMapView() {
                             {isNonSmoking(cafe) && <span>🚭</span>}
                           </span>
                         </span>
-                        <span className="text-[10px] text-blue-800 bg-blue-50 rounded-full px-1.5 py-0.5 shrink-0">
-                          🚶 {nearestStationWalkMinutes(cafe.lat, cafe.lng)}
-                          {lang === "en" ? "m" : "分"}
+                        <span className="text-[10px] text-blue-800 bg-blue-50 rounded-full px-1.5 py-0.5 shrink-0 whitespace-nowrap">
+                          {userPosition
+                            ? `📍 ${formatDistance(
+                                distanceMeters(userPosition, [cafe.lat, cafe.lng])
+                              )}`
+                            : `🚶 ${nearestStationWalkMinutes(cafe.lat, cafe.lng)}${
+                                lang === "en" ? "m" : "分"
+                              }`}
                         </span>
                       </button>
                       {/* 一覧から直接しおりを付けられるようにする。行を押すと
@@ -1149,9 +1183,9 @@ function GoogleMapView() {
                         onClick={() => handleToggleFavorite(cafe.id)}
                         aria-label={favorites.has(cafe.id) ? t("gmap.saved") : t("gmap.save")}
                         aria-pressed={favorites.has(cafe.id)}
-                        className="shrink-0 w-9 h-9 flex items-center justify-center text-[15px]"
+                        className="shrink-0 w-9 h-9 flex items-center justify-center"
                       >
-                        {favorites.has(cafe.id) ? "🔖" : "🏷"}
+                        <BookmarkIcon filled={favorites.has(cafe.id)} size={16} />
                       </button>
                     </li>
                   );
