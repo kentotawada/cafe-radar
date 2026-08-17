@@ -51,6 +51,7 @@ import { supabase } from "@/lib/supabaseClient";
 import CafeCard from "@/components/CafeCard";
 import AdBanner from "@/components/AdBanner";
 import BookmarkIcon from "@/components/BookmarkIcon";
+import StarRating from "@/components/StarRating";
 import { distanceMeters, formatDistance } from "@/lib/geoDistance";
 import { useReporterProgress } from "@/lib/useReporterProgress";
 import { useCafeRatings } from "@/lib/useCafeRatings";
@@ -462,6 +463,9 @@ function GoogleMapView() {
   // 地図が動くと listed の中身が変わり、送っている途中で並びが差し替わって
   // 「選択が変わるときと変わらないときがある」状態になっていた
   const [frozenStrip, setFrozenStrip] = useState<Cafe[]>([]);
+  // 何件まで並べるか。端まで送ったら20件ずつ足す。最初から全部並べると、
+  // 都心では数百枚のカードを作ることになって重い
+  const [stripCount, setStripCount] = useState(20);
   // 並び順。地図にピンがたくさんあるとき、どれから見ればよいか決められる
   const [sortOrder, setSortOrder] = useState<"recommended" | "nearest" | "rating">(
     "recommended"
@@ -592,7 +596,7 @@ function GoogleMapView() {
     } else {
       sorted.sort((a, b) => near(a) - near(b));
     }
-    return sorted.slice(0, 60);
+    return sorted.slice(0, 200);
   }, [visible, sortCenter, sortOrder, userPosition, ratingFor]);
 
   // カードに並べる一覧。店を選んでいる間は、選び始めたときの並びのまま。
@@ -626,6 +630,11 @@ function GoogleMapView() {
 
   // 指が止まってから、いちばん真ん中に近いカードの店を選ぶ
   const handleStripScroll = useCallback(() => {
+    // 端に近づいたら次の20件を足す
+    const el0 = stripRef.current;
+    if (el0 && el0.scrollLeft + el0.clientWidth >= el0.scrollWidth - el0.clientWidth) {
+      setStripCount((n) => n + 20);
+    }
     window.clearTimeout(stripTimerRef.current);
     stripTimerRef.current = window.setTimeout(() => {
       const el = stripRef.current;
@@ -1024,6 +1033,9 @@ function GoogleMapView() {
             <button
               onClick={() => {
                 freezeListRef.current = false;
+                // 探し直したら、カードも先頭の20件からやり直す
+                setFrozenStrip([]);
+                setStripCount(20);
                 setDrifted(false);
                 handleIdle();
               }}
@@ -1165,7 +1177,7 @@ function GoogleMapView() {
               onScroll={handleStripScroll}
               className="overflow-x-auto flex gap-2 px-[calc(50%-43vw)] pb-2 snap-x snap-mandatory [scrollbar-width:none]"
             >
-              {strip.map((cafe) => {
+              {strip.slice(0, stripCount).map((cafe) => {
                 const stats = statsByCafe[cafe.id] ?? null;
                 const lv = stats ? pickMajority(stats.seatingOccupancyCounts) : null;
                   const isOpen = selected?.id === cafe.id;
@@ -1227,7 +1239,38 @@ function GoogleMapView() {
                               {cafe.name}
                             </span>
                           </span>
-                          <span className="flex gap-x-1.5 text-[11px] text-gray-700 mt-0.5 whitespace-nowrap">
+                          {/* 開いていないカードにも、距離・評価・設備まで出す。
+                              送っている途中に店名だけの状態が挟まると、
+                              一瞬中身が消えたように見えるため */}
+                          <span className="flex items-center gap-1.5 text-[11px] mt-0.5 whitespace-nowrap">
+                            {userPosition ? (
+                              <span className="text-blue-800 font-bold">
+                                {`📍 ${formatDistance(
+                                  distanceMeters(userPosition, [cafe.lat, cafe.lng])
+                                )}`}
+                                <span className="font-normal text-gray-700">
+                                  {`（${t("gmap.walkMin")}${Math.max(
+                                    1,
+                                    Math.ceil(
+                                      distanceMeters(userPosition, [cafe.lat, cafe.lng]) / 80
+                                    )
+                                  )}分）`}
+                                </span>
+                              </span>
+                            ) : (
+                              <span className="text-gray-600">
+                                🚶 {nearestStationWalkMinutes(cafe.lat, cafe.lng)}
+                                {lang === "en" ? "m" : "分"}
+                              </span>
+                            )}
+                            <StarRating value={ratingFor(cafe.id).average} size={11} />
+                            <span className="text-gray-600">
+                              {ratingFor(cafe.id).count > 0
+                                ? ratingFor(cafe.id).average!.toFixed(1)
+                                : "–"}
+                            </span>
+                          </span>
+                          <span className="flex gap-x-1 text-[11px] mt-0.5 whitespace-nowrap">
                             {lv && <span>{OCCUPANCY_EMOJI[lv]}</span>}
                             {hasOutlet(cafe, verifiedOutletIds) && (
                               <span className="bg-amber-100 text-amber-900 rounded px-1">🔌</span>
@@ -1235,16 +1278,9 @@ function GoogleMapView() {
                             {cafe.wifiInfo && (
                               <span className="bg-sky-100 text-sky-900 rounded px-1">📶</span>
                             )}
-                            {userPosition ? (
-                              <span className="text-blue-800 font-semibold">
-                                {`📍 ${formatDistance(
-                                  distanceMeters(userPosition, [cafe.lat, cafe.lng])
-                                )}`}
-                              </span>
-                            ) : (
-                              <span>
-                                🚶 {nearestStationWalkMinutes(cafe.lat, cafe.lng)}
-                                {lang === "en" ? "m" : "分"}
+                            {isNonSmoking(cafe) && (
+                              <span className="bg-emerald-100 text-emerald-900 rounded px-1">
+                                🚭
                               </span>
                             )}
                           </span>
@@ -1293,6 +1329,7 @@ function GoogleMapView() {
                 onClick={() => {
                   freezeListRef.current = false;
                   setFrozenStrip([]);
+                  setStripCount(20);
                   setSortOrder(key);
                 }}
                 className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold border whitespace-nowrap ${
