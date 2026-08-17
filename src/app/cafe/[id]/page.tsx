@@ -125,16 +125,23 @@ export default async function CafeDetailPage({ params }: PageProps) {
     ? liveStats.outletOccupancyCounts.full > liveStats.totalReporters / 2
     : false;
 
-  const infoRows = [
+  // 値が無い項目も行ごと残す。消してしまうと「その情報がまだ無い」ことにすら
+  // 気づけず、教えようという気も起きない
+  const infoRows: {
+    emoji: string;
+    label: string;
+    value: string | null | undefined;
+    href?: string | null;
+  }[] = [
     { emoji: "⏰", label: "営業時間", value: cafe.hoursInfo },
     { emoji: "📅", label: "定休日", value: cafe.closedDaysInfo },
     { emoji: "🔌", label: "電源", value: cafe.outletInfo },
     { emoji: "📶", label: "Wi-Fi", value: cafe.wifiInfo },
     { emoji: "🚬", label: "喫煙", value: cafe.smokingInfo },
     { emoji: "🪑", label: "席数", value: cafe.seatCountInfo },
-  ].filter((row): row is { emoji: string; label: string; value: string } =>
-    Boolean(row.value)
-  );
+    { emoji: "🎧", label: "WEB会議", value: cafe.webMeetingInfo },
+    { emoji: "🔗", label: "公式サイト", value: cafe.website, href: cafe.website },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -224,22 +231,33 @@ export default async function CafeDetailPage({ params }: PageProps) {
               </div>
             )}
 
-            {infoRows.length > 0 && (
-              <div className="flex flex-col divide-y divide-gray-100 border border-gray-100 rounded-lg overflow-hidden">
-                {infoRows.map((row) => (
-                  <div
-                    key={row.label}
-                    className="flex items-start gap-3 px-3 py-2 text-sm"
-                  >
-                    <span className="shrink-0">{row.emoji}</span>
-                    <span className="shrink-0 text-gray-400 w-16">
-                      {row.label}
-                    </span>
-                    <span className="text-gray-700">{row.value}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="flex flex-col divide-y divide-gray-100 border border-gray-100 rounded-lg overflow-hidden">
+              {infoRows.map((row) => (
+                <div
+                  key={row.label}
+                  className="flex items-start gap-3 px-3 py-2 text-sm"
+                >
+                  <span className="shrink-0">{row.emoji}</span>
+                  <span className="shrink-0 text-gray-500 w-20">{row.label}</span>
+                  {row.value ? (
+                    row.href ? (
+                      <a
+                        href={row.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-700 underline break-all"
+                      >
+                        {row.value}
+                      </a>
+                    ) : (
+                      <span className="text-gray-800">{row.value}</span>
+                    )
+                  ) : (
+                    <span className="text-gray-400">未確認</span>
+                  )}
+                </div>
+              ))}
+            </div>
 
             <div className="flex gap-2 mt-1">
               <a

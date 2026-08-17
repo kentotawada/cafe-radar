@@ -145,7 +145,7 @@ export default function CafeCard(props: Props) {
   const fieldLabel = "block text-[11px] font-bold text-gray-700 mb-1";
 
   return (
-    <div className="w-full max-h-[34vh] flex flex-col text-gray-900">
+    <div className="w-full max-h-[22vh] flex flex-col text-gray-900">
       {/* 見出し。店名と、評価・距離。食べログと同じで、まず点数と距離が目に入る */}
       <div className="shrink-0 pb-1.5 border-b-2 border-gray-200">
         <div className="flex items-center gap-1.5">
