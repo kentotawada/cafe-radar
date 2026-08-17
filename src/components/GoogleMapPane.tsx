@@ -426,7 +426,6 @@ function GoogleMapView() {
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
   const [heading, setHeading] = useState<number | null>(null);
   const [filters, setFilters] = useState<CafeFilters>(EMPTY_FILTERS);
-  const [filterOpen, setFilterOpen] = useState(false);
   const [favorites, setFavorites] = useState<Set<string>>(() =>
     typeof window === "undefined" ? new Set<string>() : getFavorites()
   );
@@ -1103,147 +1102,111 @@ function GoogleMapView() {
           取れず、店名が切れる・欄がはみ出す問題が最後まで残った)。
           縦リストの中身は、カードが広がっている間は畳んでおく */}
       <div ref={bottomRef} className="absolute inset-x-0 bottom-0 z-10">
-          {/* 選んだお店の情報。横スライドの中に入れるとカードの幅が変わり、
-              真ん中の判定が動いて選択が止まらなくなる。上に別で出す */}
-          {selected && (
-            <div className="mx-2 mb-1.5 rounded-xl border-2 border-blue-600 bg-white shadow-xl px-3 py-2">
-              <CafeCard
-                cafe={selected}
-                stats={statsByCafe[selected.id] ?? null}
-                facts={factsByCafe[selected.id] ?? []}
-                isUserAdded={userCafeIds.has(selected.id)}
-                userPosition={userPosition}
-                isFavorite={favorites.has(selected.id)}
-                isFlagged={flaggedByMe.has(selected.id)}
-                reportSubmitting={submitting === selected.id}
-                factSubmitting={factSubmitting === selected.id}
-                reportError={reportError}
-                factError={factError}
-                onClose={() => {
-                  selectedIdRef.current = null;
-                  setSelected(null);
-                }}
-                onToggleFavorite={() => handleToggleFavorite(selected.id)}
-                onReportOccupancy={async (lv) => {
-                  await submitOccupancy(selected.id, lv);
-                  reportedOk();
-                }}
-                onSubmitFact={async (patch) => {
-                  await submitFact(selected.id, patch);
-                  reportedOk();
-                }}
-                rating={ratingFor(selected.id)}
-                ratingSubmitting={ratingSubmitting === selected.id}
-                onRate={(score) => rate(selected.id, score)}
-                onFlag={() => flagCafe(selected.id)}
-                onSubmitCorrection={(m) => submitCorrection(selected.id, m)}
-              />
-            </div>
-          )}
-
+          {/* 横スライドは1本だけ。カードの幅は全部そろえ、選んだカードだけが
+              下へ伸びて店舗情報を出す。
+              幅を変えると、真ん中に来るカードが変わる → その店が選ばれる →
+              また幅が変わる、で選択が止まらなくなる。高さが変わるぶんには
+              真ん中の判定は動かない */}
           {listed.length > 0 && (
             <div
               ref={stripRef}
               onScroll={handleStripScroll}
-              className="overflow-x-auto flex gap-2 px-[calc(50%-75px)] pb-2 snap-x snap-mandatory [scrollbar-width:none]"
+              className="overflow-x-auto flex gap-2 px-[calc(50%-43vw)] pb-2 snap-x snap-mandatory [scrollbar-width:none]"
             >
               {listed.slice(0, 20).map((cafe) => {
                 const stats = statsByCafe[cafe.id] ?? null;
                 const lv = stats ? pickMajority(stats.seatingOccupancyCounts) : null;
-                  // カードの幅は選んでも変えない。
-                  //
-                  // 以前は選んだカードだけ広げていたが、幅が変わる → 真ん中に
-                  // 来るカードが変わる → その店が選ばれる → また幅が変わる、で
-                  // 選択が止まらなくなっていた。店舗情報は横スライドの中では
-                  // なく、その上に別に出す
+                  const isOpen = selected?.id === cafe.id;
                   return (
-                  <button
-                    key={cafe.id}
-                    data-cafe-id={cafe.id}
-                    onClick={() => focusCafe(cafe)}
-                    className={`snap-center shrink-0 w-[150px] text-left rounded-lg border bg-white shadow px-2 py-1 ${
-                      selected?.id === cafe.id
-                        ? "border-blue-600 ring-1 ring-blue-500"
-                        : "border-gray-200"
-                    }`}
-                  >
-                    <span className="flex items-center gap-1">
-                      {favorites.has(cafe.id) && (
-                        <span className="shrink-0 leading-none">
-                          <BookmarkIcon filled size={11} />
-                        </span>
-                      )}
-                      <span className="block text-[12px] font-bold text-gray-900 truncate">
-                        {cafe.name}
-                      </span>
-                    </span>
-                    <span className="flex gap-x-1.5 text-[10px] text-gray-700 mt-0.5 whitespace-nowrap">
-                      {lv && <span>{OCCUPANCY_EMOJI[lv]}</span>}
-                      {hasOutlet(cafe, verifiedOutletIds) && (
-                        <span className="bg-amber-100 text-amber-900 rounded px-1">🔌</span>
-                      )}
-                      {cafe.wifiInfo && (
-                        <span className="bg-sky-100 text-sky-900 rounded px-1">📶</span>
-                      )}
-                      {userPosition ? (
-                        <span className="text-blue-800 font-semibold">
-                          {`📍 ${formatDistance(
-                            distanceMeters(userPosition, [cafe.lat, cafe.lng])
-                          )}`}
-                        </span>
+                    <div
+                      key={cafe.id}
+                      data-cafe-id={cafe.id}
+                      className={`snap-center shrink-0 w-[86vw] rounded-xl border bg-white px-3 py-2 ${
+                        isOpen
+                          ? "border-2 border-blue-600 shadow-xl"
+                          : "border-gray-200 shadow"
+                      }`}
+                    >
+                      {isOpen ? (
+                        <CafeCard
+                          cafe={cafe}
+                          stats={stats}
+                          facts={factsByCafe[cafe.id] ?? []}
+                          isUserAdded={userCafeIds.has(cafe.id)}
+                          userPosition={userPosition}
+                          isFavorite={favorites.has(cafe.id)}
+                          isFlagged={flaggedByMe.has(cafe.id)}
+                          reportSubmitting={submitting === cafe.id}
+                          factSubmitting={factSubmitting === cafe.id}
+                          reportError={reportError}
+                          factError={factError}
+                          onClose={() => {
+                            selectedIdRef.current = null;
+                            setSelected(null);
+                          }}
+                          onToggleFavorite={() => handleToggleFavorite(cafe.id)}
+                          onReportOccupancy={async (lv2) => {
+                            await submitOccupancy(cafe.id, lv2);
+                            reportedOk();
+                          }}
+                          onSubmitFact={async (patch) => {
+                            await submitFact(cafe.id, patch);
+                            reportedOk();
+                          }}
+                          rating={ratingFor(cafe.id)}
+                          ratingSubmitting={ratingSubmitting === cafe.id}
+                          onRate={(score) => rate(cafe.id, score)}
+                          onFlag={() => flagCafe(cafe.id)}
+                          onSubmitCorrection={(m) => submitCorrection(cafe.id, m)}
+                        />
                       ) : (
-                        <span>
-                          🚶 {nearestStationWalkMinutes(cafe.lat, cafe.lng)}
-                          {lang === "en" ? "m" : "分"}
-                        </span>
+                        <button
+                          onClick={() => focusCafe(cafe)}
+                          className="w-full text-left"
+                        >
+                          <span className="flex items-center gap-1">
+                            {favorites.has(cafe.id) && (
+                              <span className="shrink-0 leading-none">
+                                <BookmarkIcon filled size={11} />
+                              </span>
+                            )}
+                            <span className="block text-[13px] font-bold text-gray-900 truncate">
+                              {cafe.name}
+                            </span>
+                          </span>
+                          <span className="flex gap-x-1.5 text-[11px] text-gray-700 mt-0.5 whitespace-nowrap">
+                            {lv && <span>{OCCUPANCY_EMOJI[lv]}</span>}
+                            {hasOutlet(cafe, verifiedOutletIds) && (
+                              <span className="bg-amber-100 text-amber-900 rounded px-1">🔌</span>
+                            )}
+                            {cafe.wifiInfo && (
+                              <span className="bg-sky-100 text-sky-900 rounded px-1">📶</span>
+                            )}
+                            {userPosition ? (
+                              <span className="text-blue-800 font-semibold">
+                                {`📍 ${formatDistance(
+                                  distanceMeters(userPosition, [cafe.lat, cafe.lng])
+                                )}`}
+                              </span>
+                            ) : (
+                              <span>
+                                🚶 {nearestStationWalkMinutes(cafe.lat, cafe.lng)}
+                                {lang === "en" ? "m" : "分"}
+                              </span>
+                            )}
+                          </span>
+                        </button>
                       )}
-                    </span>
-                  </button>
-                );
+                    </div>
+                  );
               })}
             </div>
           )}
 
           <div className="relative bg-white border-t border-gray-200 shadow-[0_-2px_8px_rgba(0,0,0,0.10)]">
-            {/* 絞り込みは下から上へ開く。地図の上に浮かせると地図が隠れる */}
-          {filterOpen && (
-            <div className="absolute left-0 right-0 bottom-full bg-white rounded-t-xl shadow-[0_-4px_16px_rgba(0,0,0,0.15)] border-t border-gray-200 p-2 flex flex-wrap gap-1.5">
-              {filterLabels.map(({ key, label, note }) => (
-                <button
-                  key={key}
-                  onClick={() => setFilters((prev) => ({ ...prev, [key]: !prev[key] }))}
-                  className={`rounded-full px-2 py-0.5 text-[11px] font-semibold border ${
-                    filters[key]
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "bg-white text-gray-800 border-gray-300"
-                  }`}
-                >
-                  {label}
-                  {note && (
-                    <span
-                      className={`ml-1 text-[10px] font-normal ${
-                        filters[key] ? "text-blue-100" : "text-gray-600"
-                      }`}
-                    >
-                      {note}
-                    </span>
-                  )}
-                </button>
-              ))}
-              {activeCount > 0 && (
-                <button
-                  onClick={() => setFilters(EMPTY_FILTERS)}
-                  className="rounded-full px-2.5 py-1 text-[12px] text-gray-700 underline"
-                >
-                  {t("gmap.clearFilters")}
-                </button>
-              )}
-            </div>
-          )}
-
             {/* エリアと絞り込みはリスト側に持たせる。探す条件を決める道具は、
                 探した結果(リスト)と同じ場所にあるほうが行き来しなくて済む */}
-            <div className="flex items-center gap-1.5 px-2 pt-1.5">
+            <div className="flex items-center gap-1.5 px-2 pt-1.5 overflow-x-auto [scrollbar-width:none]">
             <select
               value=""
               onChange={(e) => {
@@ -1263,17 +1226,39 @@ function GoogleMapView() {
                 </option>
               ))}
             </select>
-            <button
-              onClick={() => setFilterOpen((v) => !v)}
-              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold border ${
-                activeCount > 0
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white text-gray-800 border-gray-300"
-              }`}
-            >
-              {t("gmap.filter")}
-              {activeCount > 0 ? ` ${activeCount}` : ""} {filterOpen ? "▲" : "▼"}
-            </button>
+            {/* 絞り込みは畳まずに出しっぱなしにする。開いてからでないと
+                何で絞れるのか分からない状態だと、そもそも押されない。
+                横に溢れるぶんは横スクロールで見せる */}
+            {filterLabels.map(({ key, label, note }) => (
+              <button
+                key={key}
+                onClick={() => setFilters((prev) => ({ ...prev, [key]: !prev[key] }))}
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold border whitespace-nowrap ${
+                  filters[key]
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-gray-800 border-gray-300"
+                }`}
+              >
+                {label}
+                {note && (
+                  <span
+                    className={`ml-1 text-[10px] font-normal ${
+                      filters[key] ? "text-blue-100" : "text-gray-600"
+                    }`}
+                  >
+                    {note}
+                  </span>
+                )}
+              </button>
+            ))}
+            {activeCount > 0 && (
+              <button
+                onClick={() => setFilters(EMPTY_FILTERS)}
+                className="shrink-0 rounded-full px-2 py-0.5 text-[11px] text-gray-700 underline whitespace-nowrap"
+              >
+                {t("gmap.clearFilters")}
+              </button>
+            )}
             </div>
 
             <button
