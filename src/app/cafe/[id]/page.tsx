@@ -13,6 +13,7 @@ import FavoriteToggleButton from "@/components/FavoriteToggleButton";
 import ShareButtons from "@/components/ShareButtons";
 import AlternativeOptionsBlock from "@/components/AlternativeOptionsBlock";
 import BackToMapLink from "@/components/BackToMapLink";
+import CafeReviews from "@/components/CafeReviews";
 import AdBanner from "@/components/AdBanner";
 import Footer from "@/components/Footer";
 import {
@@ -276,6 +277,11 @@ export default async function CafeDetailPage({ params }: PageProps) {
             <ShareButtons title={`【${cafe.name}】電源・Wi-Fi・混雑状況 | カフェレーダー`} />
           </div>
         </div>
+
+        {/* 口コミと写真。設備の一覧のすぐ下に置く。決め手になるのは
+            「電源がある」よりも「実際どうだったか」なので、
+            代替案や広告より前に読ませる */}
+        <CafeReviews cafeId={cafe.id} />
 
         <AlternativeOptionsBlock
           areaName={area.replace("駅", "")}

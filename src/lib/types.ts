@@ -49,6 +49,19 @@ export type CafeFlag = {
   created_at: string;
 };
 
+// 行った人が自由に書ける口コミと、店内の写真。
+// 文章はすぐ公開、写真は管理画面で見てから公開する(023参照)
+export type CafeReview = {
+  id: string;
+  cafe_id: string;
+  reporter_id: string;
+  body: string | null;
+  photo_path: string | null;
+  photo_approved: boolean;
+  hidden: boolean;
+  created_at: string;
+};
+
 // 店舗情報(喫煙・電源・Wi-Fi等の編集部調べ情報)が実際と違うという指摘報告
 export type InfoCorrection = {
   id: string;

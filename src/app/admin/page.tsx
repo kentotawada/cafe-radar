@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import type { Session } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { seedCafes, type Cafe } from "@/lib/seedCafes";
@@ -11,10 +12,12 @@ import type {
   AdvertiserType,
   CafeFact,
   CafeFlag,
+  CafeReview,
   InfoCorrection,
   Inquiry,
   Report,
 } from "@/lib/types";
+import { PHOTO_BUCKET, photoUrl } from "@/lib/useCafeReviews";
 
 const FLAG_HIDE_THRESHOLD = 3;
 
@@ -28,6 +31,13 @@ type Row = {
 type OutletReportRow = {
   cafe: Cafe;
   notes: string[];
+};
+
+// 口コミ1件と、それに付いた通報の数。写真は承認するまで公開されない
+type ReviewRow = {
+  review: CafeReview;
+  cafeName: string;
+  reportCount: number;
 };
 
 type InfoCorrectionRow = {
@@ -247,6 +257,8 @@ export default function AdminPage() {
     null
   );
   const [busyCorrectionId, setBusyCorrectionId] = useState<string | null>(null);
+  const [reviews, setReviews] = useState<ReviewRow[] | null>(null);
+  const [busyReviewId, setBusyReviewId] = useState<string | null>(null);
   const [inquiries, setInquiries] = useState<Inquiry[] | null>(null);
   const [busyInquiryId, setBusyInquiryId] = useState<string | null>(null);
   const [advertisers, setAdvertisers] = useState<Advertiser[] | null>(null);
@@ -383,6 +395,97 @@ export default function AdminPage() {
       return;
     }
     loadOutletReports();
+  };
+
+  // 口コミと写真。写真は承認するまで表示されないので、ここで見て決める
+  const fetchReviews = async (): Promise<ReviewRow[] | null> => {
+    if (!supabase) return null;
+    const [reviewsRes, reportsRes, dynamicCafesRes] = await Promise.all([
+      supabase.from("cafe_reviews").select("*").order("created_at", { ascending: false }),
+      supabase.from("cafe_review_reports").select("review_id"),
+      supabase.from("cafes").select("*"),
+    ]);
+    if (reviewsRes.error || dynamicCafesRes.error) {
+      console.error(reviewsRes.error ?? dynamicCafesRes.error);
+      return null;
+    }
+    const allCafes: Cafe[] = [
+      ...seedCafes,
+      ...((dynamicCafesRes.data as Cafe[] | null) ?? []),
+    ];
+    const cafesById = new Map(allCafes.map((cafe) => [cafe.id, cafe]));
+    const reportCounts = new Map<string, number>();
+    for (const r of ((reportsRes.data as { review_id: string }[] | null) ?? [])) {
+      reportCounts.set(r.review_id, (reportCounts.get(r.review_id) ?? 0) + 1);
+    }
+    const rows = ((reviewsRes.data as CafeReview[] | null) ?? []).map((review) => ({
+      review,
+      cafeName: cafesById.get(review.cafe_id)?.name ?? "(店舗不明)",
+      reportCount: reportCounts.get(review.id) ?? 0,
+    }));
+    // 手を動かす必要があるものを上に。未承認の写真 → 通報あり → その他
+    const urgency = (row: ReviewRow) =>
+      row.review.photo_path && !row.review.photo_approved ? 0 : row.reportCount > 0 ? 1 : 2;
+    return rows.sort((a, b) => urgency(a) - urgency(b));
+  };
+
+  const loadReviews = async () => {
+    const computed = await fetchReviews();
+    if (computed !== null) setReviews(computed);
+  };
+
+  const approveReviewPhoto = async (id: string) => {
+    if (!supabase) return;
+    setBusyReviewId(id);
+    setActionError(null);
+    const { error } = await supabase
+      .from("cafe_reviews")
+      .update({ photo_approved: true })
+      .eq("id", id);
+    setBusyReviewId(null);
+    if (error) {
+      console.error(error);
+      setActionError("写真の公開に失敗しました");
+      return;
+    }
+    loadReviews();
+  };
+
+  const setReviewHidden = async (id: string, hidden: boolean) => {
+    if (!supabase) return;
+    setBusyReviewId(id);
+    setActionError(null);
+    const { error } = await supabase.from("cafe_reviews").update({ hidden }).eq("id", id);
+    setBusyReviewId(null);
+    if (error) {
+      console.error(error);
+      setActionError(hidden ? "非表示にできませんでした" : "再表示できませんでした");
+      return;
+    }
+    loadReviews();
+  };
+
+  // 投稿ごと消す。写真も置き場から消す。
+  // 先に写真を消すのは、行だけ消えて写真が残ると誰も辿れなくなるため
+  const deleteReview = async (row: ReviewRow) => {
+    if (!supabase) return;
+    if (!window.confirm("この投稿を完全に削除します。元に戻せません。よろしいですか？")) return;
+    setBusyReviewId(row.review.id);
+    setActionError(null);
+    if (row.review.photo_path) {
+      const { error: storageError } = await supabase.storage
+        .from(PHOTO_BUCKET)
+        .remove([row.review.photo_path]);
+      if (storageError) console.error(storageError);
+    }
+    const { error } = await supabase.from("cafe_reviews").delete().eq("id", row.review.id);
+    setBusyReviewId(null);
+    if (error) {
+      console.error(error);
+      setActionError("削除に失敗しました");
+      return;
+    }
+    loadReviews();
   };
 
   // 店舗情報(喫煙・電源・Wi-Fi等)が実際と違うという指摘報告の一覧
@@ -542,6 +645,9 @@ export default function AdminPage() {
     });
     fetchOutletReports().then((computed) => {
       if (computed !== null) setOutletReports(computed);
+    });
+    fetchReviews().then((computed) => {
+      if (computed !== null) setReviews(computed);
     });
     fetchInfoCorrections().then((computed) => {
       if (computed !== null) setInfoCorrections(computed);
@@ -734,6 +840,101 @@ export default function AdminPage() {
                     </div>
                   </li>
                 ))}
+              </ul>
+            )}
+          </section>
+        )}
+
+        {reviews !== null && (
+          <section className="mb-8">
+            <h2 className="font-semibold text-gray-900 mb-2">
+              口コミ・写真（{reviews.length}件）
+            </h2>
+            <p className="text-xs text-gray-600 mb-3">
+              文章はすぐ公開されます。写真は「写真を公開する」を押すまで、店舗ページには出ません。
+              手を動かす必要があるもの（未公開の写真・通報されたもの）を上に並べています。
+            </p>
+            {reviews.length === 0 ? (
+              <p className="text-sm text-gray-500">まだ投稿はありません</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {reviews.map((row) => {
+                  const url = row.review.photo_path ? photoUrl(row.review.photo_path) : null;
+                  const waiting = !!row.review.photo_path && !row.review.photo_approved;
+                  return (
+                    <li
+                      key={row.review.id}
+                      className={`bg-white border rounded-lg shadow-sm p-3 flex flex-col gap-2 ${
+                        waiting || row.reportCount > 0
+                          ? "border-amber-400"
+                          : "border-gray-300"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 text-xs text-gray-400 flex-wrap">
+                        <span>{formatDateTime(row.review.created_at)}</span>
+                        <span className="font-semibold text-gray-700">{row.cafeName}</span>
+                        {waiting && (
+                          <span className="bg-amber-100 text-amber-800 rounded-full px-2 py-0.5 font-semibold">
+                            写真が未公開
+                          </span>
+                        )}
+                        {row.reportCount > 0 && (
+                          <span className="bg-red-100 text-red-800 rounded-full px-2 py-0.5 font-semibold">
+                            通報 {row.reportCount}件
+                          </span>
+                        )}
+                        {row.review.hidden && (
+                          <span className="bg-gray-200 text-gray-700 rounded-full px-2 py-0.5 font-semibold">
+                            非表示中
+                          </span>
+                        )}
+                      </div>
+
+                      {row.review.body && (
+                        <div className="text-sm text-gray-800 whitespace-pre-wrap break-words">
+                          {row.review.body}
+                        </div>
+                      )}
+
+                      {url && (
+                        <Image
+                          src={url}
+                          alt="投稿された写真"
+                          width={480}
+                          height={360}
+                          unoptimized
+                          className="w-full max-w-xs h-auto rounded border border-gray-300"
+                        />
+                      )}
+
+                      <div className="flex flex-wrap gap-2">
+                        {waiting && (
+                          <button
+                            disabled={busyReviewId === row.review.id}
+                            onClick={() => approveReviewPhoto(row.review.id)}
+                            className="text-xs bg-green-50 text-green-800 border border-green-300 rounded px-2 py-1 hover:bg-green-100 disabled:opacity-50"
+                          >
+                            写真を公開する
+                          </button>
+                        )}
+                        <button
+                          disabled={busyReviewId === row.review.id}
+                          onClick={() => setReviewHidden(row.review.id, !row.review.hidden)}
+                          className="text-xs bg-gray-50 text-gray-800 border border-gray-300 rounded px-2 py-1 hover:bg-gray-100 disabled:opacity-50"
+                        >
+                          {row.review.hidden ? "再表示する" : "非表示にする"}
+                        </button>
+                        <button
+                          disabled={busyReviewId === row.review.id}
+                          onClick={() => deleteReview(row)}
+                          className="text-xs bg-red-50 text-red-800 border border-red-300 rounded px-2 py-1 hover:bg-red-100 disabled:opacity-50"
+                        >
+                          完全に削除
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </section>
