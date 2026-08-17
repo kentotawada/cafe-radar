@@ -229,8 +229,8 @@ export default function CafePopup(props: Props) {
               ⚡ {t("gmap.outletUnusable")}
             </p>
           )}
-          {chips.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
+          {chips.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-1.5">
               {chips.map((c) => (
                 <span
                   key={c.text}
@@ -240,9 +240,52 @@ export default function CafePopup(props: Props) {
                 </span>
               ))}
             </div>
-          ) : (
-            <p className="text-[12px] text-gray-500">{t("gmap.noFacility")}</p>
           )}
+
+          {/* 現地を歩いて要ると分かった4つ。値が無くても行を消さずに残す。
+              消してしまうと「情報が無い」ことにすら気づけず、埋める気も
+              起きない。空欄を押すと報告欄が開くので、その場で埋められる */}
+          <dl className="text-[10px] leading-tight">
+            {(
+              [
+                [
+                  "🔌",
+                  t("gmap.outletSeatCountLabel"),
+                  f.outletSeatCount != null ? `${f.outletSeatCount}${t("gmap.seats")}` : null,
+                ],
+                ["📍", t("gmap.noteLabel"), f.notes[0] ?? null],
+                ["📶", t("gmap.wifiSpeedLabel"), f.wifiSpeed ? wifiLabel[f.wifiSpeed] : null],
+                [
+                  "🎧",
+                  t("gmap.callLabel"),
+                  f.webMeetingOk == null
+                    ? null
+                    : f.webMeetingOk
+                      ? t("gmap.callYes")
+                      : t("gmap.callNo"),
+                ],
+              ] as [string, string, string | null][]
+            ).map(([icon, label, value]) => (
+              <div key={label} className="flex items-baseline gap-1 py-[3px] border-b border-gray-100 last:border-b-0">
+                <dt className="shrink-0 text-gray-500 whitespace-nowrap">
+                  {icon} {label}
+                </dt>
+                <dd className="ml-auto min-w-0 text-right">
+                  {value ? (
+                    <span className="font-bold text-gray-900">{value}</span>
+                  ) : (
+                    <button
+                      onClick={() => setReportOpen(true)}
+                      className="text-blue-700 font-semibold underline whitespace-nowrap"
+                    >
+                      {t("gmap.unknownFill")}
+                    </button>
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+
           <dl className="mt-1 text-[10px] text-gray-700 leading-snug">
             {cafe.outletInfo && <dd>🔌 {cafe.outletInfo}</dd>}
             {cafe.seatCountInfo && <dd>🪑 {cafe.seatCountInfo}</dd>}

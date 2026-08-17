@@ -253,10 +253,11 @@ function UserLocationMarker({
             style={{
               width: 0,
               height: 0,
-              borderLeft: "7px solid transparent",
-              borderRight: "7px solid transparent",
-              borderBottom: "14px solid rgba(37,99,235,.85)",
-              transform: `rotate(${heading}deg) translateY(-13px)`,
+              borderLeft: "6px solid transparent",
+              borderRight: "6px solid transparent",
+              borderBottom: "11px solid rgba(37,99,235,.95)",
+              // 点のすぐ外側に置く。離すと別のものに見える
+              transform: `rotate(${heading}deg) translateY(-9px)`,
               transformOrigin: "50% 100%",
             }}
           />
@@ -362,8 +363,11 @@ function GoogleMapView() {
   const [favorites, setFavorites] = useState<Set<string>>(() =>
     typeof window === "undefined" ? new Set<string>() : getFavorites()
   );
-  // リストは開いた時点から見えている。閉じていると気づかれなかった
-  const [listOpen, setListOpen] = useState(true);
+  // リストは畳んだ状態で始める。常に開いていると地図が狭くなり、吹き出しも
+  // 窮屈になる。見出しの帯と横カード列は出したままなので、リストがあること
+  // 自体は分かる(以前「気づかなかった」と言われたのはこの帯ごと画面の外に
+  // 出ていたためで、高さを dvh にして解消済み)
+  const [listOpen, setListOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [suggestOpen, setSuggestOpen] = useState(false);
   // 地図を動かしたか。動かした後だけ「この範囲で再検索」を出す
