@@ -459,6 +459,8 @@ function GoogleMapView() {
   const stripTimerRef = useRef<number>(0);
   // 横スライドの操作で選んだか。そうならカードを送り直さない
   const fromStripRef = useRef(false);
+  // 並び順を押したか。押した直後だけ、新しい先頭の店を開く
+  const sortChangedRef = useRef(false);
   // カードに並べる一覧。店を選んでいる間は入れ替えない。
   // 地図が動くと listed の中身が変わり、送っている途中で並びが差し替わって
   // 「選択が変わるときと変わらないときがある」状態になっていた
@@ -605,8 +607,12 @@ function GoogleMapView() {
 
   const focusCafe = useCallback(
     (cafe: Cafe, zoomIn = true) => {
-      // 選び始めたときの並びを取っておく。以降はこの並びを送る
-      if (!selectedIdRef.current) setFrozenStrip(listed);
+      // 選び始めたときの並びを取っておく。以降はこの並びを送る。
+      //
+      // 「選んでいなければ取る」ではなく「取っていなければ取る」で判定する。
+      // 並び替えたときは選択を残したまま並びだけ捨てるので、前者だと
+      // 取り直されず、送っている途中に地図の動きで並びが入れ替わってしまう
+      setFrozenStrip((prev) => (prev.length > 0 ? prev : listed));
       selectedIdRef.current = cafe.id;
       setSelected(cafe);
       hasMovedRef.current = true;
@@ -777,6 +783,22 @@ function GoogleMapView() {
     );
     el?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
   }, [selected]);
+
+  // 並び順を押した直後に、新しい先頭の店を開く。
+  //
+  // 選んでいた店は残るので、順番だけ変わるとその店は別の位置へ行き、
+  // 真ん中には開いていないカードが来る。押したのに情報が消えたように
+  // 見えるので、先頭へ戻して1軒目を開く
+  useEffect(() => {
+    if (!sortChangedRef.current) return;
+    sortChangedRef.current = false;
+    const first = listed[0];
+    if (!first) return;
+    stripRef.current?.scrollTo({ left: 0 });
+    // state の更新を effect の中で直に呼ばないよう、1拍ずらす
+    const timer = window.setTimeout(() => focusCafe(first, false), 0);
+    return () => window.clearTimeout(timer);
+  }, [listed, focusCafe]);
 
   // 検索語。空白で区切った語をすべて含むものを探す。
   // 「スターバックス 五反田」のように打つ人が多く、そのまま1語として
@@ -1330,6 +1352,12 @@ function GoogleMapView() {
                   freezeListRef.current = false;
                   setFrozenStrip([]);
                   setStripCount(20);
+                  // 並べ替えた直後に、新しい先頭の店を開く。
+                  //
+                  // 選んでいた店はそのまま残るので、順番だけ変わると
+                  // その店は別の位置へ行き、真ん中には開いていないカードが
+                  // 来る。押した直後に情報が消えたように見えていた
+                  sortChangedRef.current = true;
                   setSortOrder(key);
                 }}
                 className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold border whitespace-nowrap ${
