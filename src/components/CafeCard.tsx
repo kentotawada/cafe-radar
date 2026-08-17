@@ -138,6 +138,25 @@ export default function CafeCard(props: Props) {
     cafe.address ? `${cafe.name} ${cafe.address}` : cafe.name
   );
 
+  // 打たれたURLを整える。「https:// から打ってください」は求めすぎで、
+  // 実際には cafe-radar.com のように貼る人のほうが多い。頭が無ければ足す。
+  // 判定は「点を含む文字のかたまり」まで緩める。ここを厳しくしていたので、
+  // 送るボタンが灰色のままで押せなかった
+  const tidyUrl = (raw: string) => {
+    const s = raw.trim();
+    if (s === "") return null;
+    const withScheme = /^https?:\/\//i.test(s) ? s : `https://${s}`;
+    try {
+      const u = new URL(withScheme);
+      // 「.」が無いものはドメインになっていない(打ちかけ)
+      if (!u.hostname.includes(".")) return null;
+      return u.toString();
+    } catch {
+      return null;
+    }
+  };
+  const tidySite = tidyUrl(site);
+
   const submitSeats = () => {
     const n = Number(seats.trim());
     if (!seats.trim() || !Number.isInteger(n) || n <= 0) return;
@@ -476,13 +495,14 @@ export default function CafeCard(props: Props) {
                       value={site}
                       onChange={(e) => setSite(e.target.value)}
                       inputMode="url"
-                      placeholder="https://"
+                      placeholder={lang === "en" ? "e.g. starbucks.co.jp" : "例: starbucks.co.jp"}
                       className="w-full min-w-0 border border-gray-300 rounded px-2 py-1 bg-white text-gray-900"
                     />
                     <button
-                      disabled={props.factSubmitting || !/^https?:\/\/\S+$/.test(site.trim())}
+                      disabled={props.factSubmitting || tidySite == null}
                       onClick={() => {
-                        props.onSubmitFact({ website: site.trim() });
+                        if (tidySite == null) return;
+                        props.onSubmitFact({ website: tidySite });
                         setSite("");
                       }}
                       className="shrink-0 rounded border border-gray-300 bg-white px-3 text-[11px] text-gray-800 disabled:opacity-50"
