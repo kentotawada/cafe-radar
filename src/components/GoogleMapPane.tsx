@@ -1413,31 +1413,57 @@ function GoogleMapView() {
                         onClick={() => focusCafe(cafe)}
                         className="flex-1 min-w-0 text-left pl-3 py-1.5 flex items-center justify-between gap-2"
                       >
-                        <span className="min-w-0">
+                        {/* 横スライドのカードと同じ中身にする。片方だけ情報が
+                            薄いと、見る場所によって分かることが変わってしまう */}
+                        <span className="min-w-0 flex-1">
                           <span className="block text-[12px] font-bold text-gray-900 truncate">
                             {cafe.name}
                           </span>
-                          <span className="flex flex-wrap gap-x-1.5 text-[10px] text-gray-700">
+                          <span className="flex items-center gap-1.5 text-[10px] mt-0.5 whitespace-nowrap">
+                            {userPosition ? (
+                              <span className="text-blue-800 font-bold">
+                                📍{" "}
+                                {formatDistance(
+                                  distanceMeters(userPosition, [cafe.lat, cafe.lng])
+                                )}
+                                <span className="font-normal text-gray-700">
+                                  （{t("gmap.walkMin")}
+                                  {Math.max(
+                                    1,
+                                    Math.ceil(
+                                      distanceMeters(userPosition, [cafe.lat, cafe.lng]) / 80
+                                    )
+                                  )}
+                                  分）
+                                </span>
+                              </span>
+                            ) : (
+                              <span className="text-gray-600">
+                                🚶 {nearestStationWalkMinutes(cafe.lat, cafe.lng)}
+                                {lang === "en" ? "m" : "分"}
+                              </span>
+                            )}
+                            <StarRating value={ratingFor(cafe.id).average} size={10} />
+                            <span className="text-gray-600">
+                              {ratingFor(cafe.id).count > 0
+                                ? ratingFor(cafe.id).average!.toFixed(1)
+                                : "–"}
+                            </span>
+                          </span>
+                          <span className="flex gap-x-1 text-[10px] mt-0.5">
                             {lv && <span>{OCCUPANCY_EMOJI[lv]}</span>}
                             {hasOutlet(cafe, verifiedOutletIds) && (
-                        <span className="bg-amber-100 text-amber-900 rounded px-1">🔌</span>
-                      )}
+                              <span className="bg-amber-100 text-amber-900 rounded px-1">🔌</span>
+                            )}
                             {cafe.wifiInfo && (
-                        <span className="bg-sky-100 text-sky-900 rounded px-1">📶</span>
-                      )}
+                              <span className="bg-sky-100 text-sky-900 rounded px-1">📶</span>
+                            )}
                             {isNonSmoking(cafe) && (
-                        <span className="bg-emerald-100 text-emerald-900 rounded px-1">🚭</span>
-                      )}
+                              <span className="bg-emerald-100 text-emerald-900 rounded px-1">
+                                🚭
+                              </span>
+                            )}
                           </span>
-                        </span>
-                        <span className="text-[10px] text-blue-800 bg-blue-50 rounded-full px-1.5 py-0.5 shrink-0 whitespace-nowrap">
-                          {userPosition
-                            ? `📍 ${formatDistance(
-                                distanceMeters(userPosition, [cafe.lat, cafe.lng])
-                              )}`
-                            : `🚶 ${nearestStationWalkMinutes(cafe.lat, cafe.lng)}${
-                                lang === "en" ? "m" : "分"
-                              }`}
                         </span>
                       </button>
                       {/* 一覧から直接しおりを付けられるようにする。行を押すと
