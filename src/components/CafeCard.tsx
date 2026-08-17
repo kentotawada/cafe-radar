@@ -173,11 +173,32 @@ export default function CafeCard(props: Props) {
       {/* 見出し。店名と、評価・距離。食べログと同じで、まず点数と距離が目に入る */}
       <div className="shrink-0 pb-1.5 border-b-2 border-gray-200">
         <div className="flex items-center gap-1.5">
+          {/* 店名を押したら詳細ページへ。カードは高さが限られていて
+              口コミや写真までは載せられないので、いちばん押しやすい
+              ところから行けるようにする。
+              自分で追加した店には詳細ページが無いので、その時は文字のまま */}
           <h2
             className="min-w-0 flex-1 font-bold text-gray-900 leading-snug whitespace-nowrap overflow-hidden text-ellipsis"
             style={{ fontSize: nameSize }}
           >
-            {cafe.name}
+            {props.isUserAdded ? (
+              cafe.name
+            ) : (
+              <Link
+                href={`/cafe/${cafe.id}`}
+                onClick={() => {
+                  // 詳細から戻るときに、見ていた地図へ帰れるようにする目印
+                  try {
+                    window.sessionStorage.setItem(FROM_MAP_KEY, "1");
+                  } catch {
+                    // 使えない設定なら、戻り先の判定は referrer に任せる
+                  }
+                }}
+                className="block truncate underline decoration-gray-300 underline-offset-2"
+              >
+                {cafe.name}
+              </Link>
+            )}
           </h2>
           <button
             onClick={props.onToggleFavorite}

@@ -14,6 +14,7 @@ import ShareButtons from "@/components/ShareButtons";
 import AlternativeOptionsBlock from "@/components/AlternativeOptionsBlock";
 import BackToMapLink from "@/components/BackToMapLink";
 import CafeReviews from "@/components/CafeReviews";
+import CafeHours from "@/components/CafeHours";
 import AdBanner from "@/components/AdBanner";
 import Footer from "@/components/Footer";
 import {
@@ -231,6 +232,10 @@ export default async function CafeDetailPage({ params }: PageProps) {
                 まだ混雑度の報告がありません
               </div>
             )}
+
+            {/* 公表されている営業時間。編集部調べで埋まっている店はごく一部
+                なので、Googleから取って補う */}
+            <CafeHours cafeId={cafe.id} />
 
             <div className="flex flex-col divide-y divide-gray-100 border border-gray-100 rounded-lg overflow-hidden">
               {infoRows.map((row) => (
