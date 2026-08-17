@@ -46,6 +46,11 @@ body {
 html:has(.cf-shell),
 body:has(.cf-shell) {
   overscroll-behavior-y: none;
+  /* 横カード列を送ったときに、その勢いが画面そのものへ伝わって
+     画面ごと横に動いてしまうことがあった。地図の画面は横に動く必要が
+     まったく無いので、根元で止める */
+  overscroll-behavior-x: none;
+  overflow-x: hidden;
 }
 
 /* 地図の上に置くボタン。白地に薄いグレー枠だと、明るい地図タイルに

@@ -821,12 +821,17 @@ function GoogleMapView() {
   useEffect(() => {
     const id = pendingScrollRef.current;
     if (!id) return;
-    const el = stripRef.current?.querySelector<HTMLElement>(
-      `[data-cafe-id="${CSS.escape(id)}"]`
-    );
-    if (!el) return;
+    const box = stripRef.current;
+    const el = box?.querySelector<HTMLElement>(`[data-cafe-id="${CSS.escape(id)}"]`);
+    if (!box || !el) return;
     pendingScrollRef.current = null;
-    el.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+    // scrollIntoView は外側の入れ物や画面そのものまで動かしてしまう。
+    // 「たまに画面全体が横に流れる」のはこれが原因だった。
+    // カード列の中だけを動かすよう、位置を自分で出して送る
+    box.scrollTo({
+      left: el.offsetLeft - (box.clientWidth - el.offsetWidth) / 2,
+      behavior: "smooth",
+    });
   });
 
   // 並び順を押した直後に、新しい先頭の店を開く。
@@ -1242,7 +1247,10 @@ function GoogleMapView() {
             <div
               ref={stripRef}
               onScroll={handleStripScroll}
-              className="overflow-x-auto flex gap-2 px-[calc(50%-43vw)] pb-2 snap-x snap-mandatory [scrollbar-width:none]"
+              // overscroll-x-contain: 端まで送りきった勢いを画面へ渡さない。
+              // これが無いと、行き止まりで指を動かしたぶんが画面ごとの
+              // 横移動(iOSでは「前の画面へ戻る」)に化けることがある
+              className="overflow-x-auto overscroll-x-contain flex gap-2 px-[calc(50%-43vw)] pb-2 snap-x snap-mandatory [scrollbar-width:none]"
             >
               {strip.slice(0, stripCount).map((cafe) => {
                 const stats = statsByCafe[cafe.id] ?? null;
