@@ -462,6 +462,10 @@ function GoogleMapView() {
   // 地図が動くと listed の中身が変わり、送っている途中で並びが差し替わって
   // 「選択が変わるときと変わらないときがある」状態になっていた
   const [frozenStrip, setFrozenStrip] = useState<Cafe[]>([]);
+  // 並び順。地図にピンがたくさんあるとき、どれから見ればよいか決められる
+  const [sortOrder, setSortOrder] = useState<"recommended" | "nearest" | "rating">(
+    "recommended"
+  );
   // 下の帯(横カード列＋リスト)の実際の高さ。現在地ボタンをこの上に置く。
   // 数値を決め打ちにすると、リストを開いた時に必ず重なる
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -519,6 +523,27 @@ function GoogleMapView() {
     if (!freezeListRef.current) setSortCenter(next.getCenter());
   }, [map]);
 
+  // 開いた直後にピンが出ない件。
+  //
+  // 表示範囲(bounds)が決まるまでピンは1つも出さない作りにしてある。その範囲は
+  // 地図が落ち着いた合図(idle)で読むが、最初の idle は React が地図の実体を
+  // 受け取るより先に飛ぶことがある。その回は map がまだ null で素通りし、
+  // 次の idle は指で動かすまで来ない。だから「何か触るまでピンが出ない」。
+  //
+  // 地図の実体を受け取った時点で自分から読みに行き、あわせて idle も直接
+  // 拾っておく。二重に拾っても、同じ範囲なら setBounds は何もしない
+  useEffect(() => {
+    if (!map) return;
+    // 地図の実体を受け取った直後はまだ範囲が定まっていないことがあるので、
+    // 1度きりの遅らせた読み取りで拾う
+    const timer = window.setTimeout(handleIdle, 0);
+    const listener = map.addListener("idle", handleIdle);
+    return () => {
+      window.clearTimeout(timer);
+      listener.remove();
+    };
+  }, [map, handleIdle]);
+
   const visible = useMemo(() => {
     if (!bounds) return [];
     const padded = bounds.pad(0.15);
@@ -551,15 +576,24 @@ function GoogleMapView() {
 
   const listed = useMemo(() => {
     if (!sortCenter) return [];
-    const [cLat, cLng] = sortCenter;
-    return [...visible]
-      .sort(
-        (a, b) =>
-          (a.lat - cLat) ** 2 + (a.lng - cLng) ** 2 -
-          ((b.lat - cLat) ** 2 + (b.lng - cLng) ** 2)
-      )
-      .slice(0, 60);
-  }, [visible, sortCenter]);
+    // 基準の点。「近い順」は現在地から、それ以外は地図の中心から測る
+    const [cLat, cLng] =
+      sortOrder === "nearest" && userPosition ? userPosition : sortCenter;
+    const near = (c: Cafe) => (c.lat - cLat) ** 2 + (c.lng - cLng) ** 2;
+    const sorted = [...visible];
+    if (sortOrder === "rating") {
+      // 評価順。まだ誰も付けていない店は下へ。同点なら近いほうを先に
+      sorted.sort((a, b) => {
+        const ra = ratingFor(a.id).average ?? -1;
+        const rb = ratingFor(b.id).average ?? -1;
+        if (ra !== rb) return rb - ra;
+        return near(a) - near(b);
+      });
+    } else {
+      sorted.sort((a, b) => near(a) - near(b));
+    }
+    return sorted.slice(0, 60);
+  }, [visible, sortCenter, sortOrder, userPosition, ratingFor]);
 
   // カードに並べる一覧。店を選んでいる間は、選び始めたときの並びのまま。
   // 送っている途中で並びが差し替わると、真ん中の判定が別の店を指してしまう
@@ -978,8 +1012,8 @@ function GoogleMapView() {
           </div>
           {/* 言語・ピンの説明・「i」は検索欄と同じ行の右に並べる。
               「i」の中に入れると辿り着けないので、どれも外に出しておく */}
-          <LangButton />
           <LegendButton />
+          <LangButton />
           <AboutButton />
         </div>
 
@@ -993,9 +1027,10 @@ function GoogleMapView() {
                 setDrifted(false);
                 handleIdle();
               }}
-              className="rounded-full bg-blue-600 text-white shadow-lg px-3 py-1 text-[11px] font-bold whitespace-nowrap"
+              className="rounded-full bg-white text-gray-900 border border-gray-300 shadow-[0_2px_8px_rgba(0,0,0,0.2)] px-4 py-1.5 text-[12px] font-bold whitespace-nowrap flex items-center gap-1"
             >
-              ↻ {t("gmap.researchHere")}
+              <span className="text-blue-700">↻</span>
+              {t("gmap.researchHere")}
             </button>
           </div>
         )}
@@ -1130,7 +1165,7 @@ function GoogleMapView() {
               onScroll={handleStripScroll}
               className="overflow-x-auto flex gap-2 px-[calc(50%-43vw)] pb-2 snap-x snap-mandatory [scrollbar-width:none]"
             >
-              {strip.slice(0, 20).map((cafe) => {
+              {strip.map((cafe) => {
                 const stats = statsByCafe[cafe.id] ?? null;
                 const lv = stats ? pickMajority(stats.seatingOccupancyCounts) : null;
                   const isOpen = selected?.id === cafe.id;
@@ -1244,6 +1279,32 @@ function GoogleMapView() {
                 </option>
               ))}
             </select>
+            {/* 並び順。地図にピンがたくさんあるとき、どれから見ればよいか
+                決められるようにする */}
+            {(
+              [
+                ["recommended", t("gmap.sortRecommended")],
+                ["nearest", t("gmap.sortNearest")],
+                ["rating", t("gmap.sortRating")],
+              ] as const
+            ).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => {
+                  freezeListRef.current = false;
+                  setFrozenStrip([]);
+                  setSortOrder(key);
+                }}
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold border whitespace-nowrap ${
+                  sortOrder === key
+                    ? "bg-gray-900 text-white border-gray-900"
+                    : "bg-white text-gray-800 border-gray-300"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+
             {/* 絞り込みは畳まずに出しっぱなしにする。開いてからでないと
                 何で絞れるのか分からない状態だと、そもそも押されない。
                 横に溢れるぶんは横スクロールで見せる */}

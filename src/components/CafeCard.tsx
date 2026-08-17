@@ -117,11 +117,17 @@ export default function CafeCard(props: Props) {
   // 「どの五反田店か」が分からなくなる
   const nameSize =
     cafe.name.length <= 14 ? 12 : cafe.name.length <= 19 ? 11 : cafe.name.length <= 25 ? 10 : 9;
-  // 直線距離。実際に歩く距離より短く出るので「約」を付けて出す
-  const here =
+  // 現在地からの直線距離と、そこから出した徒歩の分数。
+  //
+  // 直線距離は実際に歩く道のりより短く出るので、分数も目安として扱う
+  // (分速80mは不動産の表示に合わせた慣習値)。
+  // 駅からの分数は、現在地が分かっているときは出さない。歩いて探している人が
+  // 知りたいのは「ここから何分か」であって、駅からの距離ではない
+  const hereMeters =
     props.userPosition == null
       ? null
-      : formatDistance(distanceMeters(props.userPosition, [cafe.lat, cafe.lng]));
+      : distanceMeters(props.userPosition, [cafe.lat, cafe.lng]);
+  const hereWalk = hereMeters == null ? null : Math.max(1, Math.ceil(hereMeters / 80));
 
   // 設備は短い札を並べる。文章のままだと読む気にならないと言われたので、
   // 「電源」「Wi-Fi」のように単語で出し、詳しい説明は開いた人だけが見る
@@ -177,10 +183,20 @@ export default function CafeCard(props: Props) {
             {/* 現在地からの距離を先頭に太字で。歩いて探しているときに
                 いちばん先に知りたいのはここ。次に駅からの分数、評価 */}
             <p className="flex items-center gap-1.5 text-[11px] mt-0.5 whitespace-nowrap">
-              {here != null && <span className="text-blue-800 font-bold">📍 {here}</span>}
-              <span className="text-gray-600">
-                {lang === "en" ? `🚶 ${walk}m` : `🚶 駅${walk}分`}
-              </span>
+              {hereMeters != null ? (
+                <span className="text-blue-800 font-bold">
+                  📍 {formatDistance(hereMeters)}
+                  <span className="font-normal text-gray-700">
+                    {lang === "en"
+                      ? ` (${hereWalk} min ${t("gmap.walkMin")})`
+                      : `（${t("gmap.walkMin")}${hereWalk}分）`}
+                  </span>
+                </span>
+              ) : (
+                <span className="text-gray-600">
+                  {lang === "en" ? `🚶 ${walk} min` : `🚶 駅から${walk}分`}
+                </span>
+              )}
               <StarRating value={props.rating.average} size={12} />
               <span className="text-gray-600">
                 {props.rating.count > 0
