@@ -458,9 +458,6 @@ function GoogleMapView() {
   const stripTimerRef = useRef<number>(0);
   // 横スライドの操作で選んだか。そうならカードを送り直さない
   const fromStripRef = useRef(false);
-  // 送っている最中か。畳むために state でも持つ(refだけだと描画に反映されない)
-  const scrollingRef = useRef(false);
-  const [stripScrolling, setStripScrolling] = useState(false);
   // カードに並べる一覧。店を選んでいる間は入れ替えない。
   // 地図が動くと listed の中身が変わり、送っている途中で並びが差し替わって
   // 「選択が変わるときと変わらないときがある」状態になっていた
@@ -595,16 +592,8 @@ function GoogleMapView() {
 
   // 指が止まってから、いちばん真ん中に近いカードの店を選ぶ
   const handleStripScroll = useCallback(() => {
-    // 送っている間はカードを畳む。畳まないと、指を離すまで前の店の情報が
-    // 出たままになり、別の店を見ているのに違う店の中身が見えてしまう
-    if (!scrollingRef.current) {
-      scrollingRef.current = true;
-      setStripScrolling(true);
-    }
     window.clearTimeout(stripTimerRef.current);
     stripTimerRef.current = window.setTimeout(() => {
-      scrollingRef.current = false;
-      setStripScrolling(false);
       const el = stripRef.current;
       if (!el) return;
       const mid = el.scrollLeft + el.clientWidth / 2;
@@ -627,7 +616,7 @@ function GoogleMapView() {
         fromStripRef.current = true;
         focusCafe(cafe, false);
       }
-    }, 140);
+    }, 80);
   }, [strip, focusCafe]);
 
   const handleToggleFavorite = useCallback((cafeId: string) => {
@@ -850,7 +839,7 @@ function GoogleMapView() {
         defaultZoom={16}
         gestureHandling="greedy"
         clickableIcons={false}
-        zoomControl
+        zoomControl={false}
         // 拡大縮小は右の中ほどへ。既定の右下だと横カード列と重なる。
         // 数値を直に書いていたら 7(=RIGHT_TOP)で、右上の「お店を追加」の
         // 裏に隠れて見つからなくなっていた
@@ -987,18 +976,17 @@ function GoogleMapView() {
             </div>
           )}
           </div>
-          {/* 「i」は検索欄の右。困ったときに目に入る場所に置く */}
+          {/* 言語・ピンの説明・「i」は検索欄と同じ行の右に並べる。
+              「i」の中に入れると辿り着けないので、どれも外に出しておく */}
+          <LangButton />
+          <LegendButton />
           <AboutButton />
         </div>
 
-
-        {/* 言語・ピンの説明・再検索。「i」の中に入れると辿り着けないので外に出す。
-            行ごと中央に置いて、地図の左右どちらにも寄らないようにする */}
-        <div className="w-full flex gap-1.5 items-center justify-center pointer-events-auto relative">
-          <LangButton />
-          <LegendButton />
-          {/* この範囲で再検索。地図を動かした後だけ出す */}
-          {drifted && (
+        {/* この範囲で再検索。地図を動かした後だけ出す。行ごと中央に置いて、
+            地図の左右どちらにも寄らないようにする */}
+        {drifted && (
+          <div className="w-full flex justify-center pointer-events-auto">
             <button
               onClick={() => {
                 freezeListRef.current = false;
@@ -1009,8 +997,8 @@ function GoogleMapView() {
             >
               ↻ {t("gmap.researchHere")}
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
 
           {/* 送信の手応え。押した場所の近くではなく画面の中ほどに出す。
@@ -1025,8 +1013,12 @@ function GoogleMapView() {
 
       </div>
 
-      {/* お店を追加。右上に小さく置く */}
-      <div className="absolute right-2 top-[52px] z-20 flex flex-col items-end gap-1 max-w-[74%]">
+      {/* お店を追加。横スライドの左上に置く。地図の上には検索と
+          言語・ピンの説明・iだけを残して、地図を広く見せる */}
+      <div
+        style={{ bottom: bottomHeight + 8 }}
+        className="absolute left-2 z-20 flex flex-col items-start gap-1 max-w-[74%]"
+      >
         <button
           onClick={() => (addingCafe ? cancelAdding() : setAddingCafe(true))}
           className={`rounded-full shadow px-2.5 py-1 text-[11px] font-semibold border ${
@@ -1116,7 +1108,7 @@ function GoogleMapView() {
           onClick={locate}
           aria-label={t("gmap.myLocation")}
           style={{ bottom: bottomHeight + 12 }}
-          className="absolute right-3 z-20 bg-white rounded-full shadow-lg border border-gray-300 w-10 h-10 flex items-center justify-center text-[17px]"
+          className="absolute right-3 z-20 bg-white rounded-full shadow-lg border border-gray-300 w-8 h-8 flex items-center justify-center text-[14px]"
         >
           ◎
         </button>
@@ -1141,9 +1133,7 @@ function GoogleMapView() {
               {strip.slice(0, 20).map((cafe) => {
                 const stats = statsByCafe[cafe.id] ?? null;
                 const lv = stats ? pickMajority(stats.seatingOccupancyCounts) : null;
-                  // 送っている間は畳む。畳まないと、指を離すまで前の店の
-                  // 情報が出たままになる
-                  const isOpen = selected?.id === cafe.id && !stripScrolling;
+                  const isOpen = selected?.id === cafe.id;
                   return (
                     <div
                       key={cafe.id}
