@@ -45,6 +45,8 @@ export type CafeFactSummary = {
   outletUnusable: boolean;
   /** みんなが書いた電源席の場所 */
   notes: string[];
+  /** 教えてもらった公式サイト。いちばん新しいものを採る */
+  website: string | null;
   reporters: number;
 };
 
@@ -80,6 +82,8 @@ export function summarise(facts: CafeFact[]): CafeFactSummary {
     })(),
     outletUnusable: pickMajorityFromList(usable) === "ng",
     notes: rows.map((f) => f.note).filter((n): n is string => !!n && n.trim() !== ""),
+    // URLは多数決になじまない(正しいものは1つ)。新しい報告を採る
+    website: rows.map((f) => f.website).find((w): w is string => !!w && w.trim() !== "") ?? null,
     reporters: rows.length,
   };
 }

@@ -35,6 +35,9 @@ export type CafeFact = {
   // 「電源はあるはずだが実際には使えなかった」を記録する。公表情報からは
   // 絶対に取れない、現地でしか分からない情報(テープで塞がれている等)
   outlet_usable: boolean | null;
+  // 公式サイト。編集部調べで入れているのはチェーン18社だけなので、
+  // 個人店は行った人に教えてもらう
+  website: string | null;
   created_at: string;
 };
 

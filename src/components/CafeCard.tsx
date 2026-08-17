@@ -110,6 +110,7 @@ export default function CafeCard(props: Props) {
   const [sendOpen, setSendOpen] = useState(false);
   const [seats, setSeats] = useState("");
   const [note, setNote] = useState("");
+  const [site, setSite] = useState("");
   const [fix, setFix] = useState("");
   const [fixSent, setFixSent] = useState(false);
   const [fixError, setFixError] = useState(false);
@@ -128,6 +129,10 @@ export default function CafeCard(props: Props) {
       ? null
       : distanceMeters(props.userPosition, [cafe.lat, cafe.lng]);
   const hereWalk = hereMeters == null ? null : Math.max(1, Math.ceil(hereMeters / 80));
+
+  // 公式サイト。編集部調べで入れているのはチェーンだけなので、無ければ
+  // 行った人が教えてくれたものを使う
+  const website = cafe.website ?? f.website ?? null;
 
   const mapsQuery = encodeURIComponent(
     cafe.address ? `${cafe.name} ${cafe.address}` : cafe.name
@@ -274,6 +279,11 @@ export default function CafeCard(props: Props) {
               }
               empty={t("gmap.notYet")}
             />
+            <InfoRow
+              label={t("gmap.official")}
+              value={website}
+              empty={t("gmap.notYet")}
+            />
           </dl>
           {f.outletUnusable && (
             <p className="text-[11px] font-bold text-red-800 bg-red-50 border border-red-200 rounded px-2 py-1 mt-1">
@@ -295,9 +305,9 @@ export default function CafeCard(props: Props) {
           >
             {t("gmap.route")}
           </a>
-          {cafe.website ? (
+          {website ? (
             <a
-              href={cafe.website}
+              href={website}
               target="_blank"
               rel="noreferrer noopener"
               className="flex-1 min-w-0 text-center rounded-md border border-gray-300 text-gray-800 text-[11px] font-bold py-1.5 whitespace-nowrap"
@@ -454,6 +464,34 @@ export default function CafeCard(props: Props) {
                   </button>
                 </div>
               </div>
+
+              {/* 公式サイト。編集部調べで入っているのはチェーンだけなので、
+                  個人店は行った人に教えてもらう。レシートや店内の掲示で
+                  分かることが多い。既に分かっている店では聞かない */}
+              {!website && (
+                <div>
+                  <span className={fieldLabel}>{t("gmap.official")}</span>
+                  <span className="flex gap-1">
+                    <input
+                      value={site}
+                      onChange={(e) => setSite(e.target.value)}
+                      inputMode="url"
+                      placeholder="https://"
+                      className="w-full min-w-0 border border-gray-300 rounded px-2 py-1 bg-white text-gray-900"
+                    />
+                    <button
+                      disabled={props.factSubmitting || !/^https?:\/\/\S+$/.test(site.trim())}
+                      onClick={() => {
+                        props.onSubmitFact({ website: site.trim() });
+                        setSite("");
+                      }}
+                      className="shrink-0 rounded border border-gray-300 bg-white px-3 text-[11px] text-gray-800 disabled:opacity-50"
+                    >
+                      {t("gmap.send")}
+                    </button>
+                  </span>
+                </div>
+              )}
 
               <div>
                 <span className={fieldLabel}>{t("gmap.wrongInfo")}</span>
