@@ -111,6 +111,10 @@ export default function CafePopup(props: Props) {
   const f = summarise(facts);
   const level = stats ? pickMajority(stats.seatingOccupancyCounts) : null;
   const walk = nearestStationWalkMinutes(cafe.lat, cafe.lng);
+  // 名前の長さに合わせて字を落とし、1行に収める。切ると支店名が消えて
+  // 「どの五反田店か」が分からなくなる
+  const nameSize =
+    cafe.name.length <= 14 ? 12 : cafe.name.length <= 19 ? 11 : cafe.name.length <= 25 ? 10 : 9;
   // 直線距離。実際に歩く距離より短く出るので「約」を付けて出す
   const here =
     props.userPosition == null
@@ -162,7 +166,10 @@ export default function CafePopup(props: Props) {
       <div className="shrink-0 pb-2 border-b border-gray-200">
         <div className="flex items-start gap-1.5">
           <div className="min-w-0 flex-1">
-            <h2 className="text-[12px] font-bold text-gray-900 leading-snug truncate">
+            <h2
+              className="font-bold text-gray-900 leading-snug whitespace-nowrap overflow-hidden text-ellipsis"
+              style={{ fontSize: nameSize }}
+            >
               {cafe.name}
             </h2>
             <p className="text-[10px] text-gray-600 mt-0.5 truncate">
@@ -292,7 +299,7 @@ export default function CafePopup(props: Props) {
                   ) : (
                     <button
                       onClick={openReport}
-                      className="text-blue-700 font-semibold underline whitespace-nowrap"
+                      className="rounded-full bg-blue-600 text-white font-bold px-2 py-[2px] whitespace-nowrap"
                     >
                       {t("gmap.unknownFill")}
                     </button>

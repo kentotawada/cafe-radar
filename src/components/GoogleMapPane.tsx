@@ -47,7 +47,8 @@ import { nearestStationWalkMinutes } from "@/lib/lookupCafe";
 import { useCafeFacts } from "@/lib/useCafeFacts";
 import { useUserCafes } from "@/lib/useUserCafes";
 import { useVerifiedOutlets } from "@/lib/useVerifiedOutlets";
-import { useLang } from "@/lib/i18n";
+import { useLang, type TranslationKey } from "@/lib/i18n";
+import { PIN_COLORS, PIN_LEGEND } from "@/lib/pinColors";
 import { supabase } from "@/lib/supabaseClient";
 import CafePopup from "@/components/CafePopup";
 import BookmarkIcon from "@/components/BookmarkIcon";
@@ -279,9 +280,19 @@ function UserLocationMarker({
 //
 // プライバシーポリシーとお問い合わせもここに入れた。ヘッダーに並べると
 // 地図が狭くなるうえ、「お気に入り」と同列に見えて紛らわしいという指摘があった
+// ピンの形の見本。色は「まだ報告が無い」の色に固定し、形の違いだけが目に入るようにする
+const SHAPE_LEGEND = [
+  { style: "chain", outlet: false, key: "gmap.shapeChain" },
+  { style: "coworking", outlet: false, key: "gmap.shapeCoworking" },
+  { style: "independent", outlet: false, key: "gmap.shapeIndependent" },
+  { style: "night", outlet: false, key: "gmap.shapeNight" },
+  { style: "chain", outlet: true, key: "gmap.shapeOutlet" },
+] as const;
+
 function AboutButton() {
-  const { t } = useLang();
+  const { lang, setLang, t } = useLang();
   const [open, setOpen] = useState(false);
+  const [legendOpen, setLegendOpen] = useState(false);
   return (
     <>
       <button
@@ -303,6 +314,47 @@ function AboutButton() {
             <div className="px-4 py-3 bg-gray-100 font-bold text-gray-900">
               {t("attribution.title")}
             </div>
+            {/* 見出しの帯を無くしたので、言語切替とピンの説明はここに置く */}
+            <button
+              onClick={() => setLang(lang === "ja" ? "en" : "ja")}
+              className="block w-full text-left px-4 py-3 border-b text-blue-700"
+            >
+              {t("app.langToggle")}
+            </button>
+            <button
+              onClick={() => setLegendOpen((v) => !v)}
+              className="block w-full text-left px-4 py-3 border-b text-blue-700"
+            >
+              {t("legend.toggle")} {legendOpen ? "▲" : "▼"}
+            </button>
+            {legendOpen && (
+              <div className="px-4 py-3 border-b bg-gray-50 space-y-1.5">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                  {PIN_LEGEND.map((item) => (
+                    <span key={item.key} className="flex items-center gap-1 text-[11px] text-gray-800">
+                      <span
+                        className="inline-block w-2.5 h-2.5 rounded-full border border-white shadow"
+                        style={{ backgroundColor: PIN_COLORS[item.key] }}
+                      />
+                      {t(`legend.status.${item.key}` as TranslationKey)}
+                    </span>
+                  ))}
+                </div>
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-800">
+                  {SHAPE_LEGEND.map(({ style, outlet, key }) => (
+                    <span key={`${style}-${outlet}`} className="flex items-center gap-1">
+                      <span
+                        className="inline-block w-4 h-4 shrink-0"
+                        dangerouslySetInnerHTML={{
+                          __html: cupPinSvgMarkup(PIN_COLORS.unknown, style, outlet, 16),
+                        }}
+                      />
+                      {t(key)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
             <Link href="/privacy" className="block px-4 py-3 border-b text-blue-700">
               {t("privacy.link")}
             </Link>
