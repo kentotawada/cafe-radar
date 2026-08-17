@@ -18,8 +18,6 @@ import {
   Map as GMap,
   AdvancedMarker,
   AdvancedMarkerAnchorPoint,
-  InfoWindow,
-  useAdvancedMarkerRef,
   ControlPosition,
   useApiLoadingStatus,
   useMap,
@@ -50,7 +48,7 @@ import { useVerifiedOutlets } from "@/lib/useVerifiedOutlets";
 import { useLang, type TranslationKey } from "@/lib/i18n";
 import { PIN_COLORS, PIN_LEGEND } from "@/lib/pinColors";
 import { supabase } from "@/lib/supabaseClient";
-import CafePopup from "@/components/CafePopup";
+import CafeCard from "@/components/CafeCard";
 import BookmarkIcon from "@/components/BookmarkIcon";
 import { distanceMeters, formatDistance } from "@/lib/geoDistance";
 import { useReporterProgress } from "@/lib/useReporterProgress";
@@ -289,10 +287,67 @@ const SHAPE_LEGEND = [
   { style: "chain", outlet: true, key: "gmap.shapeOutlet" },
 ] as const;
 
-function AboutButton() {
-  const { lang, setLang, t } = useLang();
+// ピンの説明。地図の上に見える形で置く。「i」の中に入れると、色と形の意味を
+// 知りたいときに辿り着けない
+function LegendButton() {
+  const { t } = useLang();
   const [open, setOpen] = useState(false);
-  const [legendOpen, setLegendOpen] = useState(false);
+  return (
+    <>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="rounded-full shadow px-2.5 py-1 text-[11px] font-semibold bg-white text-gray-800 border border-gray-300 whitespace-nowrap"
+      >
+        {t("legend.toggle")} {open ? "▲" : "▼"}
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-xl border border-gray-200 p-2 space-y-1.5 pointer-events-auto">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            {PIN_LEGEND.map((item) => (
+              <span key={item.key} className="flex items-center gap-1 text-[11px] text-gray-800">
+                <span
+                  className="inline-block w-2.5 h-2.5 rounded-full border border-white shadow"
+                  style={{ backgroundColor: PIN_COLORS[item.key] }}
+                />
+                {t(`legend.status.${item.key}` as TranslationKey)}
+              </span>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-800">
+            {SHAPE_LEGEND.map(({ style, outlet, key }) => (
+              <span key={`${style}-${outlet}`} className="flex items-center gap-1">
+                <span
+                  className="inline-block w-4 h-4 shrink-0"
+                  dangerouslySetInnerHTML={{
+                    __html: cupPinSvgMarkup(PIN_COLORS.unknown, style, outlet, 16),
+                  }}
+                />
+                {t(key)}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// 言語切替。ここも「i」の中に隠さない
+function LangButton() {
+  const { lang, setLang, t } = useLang();
+  return (
+    <button
+      onClick={() => setLang(lang === "ja" ? "en" : "ja")}
+      className="rounded-full shadow px-2.5 py-1 text-[11px] font-semibold bg-white text-gray-800 border border-gray-300 whitespace-nowrap"
+    >
+      {t("app.langToggle")}
+    </button>
+  );
+}
+
+function AboutButton() {
+  const { t } = useLang();
+  const [open, setOpen] = useState(false);
   return (
     <>
       <button
@@ -314,47 +369,6 @@ function AboutButton() {
             <div className="px-4 py-3 bg-gray-100 font-bold text-gray-900">
               {t("attribution.title")}
             </div>
-            {/* 見出しの帯を無くしたので、言語切替とピンの説明はここに置く */}
-            <button
-              onClick={() => setLang(lang === "ja" ? "en" : "ja")}
-              className="block w-full text-left px-4 py-3 border-b text-blue-700"
-            >
-              {t("app.langToggle")}
-            </button>
-            <button
-              onClick={() => setLegendOpen((v) => !v)}
-              className="block w-full text-left px-4 py-3 border-b text-blue-700"
-            >
-              {t("legend.toggle")} {legendOpen ? "▲" : "▼"}
-            </button>
-            {legendOpen && (
-              <div className="px-4 py-3 border-b bg-gray-50 space-y-1.5">
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                  {PIN_LEGEND.map((item) => (
-                    <span key={item.key} className="flex items-center gap-1 text-[11px] text-gray-800">
-                      <span
-                        className="inline-block w-2.5 h-2.5 rounded-full border border-white shadow"
-                        style={{ backgroundColor: PIN_COLORS[item.key] }}
-                      />
-                      {t(`legend.status.${item.key}` as TranslationKey)}
-                    </span>
-                  ))}
-                </div>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-gray-800">
-                  {SHAPE_LEGEND.map(({ style, outlet, key }) => (
-                    <span key={`${style}-${outlet}`} className="flex items-center gap-1">
-                      <span
-                        className="inline-block w-4 h-4 shrink-0"
-                        dangerouslySetInnerHTML={{
-                          __html: cupPinSvgMarkup(PIN_COLORS.unknown, style, outlet, 16),
-                        }}
-                      />
-                      {t(key)}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
             <Link href="/privacy" className="block px-4 py-3 border-b text-blue-700">
               {t("privacy.link")}
             </Link>
@@ -402,8 +416,6 @@ function GoogleMapView() {
   // 今選んでいる店のid。スクロール中の判定で使う。state を依存に入れると
   // 判定の関数が作り直されて、スクロールの途中で取りこぼす
   const selectedIdRef = useRef<string | null>(null);
-  // 選んだピンの実体。吹き出しをこのピンに付ける
-  const [selectedMarkerRef, selectedMarker] = useAdvancedMarkerRef();
   const [bounds, setBounds] = useState<MapBounds | null>(null);
   // リストを並べる基準の点。地図の中心と別に持つ
   const [sortCenter, setSortCenter] = useState<[number, number] | null>(null);
@@ -685,6 +697,17 @@ function GoogleMapView() {
     []
   );
 
+  // 選んだ店のカードを真ん中へ送る。ピンをタップしたときに、そのカードが
+  // 見えていないと、どこに情報が出たのか分からない。
+  // 送ったことでスクロールの判定がまた走るが、同じ店なので何も起きない
+  useEffect(() => {
+    if (!selected) return;
+    const el = stripRef.current?.querySelector<HTMLElement>(
+      `[data-cafe-id="${CSS.escape(selected.id)}"]`
+    );
+    el?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  }, [selected]);
+
   // 検索語。空白で区切った語をすべて含むものを探す。
   // 「スターバックス 五反田」のように打つ人が多く、そのまま1語として
   // 照合すると0件になる(店名は「スターバックス コーヒー 五反田西口店」)。
@@ -824,7 +847,6 @@ function GoogleMapView() {
         {selected && (
           <>
             <AdvancedMarker
-              ref={selectedMarkerRef}
               position={{ lat: selected.lat, lng: selected.lng }}
               title={selected.name}
               zIndex={999}
@@ -838,50 +860,6 @@ function GoogleMapView() {
                 selected
               />
             </AdvancedMarker>
-            {selectedMarker && (
-              <InfoWindow
-                anchor={selectedMarker}
-                onCloseClick={() => {
-                  selectedIdRef.current = null;
-                  setSelected(null);
-                }}
-                // Google 既定のヘッダー(閉じるボタンの帯)を切る。中身の上に
-                // 余白として乗り、「上の空白が気になる」と言われていた
-                headerDisabled
-                maxWidth={300}
-                shouldFocus={false}
-                className="cf-iw"
-              >
-                <CafePopup
-                  cafe={selected}
-                  stats={statsByCafe[selected.id] ?? null}
-                  facts={factsByCafe[selected.id] ?? []}
-                  isUserAdded={userCafeIds.has(selected.id)}
-                  userPosition={userPosition}
-                  isFavorite={favorites.has(selected.id)}
-                  isFlagged={flaggedByMe.has(selected.id)}
-                  reportSubmitting={submitting === selected.id}
-                  factSubmitting={factSubmitting === selected.id}
-                  reportError={reportError}
-                  factError={factError}
-                  onClose={() => {
-                    selectedIdRef.current = null;
-                    setSelected(null);
-                  }}
-                  onToggleFavorite={() => handleToggleFavorite(selected.id)}
-                  onReportOccupancy={async (lv) => {
-                    await submitOccupancy(selected.id, lv);
-                    reportedOk();
-                  }}
-                  onSubmitFact={async (patch) => {
-                    await submitFact(selected.id, patch);
-                    reportedOk();
-                  }}
-                  onFlag={() => flagCafe(selected.id)}
-                  onSubmitCorrection={(m) => submitCorrection(selected.id, m)}
-                />
-              </InfoWindow>
-            )}
           </>
         )}
         <UserLocationMarker position={userPosition} heading={heading} />
@@ -1001,6 +979,12 @@ function GoogleMapView() {
           </button>
 
           <AboutButton />
+        </div>
+
+        {/* 言語とピンの説明。「i」の中に入れると辿り着けないので外に出す */}
+        <div className="flex gap-1.5 items-center pointer-events-auto relative">
+          <LangButton />
+          <LegendButton />
         </div>
 
         {filterOpen && (
@@ -1149,8 +1133,8 @@ function GoogleMapView() {
         )}
       </div>
 
-      {/* 現在地。拡大縮小の下、横カード列の上に置いて重ならないようにする */}
-      {!selected && (
+      {/* 現在地。下の帯の高さに追従させているので、カードが広がっても重ならない */}
+      {(
         <button
           onClick={locate}
           aria-label={t("gmap.myLocation")}
@@ -1161,9 +1145,10 @@ function GoogleMapView() {
         </button>
       )}
 
-      {/* 横カード列と縦リスト。開いた時点で両方が画面に入るようにしている。
-          吹き出しを開いている間は、覆う面積を減らすため横カード列と
-          リストの中身を畳む(見出しの帯だけ残す) */}
+      {/* 横カード列と縦リスト。店を選ぶと、その店のカードが広がって
+          店舗情報を出す。吹き出しはやめた(地図の上に重なるので幅も高さも
+          取れず、店名が切れる・欄がはみ出す問題が最後まで残った)。
+          縦リストの中身は、カードが広がっている間は畳んでおく */}
       <div ref={bottomRef} className="absolute inset-x-0 bottom-0 z-10">
           {listed.length > 0 && (
             <div
@@ -1174,16 +1159,54 @@ function GoogleMapView() {
               {listed.slice(0, 20).map((cafe) => {
                 const stats = statsByCafe[cafe.id] ?? null;
                 const lv = stats ? pickMajority(stats.seatingOccupancyCounts) : null;
-                return (
+                  // 選んだ店のカードだけ広げ、その中に店舗情報を出す。
+                  // 他のカードは店名と記号だけの細いままにして、送れば
+                  // 隣の店へ移れるようにする
+                  const isOpen = selected?.id === cafe.id;
+                  if (isOpen) {
+                    return (
+                      <div
+                        key={cafe.id}
+                        data-cafe-id={cafe.id}
+                        className="snap-center shrink-0 w-[86vw] max-w-[360px] rounded-xl border-2 border-blue-600 bg-white shadow-xl px-3 py-2"
+                      >
+                        <CafeCard
+                          cafe={cafe}
+                          stats={stats}
+                          facts={factsByCafe[cafe.id] ?? []}
+                          isUserAdded={userCafeIds.has(cafe.id)}
+                          userPosition={userPosition}
+                          isFavorite={favorites.has(cafe.id)}
+                          isFlagged={flaggedByMe.has(cafe.id)}
+                          reportSubmitting={submitting === cafe.id}
+                          factSubmitting={factSubmitting === cafe.id}
+                          reportError={reportError}
+                          factError={factError}
+                          onClose={() => {
+                            selectedIdRef.current = null;
+                            setSelected(null);
+                          }}
+                          onToggleFavorite={() => handleToggleFavorite(cafe.id)}
+                          onReportOccupancy={async (lv) => {
+                            await submitOccupancy(cafe.id, lv);
+                            reportedOk();
+                          }}
+                          onSubmitFact={async (patch) => {
+                            await submitFact(cafe.id, patch);
+                            reportedOk();
+                          }}
+                          onFlag={() => flagCafe(cafe.id)}
+                          onSubmitCorrection={(m) => submitCorrection(cafe.id, m)}
+                        />
+                      </div>
+                    );
+                  }
+                  return (
                   <button
                     key={cafe.id}
                     data-cafe-id={cafe.id}
                     onClick={() => focusCafe(cafe)}
-                    className={`snap-center shrink-0 w-[186px] text-left rounded-xl border bg-white shadow-lg px-2.5 py-2 ${
-                      selected?.id === cafe.id
-                        ? "border-blue-600 ring-2 ring-blue-500"
-                        : "border-gray-200"
-                    }`}
+                    className="snap-center shrink-0 w-[152px] text-left rounded-xl border border-gray-200 bg-white shadow-lg px-2.5 py-1.5"
                   >
                     <span className="flex items-center gap-1">
                       {favorites.has(cafe.id) && (
@@ -1247,7 +1270,7 @@ function GoogleMapView() {
               </span>
             </button>
             {listOpen && !selected && (
-              <ul className="max-h-[30vh] overflow-y-auto border-t border-gray-100">
+              <ul className="max-h-[22vh] overflow-y-auto border-t border-gray-100">
                 {listed.map((cafe) => {
                   const stats = statsByCafe[cafe.id] ?? null;
                   const lv = stats ? pickMajority(stats.seatingOccupancyCounts) : null;

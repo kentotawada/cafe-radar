@@ -294,16 +294,3 @@ body:has(.cf-shell) {
 .cf-map-carousel::-webkit-scrollbar {
   display: none;
 }
-
-/* Googleマップの吹き出し。既定のままだと中身の周りに広い余白が付き、
-   「店舗情報の上の空白が気になる」と言われていた。
-   headerDisabled で上の帯は消えるが、枠の内側の余白は CSS でしか詰められない。
-   .gm-style-iw-c は白い枠、.gm-style-iw-d は中のスクロール領域 */
-.cf-iw .gm-style-iw-c,
-.gm-style-iw-c:has(.cf-iw) {
-  padding: 10px 12px 8px !important;
-}
-.gm-style-iw-c:has(.cf-iw) .gm-style-iw-d {
-  overflow: visible !important;
-  max-height: none !important;
-}

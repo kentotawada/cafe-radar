@@ -29,18 +29,16 @@ import BookmarkIcon from "@/components/BookmarkIcon";
 import { distanceMeters, formatDistance } from "@/lib/geoDistance";
 import type { CafeFact } from "@/lib/types";
 
-// 店舗情報。ピンに付く吹き出しの中身。
+// 店舗情報。横スライドのカードの中身。
 //
-// 一度シート(画面下から出る形)にしたが、「ピンに吹き出しが付くほうがよい」と
-// いう希望に戻した。ただし前に困った点は残さない:
-//   ・高さに上限を付け、中だけをスクロールさせる。吹き出しは中身が増えると
-//     上へ伸びるので、報告欄を開いた瞬間に店名ごと画面の外へ出ていた。
-//   ・店名は上に貼り付けて、中をスクロールしても消えないようにする。
-//   ・Google 既定のヘッダー(閉じるボタンの帯)を切って、上の空白をなくす。
+// 吹き出し(InfoWindow)から横カードに移した。吹き出しは地図の上に重なるので
+// 幅も高さも取れず、店名が切れる・欄がはみ出す・上に空白が乗る といった
+// 問題が最後まで残った。横カードなら画面の幅をそのまま使えて、カードを
+// 送れば隣の店へ移れる。Googleマップのアプリと同じ操作になる。
 //
 // 中身は3つに分けている。混ざっていると何を信じてよいか分からなくなる。
 //   いまの様子 … 30分以内の報告(すぐ古くなる)
-//   設備      … 調べて分かっている事実(変わらない)
+//   設備      … 調べて分かっている事実と、現地でしか分からない4つ
 //   行った人のメモ … 利用者が書いた文章
 // 報告の入力欄はいちばん下に畳んでおく。読みに来た人の邪魔をしない。
 
@@ -71,14 +69,14 @@ function Section({ title, children }: { title?: string; children: React.ReactNod
   return (
     <section className="mt-1.5 first:mt-0 rounded-lg border border-gray-200 bg-white px-2 py-1.5">
       {title && (
-        <h3 className="text-[9px] font-bold text-gray-500 tracking-wide mb-1">{title}</h3>
+        <h3 className="text-[10px] font-bold text-gray-500 tracking-wide mb-1">{title}</h3>
       )}
       {children}
     </section>
   );
 }
 
-export default function CafePopup(props: Props) {
+export default function CafeCard(props: Props) {
   const { cafe, stats, facts } = props;
   const { lang, t } = useLang();
   const occLabel = lang === "en" ? OCCUPANCY_LABEL_EN : OCCUPANCY_LABEL;
@@ -159,20 +157,20 @@ export default function CafePopup(props: Props) {
   };
 
   return (
-    // 吹き出しの中身。高さの上限はここで決める。上限が無いと、報告欄を開いた
-    // 瞬間に吹き出しが上へ伸びて店名が画面の外へ出る
-    <div className="w-[212px] max-h-[34vh] flex flex-col text-gray-900 text-[11px]">
+    // 横カードの中身。カードの幅いっぱいを使い、高さだけ上限をかけて
+    // 中をスクロールさせる
+    <div className="w-full max-h-[38vh] flex flex-col text-gray-900 text-[12px]">
       {/* 店名は上に貼り付ける。中をスクロールしても、どの店を見ているかが消えない */}
       <div className="shrink-0 pb-2 border-b border-gray-200">
         <div className="flex items-start gap-1.5">
           <div className="min-w-0 flex-1">
             <h2
               className="font-bold text-gray-900 leading-snug whitespace-nowrap overflow-hidden text-ellipsis"
-              style={{ fontSize: nameSize }}
+              style={{ fontSize: nameSize + 2 }}
             >
               {cafe.name}
             </h2>
-            <p className="text-[10px] text-gray-600 mt-0.5 truncate">
+            <p className="text-[11px] text-gray-600 mt-0.5 truncate">
               {lang === "en" ? `🚶 ${walk} min` : `🚶 駅から${walk}分`}
               {here != null && (
                 <span className="ml-1.5 text-blue-800 font-semibold">
@@ -257,7 +255,7 @@ export default function CafePopup(props: Props) {
               {chips.map((c) => (
                 <span
                   key={c.text}
-                  className={`text-[10px] font-semibold rounded-full px-1.5 py-0.5 whitespace-nowrap ${c.tone}`}
+                  className={`text-[11px] font-semibold rounded-full px-2 py-0.5 whitespace-nowrap ${c.tone}`}
                 >
                   {c.text}
                 </span>
@@ -268,7 +266,7 @@ export default function CafePopup(props: Props) {
           {/* 現地を歩いて要ると分かった4つ。値が無くても行を消さずに残す。
               消してしまうと「情報が無い」ことにすら気づけず、埋める気も
               起きない。空欄を押すと報告欄が開くので、その場で埋められる */}
-          <dl className="text-[10px] leading-tight">
+          <dl className="text-[11px] leading-tight">
             {(
               [
                 [
