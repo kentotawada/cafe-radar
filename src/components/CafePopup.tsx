@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { FROM_MAP_KEY } from "@/lib/mapNavigation";
 import type { Cafe } from "@/lib/seedCafes";
@@ -85,6 +85,22 @@ export default function CafePopup(props: Props) {
   const occShort = lang === "en" ? OCCUPANCY_SHORT_EN : OCCUPANCY_SHORT;
   const wifiLabel = lang === "en" ? WIFI_SPEED_LABEL_EN : WIFI_SPEED_LABEL;
   const [reportOpen, setReportOpen] = useState(false);
+  // 「未確認 — 教える」を押しても何も起きないように見えていた。報告欄は
+  // 吹き出しの下のほうにあり、開いても画面の外なので変化が見えない。
+  // 開いたら、その場所まで送る
+  const reportRef = useRef<HTMLDivElement | null>(null);
+  const scrollToReportRef = useRef(false);
+
+  useEffect(() => {
+    if (!reportOpen || !scrollToReportRef.current) return;
+    scrollToReportRef.current = false;
+    reportRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [reportOpen]);
+
+  const openReport = () => {
+    scrollToReportRef.current = true;
+    setReportOpen(true);
+  };
   const [fix, setFix] = useState("");
   const [fixSent, setFixSent] = useState(false);
   const [fixError, setFixError] = useState(false);
@@ -275,7 +291,7 @@ export default function CafePopup(props: Props) {
                     <span className="font-bold text-gray-900">{value}</span>
                   ) : (
                     <button
-                      onClick={() => setReportOpen(true)}
+                      onClick={openReport}
                       className="text-blue-700 font-semibold underline whitespace-nowrap"
                     >
                       {t("gmap.unknownFill")}
@@ -363,6 +379,7 @@ export default function CafePopup(props: Props) {
 
         {/* 報告の入力。読みに来ただけの人には要らないので畳んでおく */}
         <Section>
+          <div ref={reportRef} />
           <button
             onClick={() => setReportOpen((v) => !v)}
             className="w-full text-left text-[11px] font-bold text-blue-700"
