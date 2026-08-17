@@ -1246,20 +1246,24 @@ function GoogleMapView() {
             >
               {strip.slice(0, stripCount).map((cafe) => {
                 const stats = statsByCafe[cafe.id] ?? null;
-                const lv = stats ? pickMajority(stats.seatingOccupancyCounts) : null;
                   const isOpen = selected?.id === cafe.id;
                   return (
                     <div
                       key={cafe.id}
                       data-cafe-id={cafe.id}
+                      // 送っている途中のカードを押したら、その店を選ぶ。
+                      // 中のボタンを押した場合もここまで上がってくるが、
+                      // 同じ店を選び直すだけなので害はない
+                      onClick={() => {
+                        if (!isOpen) focusCafe(cafe, false);
+                      }}
                       className={`snap-center shrink-0 w-[86vw] rounded-xl border bg-white px-3 py-2 ${
                         isOpen
                           ? "border-2 border-blue-600 shadow-xl"
                           : "border-gray-200 shadow"
                       }`}
                     >
-                      {isOpen ? (
-                        <CafeCard
+                      <CafeCard
                           cafe={cafe}
                           stats={stats}
                           facts={factsByCafe[cafe.id] ?? []}
@@ -1291,68 +1295,6 @@ function GoogleMapView() {
                           onFlag={() => flagCafe(cafe.id)}
                           onSubmitCorrection={(m) => submitCorrection(cafe.id, m)}
                         />
-                      ) : (
-                        <button
-                          onClick={() => focusCafe(cafe)}
-                          className="w-full text-left"
-                        >
-                          <span className="flex items-center gap-1">
-                            {favorites.has(cafe.id) && (
-                              <span className="shrink-0 leading-none">
-                                <BookmarkIcon filled size={11} />
-                              </span>
-                            )}
-                            <span className="block text-[13px] font-bold text-gray-900 truncate">
-                              {cafe.name}
-                            </span>
-                          </span>
-                          {/* 開いていないカードにも、距離・評価・設備まで出す。
-                              送っている途中に店名だけの状態が挟まると、
-                              一瞬中身が消えたように見えるため */}
-                          <span className="flex items-center gap-1.5 text-[11px] mt-0.5 whitespace-nowrap">
-                            {userPosition ? (
-                              <span className="text-blue-800 font-bold">
-                                {`📍 ${formatDistance(
-                                  distanceMeters(userPosition, [cafe.lat, cafe.lng])
-                                )}`}
-                                <span className="font-normal text-gray-700">
-                                  {`（${t("gmap.walkMin")}${Math.max(
-                                    1,
-                                    Math.ceil(
-                                      distanceMeters(userPosition, [cafe.lat, cafe.lng]) / 80
-                                    )
-                                  )}分）`}
-                                </span>
-                              </span>
-                            ) : (
-                              <span className="text-gray-600">
-                                🚶 {nearestStationWalkMinutes(cafe.lat, cafe.lng)}
-                                {lang === "en" ? "m" : "分"}
-                              </span>
-                            )}
-                            <StarRating value={ratingFor(cafe.id).average} size={11} />
-                            <span className="text-gray-600">
-                              {ratingFor(cafe.id).count > 0
-                                ? ratingFor(cafe.id).average!.toFixed(1)
-                                : "–"}
-                            </span>
-                          </span>
-                          <span className="flex gap-x-1 text-[11px] mt-0.5 whitespace-nowrap">
-                            {lv && <span>{OCCUPANCY_EMOJI[lv]}</span>}
-                            {hasOutlet(cafe, verifiedOutletIds) && (
-                              <span className="bg-amber-100 text-amber-900 rounded px-1">🔌</span>
-                            )}
-                            {cafe.wifiInfo && (
-                              <span className="bg-sky-100 text-sky-900 rounded px-1">📶</span>
-                            )}
-                            {isNonSmoking(cafe) && (
-                              <span className="bg-emerald-100 text-emerald-900 rounded px-1">
-                                🚭
-                              </span>
-                            )}
-                          </span>
-                        </button>
-                      )}
                     </div>
                   );
               })}
