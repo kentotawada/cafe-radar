@@ -49,6 +49,7 @@ import { useLang, type TranslationKey } from "@/lib/i18n";
 import { PIN_COLORS, PIN_LEGEND } from "@/lib/pinColors";
 import { supabase } from "@/lib/supabaseClient";
 import CafeCard from "@/components/CafeCard";
+import AdBanner from "@/components/AdBanner";
 import BookmarkIcon from "@/components/BookmarkIcon";
 import { distanceMeters, formatDistance } from "@/lib/geoDistance";
 import { useReporterProgress } from "@/lib/useReporterProgress";
@@ -946,37 +947,7 @@ function GoogleMapView() {
         </div>
 
         <div className="flex gap-1.5 items-center pointer-events-auto">
-          <select
-            value=""
-            onChange={(e) => {
-              const area = areas.find((a) => a.id === e.target.value);
-              if (!area || !map) return;
-              hasMovedRef.current = true;
-              freezeListRef.current = false;
-              map.panTo({ lat: area.lat, lng: area.lng });
-              map.setZoom(16);
-            }}
-            className="rounded-full shadow px-2.5 py-1 text-[11px] bg-white text-gray-800 border border-gray-300 max-w-[116px]"
-          >
-            <option value="">{t("gmap.area")}</option>
-            {areas.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name.replace("駅", "")}
-              </option>
-            ))}
-          </select>
 
-          <button
-            onClick={() => setFilterOpen((v) => !v)}
-            className={`rounded-full shadow px-2.5 py-1 text-[11px] font-semibold border ${
-              activeCount > 0
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-white text-gray-800 border-gray-300"
-            }`}
-          >
-            {t("gmap.filter")}
-            {activeCount > 0 ? ` ${activeCount}` : ""} {filterOpen ? "▲" : "▼"}
-          </button>
 
           <AboutButton />
         </div>
@@ -987,40 +958,6 @@ function GoogleMapView() {
           <LegendButton />
         </div>
 
-        {filterOpen && (
-          <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-2 flex flex-wrap gap-1.5 max-w-[320px] pointer-events-auto">
-            {filterLabels.map(({ key, label, note }) => (
-              <button
-                key={key}
-                onClick={() => setFilters((prev) => ({ ...prev, [key]: !prev[key] }))}
-                className={`rounded-full px-2 py-0.5 text-[11px] font-semibold border ${
-                  filters[key]
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-white text-gray-800 border-gray-300"
-                }`}
-              >
-                {label}
-                {note && (
-                  <span
-                    className={`ml-1 text-[10px] font-normal ${
-                      filters[key] ? "text-blue-100" : "text-gray-600"
-                    }`}
-                  >
-                    {note}
-                  </span>
-                )}
-              </button>
-            ))}
-            {activeCount > 0 && (
-              <button
-                onClick={() => setFilters(EMPTY_FILTERS)}
-                className="rounded-full px-2.5 py-1 text-[12px] text-gray-700 underline"
-              >
-                {t("gmap.clearFilters")}
-              </button>
-            )}
-          </div>
-        )}
 
           {/* 送信の手応え。押した場所の近くではなく画面の中ほどに出す。
             吹き出しの中に出すと、開いている報告欄に埋もれて気づかれない */}
@@ -1245,7 +1182,78 @@ function GoogleMapView() {
             </div>
           )}
 
-          <div className="bg-white border-t border-gray-200 shadow-[0_-2px_8px_rgba(0,0,0,0.10)]">
+          <div className="relative bg-white border-t border-gray-200 shadow-[0_-2px_8px_rgba(0,0,0,0.10)]">
+            {/* 絞り込みは下から上へ開く。地図の上に浮かせると地図が隠れる */}
+          {filterOpen && (
+            <div className="absolute left-0 right-0 bottom-full bg-white rounded-t-xl shadow-[0_-4px_16px_rgba(0,0,0,0.15)] border-t border-gray-200 p-2 flex flex-wrap gap-1.5">
+              {filterLabels.map(({ key, label, note }) => (
+                <button
+                  key={key}
+                  onClick={() => setFilters((prev) => ({ ...prev, [key]: !prev[key] }))}
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-semibold border ${
+                    filters[key]
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "bg-white text-gray-800 border-gray-300"
+                  }`}
+                >
+                  {label}
+                  {note && (
+                    <span
+                      className={`ml-1 text-[10px] font-normal ${
+                        filters[key] ? "text-blue-100" : "text-gray-600"
+                      }`}
+                    >
+                      {note}
+                    </span>
+                  )}
+                </button>
+              ))}
+              {activeCount > 0 && (
+                <button
+                  onClick={() => setFilters(EMPTY_FILTERS)}
+                  className="rounded-full px-2.5 py-1 text-[12px] text-gray-700 underline"
+                >
+                  {t("gmap.clearFilters")}
+                </button>
+              )}
+            </div>
+          )}
+
+            {/* エリアと絞り込みはリスト側に持たせる。探す条件を決める道具は、
+                探した結果(リスト)と同じ場所にあるほうが行き来しなくて済む */}
+            <div className="flex items-center gap-1.5 px-2 pt-1.5">
+            <select
+              value=""
+              onChange={(e) => {
+                const area = areas.find((a) => a.id === e.target.value);
+                if (!area || !map) return;
+                hasMovedRef.current = true;
+                freezeListRef.current = false;
+                map.panTo({ lat: area.lat, lng: area.lng });
+                map.setZoom(16);
+              }}
+              className="rounded-full px-2.5 py-1 text-[11px] bg-white text-gray-800 border border-gray-300 max-w-[112px]"
+            >
+              <option value="">{t("gmap.area")}</option>
+              {areas.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name.replace("駅", "")}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => setFilterOpen((v) => !v)}
+              className={`rounded-full px-2.5 py-1 text-[11px] font-semibold border ${
+                activeCount > 0
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white text-gray-800 border-gray-300"
+              }`}
+            >
+              {t("gmap.filter")}
+              {activeCount > 0 ? ` ${activeCount}` : ""} {filterOpen ? "▲" : "▼"}
+            </button>
+            </div>
+
             <button
               onClick={() => setListOpen((v) => !v)}
               className="w-full px-3 py-1.5 flex items-center justify-between text-[12px] font-bold text-gray-900"
@@ -1322,6 +1330,13 @@ function GoogleMapView() {
                     </li>
                   );
                 })}
+                {/* カードから外した広告枠。スクロールする場所なので、
+                    地図やカードと場所を取り合わない */}
+                {listed.length > 3 && (
+                  <li className="px-3 py-2 border-b border-gray-100">
+                    <AdBanner slot="cafe-list-infeed" minHeight={56} />
+                  </li>
+                )}
                 {listed.length === 0 && (
                   <li className="px-3 py-4 text-[12px] text-gray-600">
                     {t("gmap.listEmpty")}

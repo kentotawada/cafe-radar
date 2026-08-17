@@ -24,7 +24,6 @@ import {
   WIFI_SPEED_ORDER,
 } from "@/lib/useCafeFacts";
 import { nearestStationWalkMinutes } from "@/lib/lookupCafe";
-import AdBanner from "@/components/AdBanner";
 import BookmarkIcon from "@/components/BookmarkIcon";
 import { distanceMeters, formatDistance } from "@/lib/geoDistance";
 import type { CafeFact } from "@/lib/types";
@@ -159,7 +158,7 @@ export default function CafeCard(props: Props) {
   return (
     // 横カードの中身。カードの幅いっぱいを使い、高さだけ上限をかけて
     // 中をスクロールさせる
-    <div className="w-full max-h-[38vh] flex flex-col text-gray-900 text-[12px]">
+    <div className="w-full max-h-[26vh] flex flex-col text-gray-900 text-[12px]">
       {/* 店名は上に貼り付ける。中をスクロールしても、どの店を見ているかが消えない */}
       <div className="shrink-0 pb-2 border-b border-gray-200">
         <div className="flex items-start gap-1.5">
@@ -183,6 +182,14 @@ export default function CafeCard(props: Props) {
             </p>
           </div>
           <button
+            onClick={props.onToggleFavorite}
+            aria-pressed={props.isFavorite}
+            aria-label={props.isFavorite ? t("gmap.saved") : t("gmap.save")}
+            className="shrink-0 w-7 h-7 flex items-center justify-center"
+          >
+            <BookmarkIcon filled={props.isFavorite} size={17} />
+          </button>
+          <button
             onClick={props.onClose}
             aria-label={t("gmap.close")}
             className="shrink-0 text-[14px] leading-none w-6 h-6 flex items-center justify-center text-gray-500"
@@ -190,20 +197,6 @@ export default function CafeCard(props: Props) {
             ✕
           </button>
         </div>
-        {/* 保存は絵文字だけだと、押したのか押していないのか分からないと言われた。
-            枠と文字で状態を出し、押した後は色ごと変える */}
-        <button
-          onClick={props.onToggleFavorite}
-          aria-pressed={props.isFavorite}
-          className={`mt-1 w-full rounded border py-1 text-[10px] font-bold flex items-center justify-center gap-1 whitespace-nowrap ${
-            props.isFavorite
-              ? "bg-blue-50 border-blue-600 text-blue-800"
-              : "bg-white border-gray-300 text-gray-700"
-          }`}
-        >
-          <BookmarkIcon filled={props.isFavorite} size={12} />
-          {props.isFavorite ? t("gmap.saved") : t("gmap.save")}
-        </button>
       </div>
 
       <div className="overflow-y-auto overscroll-contain pt-1.5">
@@ -547,9 +540,6 @@ export default function CafeCard(props: Props) {
           )}
         </Section>
 
-        <div className="pt-2">
-          <AdBanner slot="cafe-popup" minHeight={56} />
-        </div>
       </div>
     </div>
   );
