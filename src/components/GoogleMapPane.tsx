@@ -879,7 +879,8 @@ function GoogleMapView() {
           実地で「上から順に操作するから、エリアが絞り込みの下にあると迷う」
           という指摘があったので、この並びにしている */}
       <div className="absolute left-2 right-2 top-2 z-20 flex flex-col gap-1.5 items-start pointer-events-none">
-        <div className="w-full relative pointer-events-auto">
+        <div className="w-full flex items-center gap-1.5 pointer-events-auto">
+          <div className="flex-1 relative">
           <input
             value={query}
             onChange={(e) => {
@@ -944,13 +945,11 @@ function GoogleMapView() {
               )}
             </div>
           )}
-        </div>
-
-        <div className="flex gap-1.5 items-center pointer-events-auto">
-
-
+          </div>
+          {/* 「i」は検索欄の右。困ったときに目に入る場所に置く */}
           <AboutButton />
         </div>
+
 
         {/* 言語とピンの説明。「i」の中に入れると辿り着けないので外に出す */}
         <div className="flex gap-1.5 items-center pointer-events-auto relative">
