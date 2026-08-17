@@ -312,3 +312,15 @@ body:has(.cf-shell) {
   animation: cf-pin-pulse 1.6s ease-out infinite;
   pointer-events: none;
 }
+
+/* 入力欄をタップすると画面全体が拡大する件。
+   iOS Safari は文字が16pxより小さい入力欄にカーソルが入ると、読めるように
+   勝手に拡大する。拡大されると元の縮尺に戻す操作が要り、探している最中に
+   手が止まる。
+   viewport に maximum-scale を足して拡大自体を禁じる手もあるが、それだと
+   本当に拡大したい人まで拡大できなくなるので、入力欄の文字を16pxにする。
+   select は候補の一覧が開くだけで拡大しないため対象外 */
+input,
+textarea {
+  font-size: 16px;
+}
