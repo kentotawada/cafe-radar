@@ -305,7 +305,10 @@ body:has(.cf-shell) {
   height: 22px;
   margin-left: -11px;
   border-radius: 50%;
-  background: rgba(37, 99, 235, 0.45);
+  /* 現在地の点も青なので、同じ色だとどちらか分からない。ピンの色にも
+     使っていない紫にして、地図のどんな背景でも浮くようにする */
+  background: rgba(124, 58, 237, 0.55);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
   animation: cf-pin-pulse 1.6s ease-out infinite;
   pointer-events: none;
 }

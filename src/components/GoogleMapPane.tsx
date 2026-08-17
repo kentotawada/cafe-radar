@@ -458,6 +458,13 @@ function GoogleMapView() {
   const stripTimerRef = useRef<number>(0);
   // 横スライドの操作で選んだか。そうならカードを送り直さない
   const fromStripRef = useRef(false);
+  // 送っている最中か。畳むために state でも持つ(refだけだと描画に反映されない)
+  const scrollingRef = useRef(false);
+  const [stripScrolling, setStripScrolling] = useState(false);
+  // カードに並べる一覧。店を選んでいる間は入れ替えない。
+  // 地図が動くと listed の中身が変わり、送っている途中で並びが差し替わって
+  // 「選択が変わるときと変わらないときがある」状態になっていた
+  const [frozenStrip, setFrozenStrip] = useState<Cafe[]>([]);
   // 下の帯(横カード列＋リスト)の実際の高さ。現在地ボタンをこの上に置く。
   // 数値を決め打ちにすると、リストを開いた時に必ず重なる
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -557,8 +564,14 @@ function GoogleMapView() {
       .slice(0, 60);
   }, [visible, sortCenter]);
 
+  // カードに並べる一覧。店を選んでいる間は、選び始めたときの並びのまま。
+  // 送っている途中で並びが差し替わると、真ん中の判定が別の店を指してしまう
+  const strip = selected && frozenStrip.length > 0 ? frozenStrip : listed;
+
   const focusCafe = useCallback(
     (cafe: Cafe, zoomIn = true) => {
+      // 選び始めたときの並びを取っておく。以降はこの並びを送る
+      if (!selectedIdRef.current) setFrozenStrip(listed);
       selectedIdRef.current = cafe.id;
       setSelected(cafe);
       hasMovedRef.current = true;
@@ -577,13 +590,21 @@ function GoogleMapView() {
       const shift = Math.round((el?.clientHeight ?? 0) * 0.22);
       if (shift > 0) window.setTimeout(() => map.panBy(0, shift), 0);
     },
-    [map]
+    [map, listed]
   );
 
   // 指が止まってから、いちばん真ん中に近いカードの店を選ぶ
   const handleStripScroll = useCallback(() => {
+    // 送っている間はカードを畳む。畳まないと、指を離すまで前の店の情報が
+    // 出たままになり、別の店を見ているのに違う店の中身が見えてしまう
+    if (!scrollingRef.current) {
+      scrollingRef.current = true;
+      setStripScrolling(true);
+    }
     window.clearTimeout(stripTimerRef.current);
     stripTimerRef.current = window.setTimeout(() => {
+      scrollingRef.current = false;
+      setStripScrolling(false);
       const el = stripRef.current;
       if (!el) return;
       const mid = el.scrollLeft + el.clientWidth / 2;
@@ -598,13 +619,16 @@ function GoogleMapView() {
         }
       }
       if (!bestId) return;
-      const cafe = listed.find((c) => c.id === bestId);
+      // 探すのは「今カードに並んでいる一覧」から。listed は地図が動くたびに
+      // 中身が入れ替わるので、そこから探すと見つからず、選択が変わらない
+      // ことがあった
+      const cafe = strip.find((c) => c.id === bestId);
       if (cafe && cafe.id !== selectedIdRef.current) {
         fromStripRef.current = true;
         focusCafe(cafe, false);
       }
     }, 140);
-  }, [listed, focusCafe]);
+  }, [strip, focusCafe]);
 
   const handleToggleFavorite = useCallback((cafeId: string) => {
     setFavorites(toggleFavorite(cafeId));
@@ -849,6 +873,7 @@ function GoogleMapView() {
           // カードのバツ印を消したので、地図の何もない所を押すのが閉じ方
           selectedIdRef.current = null;
           setSelected(null);
+          setFrozenStrip([]);
         }}
         style={{ width: "100%", height: "100%" }}
       >
@@ -967,10 +992,24 @@ function GoogleMapView() {
         </div>
 
 
-        {/* 言語とピンの説明。「i」の中に入れると辿り着けないので外に出す */}
-        <div className="flex gap-1.5 items-center pointer-events-auto relative">
+        {/* 言語・ピンの説明・再検索。「i」の中に入れると辿り着けないので外に出す。
+            行ごと中央に置いて、地図の左右どちらにも寄らないようにする */}
+        <div className="w-full flex gap-1.5 items-center justify-center pointer-events-auto relative">
           <LangButton />
           <LegendButton />
+          {/* この範囲で再検索。地図を動かした後だけ出す */}
+          {drifted && (
+            <button
+              onClick={() => {
+                freezeListRef.current = false;
+                setDrifted(false);
+                handleIdle();
+              }}
+              className="rounded-full bg-blue-600 text-white shadow-lg px-3 py-1 text-[11px] font-bold whitespace-nowrap"
+            >
+              ↻ {t("gmap.researchHere")}
+            </button>
+          )}
         </div>
 
 
@@ -984,20 +1023,6 @@ function GoogleMapView() {
         </div>
       )}
 
-      {/* この範囲で再検索。地図を動かした後だけ出す。上から順に操作する
-            並びなので、絞り込みのすぐ下に置く */}
-        {drifted && (
-          <button
-            onClick={() => {
-              freezeListRef.current = false;
-              setDrifted(false);
-              handleIdle();
-            }}
-            className="pointer-events-auto rounded-full bg-blue-600 text-white shadow-lg px-3.5 py-1.5 text-[11px] font-bold"
-          >
-            ↻ {t("gmap.researchHere")}
-          </button>
-        )}
       </div>
 
       {/* お店を追加。右上に小さく置く */}
@@ -1107,16 +1132,18 @@ function GoogleMapView() {
               幅を変えると、真ん中に来るカードが変わる → その店が選ばれる →
               また幅が変わる、で選択が止まらなくなる。高さが変わるぶんには
               真ん中の判定は動かない */}
-          {listed.length > 0 && (
+          {strip.length > 0 && (
             <div
               ref={stripRef}
               onScroll={handleStripScroll}
               className="overflow-x-auto flex gap-2 px-[calc(50%-43vw)] pb-2 snap-x snap-mandatory [scrollbar-width:none]"
             >
-              {listed.slice(0, 20).map((cafe) => {
+              {strip.slice(0, 20).map((cafe) => {
                 const stats = statsByCafe[cafe.id] ?? null;
                 const lv = stats ? pickMajority(stats.seatingOccupancyCounts) : null;
-                  const isOpen = selected?.id === cafe.id;
+                  // 送っている間は畳む。畳まないと、指を離すまで前の店の
+                  // 情報が出たままになる
+                  const isOpen = selected?.id === cafe.id && !stripScrolling;
                   return (
                     <div
                       key={cafe.id}
@@ -1143,6 +1170,7 @@ function GoogleMapView() {
                           onClose={() => {
                             selectedIdRef.current = null;
                             setSelected(null);
+                            setFrozenStrip([]);
                           }}
                           onToggleFavorite={() => handleToggleFavorite(cafe.id)}
                           onReportOccupancy={async (lv2) => {
