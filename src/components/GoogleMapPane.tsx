@@ -580,30 +580,53 @@ function GoogleMapView() {
     [visible, selected?.id]
   );
 
-  const listed = useMemo(() => {
-    if (!sortCenter) return [];
-    // 基準の点。「近い順」は現在地から、それ以外は地図の中心から測る
-    const [cLat, cLng] =
-      sortOrder === "nearest" && userPosition ? userPosition : sortCenter;
-    const near = (c: Cafe) => (c.lat - cLat) ** 2 + (c.lng - cLng) ** 2;
-    const sorted = [...visible];
-    if (sortOrder === "rating") {
-      // 評価順。まだ誰も付けていない店は下へ。同点なら近いほうを先に
-      sorted.sort((a, b) => {
-        const ra = ratingFor(a.id).average ?? -1;
-        const rb = ratingFor(b.id).average ?? -1;
-        if (ra !== rb) return rb - ra;
-        return near(a) - near(b);
-      });
-    } else {
-      sorted.sort((a, b) => near(a) - near(b));
-    }
-    return sorted.slice(0, 200);
-  }, [visible, sortCenter, sortOrder, userPosition, ratingFor]);
+  // 選んだ並び順で店を並べる。地図の表示範囲で切るかどうかは呼ぶ側が決める
+  const rank = useCallback(
+    (pool: Cafe[], limit: number) => {
+      if (!sortCenter) return [];
+      // 基準の点。「近い順」は現在地から、それ以外は地図の中心から測る
+      const [cLat, cLng] =
+        sortOrder === "nearest" && userPosition ? userPosition : sortCenter;
+      const near = (c: Cafe) => (c.lat - cLat) ** 2 + (c.lng - cLng) ** 2;
+      const sorted = [...pool];
+      if (sortOrder === "rating") {
+        // 評価順。まだ誰も付けていない店は下へ。同点なら近いほうを先に
+        sorted.sort((a, b) => {
+          const ra = ratingFor(a.id).average ?? -1;
+          const rb = ratingFor(b.id).average ?? -1;
+          if (ra !== rb) return rb - ra;
+          return near(a) - near(b);
+        });
+      } else {
+        sorted.sort((a, b) => near(a) - near(b));
+      }
+      return sorted.slice(0, limit);
+    },
+    [sortCenter, sortOrder, userPosition, ratingFor]
+  );
+
+  // 縦リストは「この辺のお店」なので、地図に映っている範囲で切る
+  const listed = useMemo(() => rank(visible, 200), [rank, visible]);
+
+  // 横スライドは範囲で切らない。
+  //
+  // 映っている店だけにすると、端まで送ったときに足すものが無くなって
+  // そこで止まる。並びは近い順なので、頭は結局いま映っている店から始まり、
+  // 送るほど外側の店へ続いていく。地図のピンは今までどおり範囲内だけ
+  const ranked = useMemo(
+    () =>
+      rank(
+        allCafes.filter((c) =>
+          passesFilters(c, filters, statsByCafe[c.id] ?? null, favorites, verifiedOutletIds)
+        ),
+        Infinity
+      ),
+    [rank, allCafes, filters, statsByCafe, favorites, verifiedOutletIds]
+  );
 
   // カードに並べる一覧。店を選んでいる間は、選び始めたときの並びのまま。
   // 送っている途中で並びが差し替わると、真ん中の判定が別の店を指してしまう
-  const strip = selected && frozenStrip.length > 0 ? frozenStrip : listed;
+  const strip = selected && frozenStrip.length > 0 ? frozenStrip : ranked;
 
   const focusCafe = useCallback(
     (cafe: Cafe, zoomIn = true) => {
@@ -612,7 +635,7 @@ function GoogleMapView() {
       // 「選んでいなければ取る」ではなく「取っていなければ取る」で判定する。
       // 並び替えたときは選択を残したまま並びだけ捨てるので、前者だと
       // 取り直されず、送っている途中に地図の動きで並びが入れ替わってしまう
-      setFrozenStrip((prev) => (prev.length > 0 ? prev : listed));
+      setFrozenStrip((prev) => (prev.length > 0 ? prev : ranked));
       selectedIdRef.current = cafe.id;
       setSelected(cafe);
       hasMovedRef.current = true;
@@ -631,15 +654,17 @@ function GoogleMapView() {
       const shift = Math.round((el?.clientHeight ?? 0) * 0.22);
       if (shift > 0) window.setTimeout(() => map.panBy(0, shift), 0);
     },
-    [map, listed]
+    [map, ranked]
   );
 
   // 指が止まってから、いちばん真ん中に近いカードの店を選ぶ
   const handleStripScroll = useCallback(() => {
-    // 端に近づいたら次の20件を足す
+    // 端に近づいたら次の20件を足す。指を止めずに送り続けられるよう、
+    // 最後のカードに着く前に足しておく。並びは変えないので、続きは
+    // そのまま「おすすめ順/近い順/評価順」の続きになる
     const el0 = stripRef.current;
-    if (el0 && el0.scrollLeft + el0.clientWidth >= el0.scrollWidth - el0.clientWidth) {
-      setStripCount((n) => n + 20);
+    if (el0 && el0.scrollLeft >= el0.scrollWidth - el0.clientWidth * 2) {
+      setStripCount((n) => (n < strip.length ? n + 20 : n));
     }
     window.clearTimeout(stripTimerRef.current);
     stripTimerRef.current = window.setTimeout(() => {
@@ -792,13 +817,13 @@ function GoogleMapView() {
   useEffect(() => {
     if (!sortChangedRef.current) return;
     sortChangedRef.current = false;
-    const first = listed[0];
+    const first = ranked[0];
     if (!first) return;
     stripRef.current?.scrollTo({ left: 0 });
     // state の更新を effect の中で直に呼ばないよう、1拍ずらす
     const timer = window.setTimeout(() => focusCafe(first, false), 0);
     return () => window.clearTimeout(timer);
-  }, [listed, focusCafe]);
+  }, [ranked, focusCafe]);
 
   // 検索語。空白で区切った語をすべて含むものを探す。
   // 「スターバックス 五反田」のように打つ人が多く、そのまま1語として
