@@ -53,6 +53,7 @@ import AdBanner from "@/components/AdBanner";
 import BookmarkIcon from "@/components/BookmarkIcon";
 import { distanceMeters, formatDistance } from "@/lib/geoDistance";
 import { useReporterProgress } from "@/lib/useReporterProgress";
+import { useCafeRatings } from "@/lib/useCafeRatings";
 import type { CafeStats } from "@/lib/types";
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -119,6 +120,7 @@ function PinBody({
         filter: selected ? "drop-shadow(0 0 3px #fff) drop-shadow(0 2px 4px rgba(0,0,0,.5))" : undefined,
       }}
     >
+      {selected && <span className="cf-selected-pulse" />}
       <div dangerouslySetInnerHTML={{ __html: pinHtml(cafe, statusColor, verifiedOutletIds) }} />
       {saved && (
         <span className="absolute -top-1 -right-1 rounded-full bg-white p-[1px] shadow leading-none">
@@ -455,6 +457,8 @@ function GoogleMapView() {
   // 横カード列。真ん中のカードを拾うために実体を持つ
   const stripRef = useRef<HTMLDivElement | null>(null);
   const stripTimerRef = useRef<number>(0);
+  // 横スライドの操作で選んだか。そうならカードを送り直さない
+  const fromStripRef = useRef(false);
   // 下の帯(横カード列＋リスト)の実際の高さ。現在地ボタンをこの上に置く。
   // 数値を決め打ちにすると、リストを開いた時に必ず重なる
   const bottomRef = useRef<HTMLDivElement | null>(null);
@@ -485,6 +489,7 @@ function GoogleMapView() {
   const verifiedOutletIds = useVerifiedOutlets();
   // 送った件数と称号。報告しても本人には何も返らないので、ここで返す
   const progress = useReporterProgress();
+  const { ratingFor, submitting: ratingSubmitting, rate } = useCafeRatings();
 
   const allCafes = useMemo(() => [...seedCafes, ...userCafes], [userCafes]);
 
@@ -566,12 +571,12 @@ function GoogleMapView() {
       // 横カード列を送っているときは寄せない。勝手に拡大されると、
       // それまで見ていた範囲が分からなくなる
       if (zoomIn && (map.getZoom() ?? 16) < 18) map.setZoom(18);
-      // 吹き出しはピンの上に出るので、ピンが画面の上のほうにあると
-      // 店名がヘッダーに重なる。地図を少し上へ送って、ピンを画面の
-      // 下寄りに置き、上に吹き出しのぶんの余地を作る
+      // 店舗情報は画面の下に出るので、ピンが下寄りだとカードに隠れる。
+      // 地図を送ってピンを画面の上のほうへ移し、下にカードのぶんの余地を作る。
+      // 吹き出しが上に出ていた頃の名残で、向きが逆になっていた
       const el = map.getDiv();
-      const shift = Math.round((el?.clientHeight ?? 0) * 0.26);
-      if (shift > 0) window.setTimeout(() => map.panBy(0, -shift), 0);
+      const shift = Math.round((el?.clientHeight ?? 0) * 0.22);
+      if (shift > 0) window.setTimeout(() => map.panBy(0, shift), 0);
     },
     [map]
   );
@@ -595,7 +600,10 @@ function GoogleMapView() {
       }
       if (!bestId) return;
       const cafe = listed.find((c) => c.id === bestId);
-      if (cafe && cafe.id !== selectedIdRef.current) focusCafe(cafe, false);
+      if (cafe && cafe.id !== selectedIdRef.current) {
+        fromStripRef.current = true;
+        focusCafe(cafe, false);
+      }
     }, 140);
   }, [listed, focusCafe]);
 
@@ -703,6 +711,12 @@ function GoogleMapView() {
   // 送ったことでスクロールの判定がまた走るが、同じ店なので何も起きない
   useEffect(() => {
     if (!selected) return;
+    // 横スライドの操作で選ばれた場合は、こちらから送り直さない。
+    // 送り直すとまた真ん中の判定が走り、店が次々に選ばれて止まらなくなる
+    if (fromStripRef.current) {
+      fromStripRef.current = false;
+      return;
+    }
     const el = stripRef.current?.querySelector<HTMLElement>(
       `[data-cafe-id="${CSS.escape(selected.id)}"]`
     );
@@ -833,6 +847,9 @@ function GoogleMapView() {
             return;
           }
           setSuggestOpen(false);
+          // カードのバツ印を消したので、地図の何もない所を押すのが閉じ方
+          selectedIdRef.current = null;
+          setSelected(null);
         }}
         style={{ width: "100%", height: "100%" }}
       >
@@ -1086,63 +1103,69 @@ function GoogleMapView() {
           取れず、店名が切れる・欄がはみ出す問題が最後まで残った)。
           縦リストの中身は、カードが広がっている間は畳んでおく */}
       <div ref={bottomRef} className="absolute inset-x-0 bottom-0 z-10">
+          {/* 選んだお店の情報。横スライドの中に入れるとカードの幅が変わり、
+              真ん中の判定が動いて選択が止まらなくなる。上に別で出す */}
+          {selected && (
+            <div className="mx-2 mb-1.5 rounded-xl border-2 border-blue-600 bg-white shadow-xl px-3 py-2">
+              <CafeCard
+                cafe={selected}
+                stats={statsByCafe[selected.id] ?? null}
+                facts={factsByCafe[selected.id] ?? []}
+                isUserAdded={userCafeIds.has(selected.id)}
+                userPosition={userPosition}
+                isFavorite={favorites.has(selected.id)}
+                isFlagged={flaggedByMe.has(selected.id)}
+                reportSubmitting={submitting === selected.id}
+                factSubmitting={factSubmitting === selected.id}
+                reportError={reportError}
+                factError={factError}
+                onClose={() => {
+                  selectedIdRef.current = null;
+                  setSelected(null);
+                }}
+                onToggleFavorite={() => handleToggleFavorite(selected.id)}
+                onReportOccupancy={async (lv) => {
+                  await submitOccupancy(selected.id, lv);
+                  reportedOk();
+                }}
+                onSubmitFact={async (patch) => {
+                  await submitFact(selected.id, patch);
+                  reportedOk();
+                }}
+                rating={ratingFor(selected.id)}
+                ratingSubmitting={ratingSubmitting === selected.id}
+                onRate={(score) => rate(selected.id, score)}
+                onFlag={() => flagCafe(selected.id)}
+                onSubmitCorrection={(m) => submitCorrection(selected.id, m)}
+              />
+            </div>
+          )}
+
           {listed.length > 0 && (
             <div
               ref={stripRef}
               onScroll={handleStripScroll}
-              className="overflow-x-auto flex gap-2 px-[calc(50%-93px)] pb-2 snap-x snap-mandatory [scrollbar-width:none]"
+              className="overflow-x-auto flex gap-2 px-[calc(50%-75px)] pb-2 snap-x snap-mandatory [scrollbar-width:none]"
             >
               {listed.slice(0, 20).map((cafe) => {
                 const stats = statsByCafe[cafe.id] ?? null;
                 const lv = stats ? pickMajority(stats.seatingOccupancyCounts) : null;
-                  // 選んだ店のカードだけ広げ、その中に店舗情報を出す。
-                  // 他のカードは店名と記号だけの細いままにして、送れば
-                  // 隣の店へ移れるようにする
-                  const isOpen = selected?.id === cafe.id;
-                  if (isOpen) {
-                    return (
-                      <div
-                        key={cafe.id}
-                        data-cafe-id={cafe.id}
-                        className="snap-center shrink-0 w-[86vw] max-w-[360px] rounded-xl border-2 border-blue-600 bg-white shadow-xl px-3 py-2"
-                      >
-                        <CafeCard
-                          cafe={cafe}
-                          stats={stats}
-                          facts={factsByCafe[cafe.id] ?? []}
-                          isUserAdded={userCafeIds.has(cafe.id)}
-                          userPosition={userPosition}
-                          isFavorite={favorites.has(cafe.id)}
-                          isFlagged={flaggedByMe.has(cafe.id)}
-                          reportSubmitting={submitting === cafe.id}
-                          factSubmitting={factSubmitting === cafe.id}
-                          reportError={reportError}
-                          factError={factError}
-                          onClose={() => {
-                            selectedIdRef.current = null;
-                            setSelected(null);
-                          }}
-                          onToggleFavorite={() => handleToggleFavorite(cafe.id)}
-                          onReportOccupancy={async (lv) => {
-                            await submitOccupancy(cafe.id, lv);
-                            reportedOk();
-                          }}
-                          onSubmitFact={async (patch) => {
-                            await submitFact(cafe.id, patch);
-                            reportedOk();
-                          }}
-                          onFlag={() => flagCafe(cafe.id)}
-                          onSubmitCorrection={(m) => submitCorrection(cafe.id, m)}
-                        />
-                      </div>
-                    );
-                  }
+                  // カードの幅は選んでも変えない。
+                  //
+                  // 以前は選んだカードだけ広げていたが、幅が変わる → 真ん中に
+                  // 来るカードが変わる → その店が選ばれる → また幅が変わる、で
+                  // 選択が止まらなくなっていた。店舗情報は横スライドの中では
+                  // なく、その上に別に出す
                   return (
                   <button
                     key={cafe.id}
                     data-cafe-id={cafe.id}
                     onClick={() => focusCafe(cafe)}
-                    className="snap-center shrink-0 w-[152px] text-left rounded-xl border border-gray-200 bg-white shadow-lg px-2.5 py-1.5"
+                    className={`snap-center shrink-0 w-[150px] text-left rounded-lg border bg-white shadow px-2 py-1 ${
+                      selected?.id === cafe.id
+                        ? "border-blue-600 ring-1 ring-blue-500"
+                        : "border-gray-200"
+                    }`}
                   >
                     <span className="flex items-center gap-1">
                       {favorites.has(cafe.id) && (

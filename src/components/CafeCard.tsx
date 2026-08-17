@@ -25,6 +25,7 @@ import {
 } from "@/lib/useCafeFacts";
 import { nearestStationWalkMinutes } from "@/lib/lookupCafe";
 import BookmarkIcon from "@/components/BookmarkIcon";
+import StarRating from "@/components/StarRating";
 import { distanceMeters, formatDistance } from "@/lib/geoDistance";
 import type { CafeFact } from "@/lib/types";
 
@@ -48,6 +49,10 @@ type Props = {
   isUserAdded: boolean;
   /** 現在地。分かっているときだけ距離を出す */
   userPosition: [number, number] | null;
+  /** 評価の平均・件数と、自分が付けた点 */
+  rating: { average: number | null; count: number; mine: number | null };
+  ratingSubmitting: boolean;
+  onRate: (score: number) => void;
   isFavorite: boolean;
   isFlagged: boolean;
   reportSubmitting: boolean;
@@ -158,7 +163,7 @@ export default function CafeCard(props: Props) {
   return (
     // 横カードの中身。カードの幅いっぱいを使い、高さだけ上限をかけて
     // 中をスクロールさせる
-    <div className="w-full max-h-[26vh] flex flex-col text-gray-900 text-[12px]">
+    <div className="w-full max-h-[21vh] flex flex-col text-gray-900 text-[12px]">
       {/* 店名は上に貼り付ける。中をスクロールしても、どの店を見ているかが消えない */}
       <div className="shrink-0 pb-2 border-b border-gray-200">
         <div className="flex items-start gap-1.5">
@@ -169,15 +174,21 @@ export default function CafeCard(props: Props) {
             >
               {cafe.name}
             </h2>
-            <p className="text-[11px] text-gray-600 mt-0.5 truncate">
-              {lang === "en" ? `🚶 ${walk} min` : `🚶 駅から${walk}分`}
-              {here != null && (
-                <span className="ml-1.5 text-blue-800 font-semibold">
-                  {lang === "en" ? `📍 ${here}` : `📍 現在地から約${here}`}
-                </span>
-              )}
+            {/* 現在地からの距離を先頭に太字で。歩いて探しているときに
+                いちばん先に知りたいのはここ。次に駅からの分数、評価 */}
+            <p className="flex items-center gap-1.5 text-[11px] mt-0.5 whitespace-nowrap">
+              {here != null && <span className="text-blue-800 font-bold">📍 {here}</span>}
+              <span className="text-gray-600">
+                {lang === "en" ? `🚶 ${walk}m` : `🚶 駅${walk}分`}
+              </span>
+              <StarRating value={props.rating.average} size={12} />
+              <span className="text-gray-600">
+                {props.rating.count > 0
+                  ? `${props.rating.average!.toFixed(1)} (${props.rating.count})`
+                  : "–"}
+              </span>
               {props.isUserAdded && (
-                <span className="ml-2 text-amber-700">{t("gmap.userAdded")}</span>
+                <span className="text-amber-700">{t("gmap.userAdded")}</span>
               )}
             </p>
           </div>
@@ -189,7 +200,9 @@ export default function CafeCard(props: Props) {
           >
             <BookmarkIcon filled={props.isFavorite} size={17} />
           </button>
+          {/* バツ印は置かない。地図の何もない所を押せば閉じる(Googleマップと同じ) */}
           <button
+            hidden
             onClick={props.onClose}
             aria-label={t("gmap.close")}
             className="shrink-0 text-[14px] leading-none w-6 h-6 flex items-center justify-center text-gray-500"
@@ -200,6 +213,21 @@ export default function CafeCard(props: Props) {
       </div>
 
       <div className="overflow-y-auto overscroll-contain pt-1.5">
+        {/* 自分の評価。押した点はすぐ星に反映する */}
+        <Section title={t("gmap.rateLabel")}>
+          <div className="flex items-center gap-2">
+            <StarRating
+              value={props.rating.mine}
+              size={20}
+              disabled={props.ratingSubmitting}
+              onRate={props.onRate}
+            />
+            {props.rating.mine != null && (
+              <span className="text-[10px] text-gray-600">{t("gmap.rated")}</span>
+            )}
+          </div>
+        </Section>
+
         {/* いまの様子。30分で消える情報なので、いちばん上に置く */}
         <Section title={t("gmap.nowLabel")}>
           <div className="text-[12px] font-bold text-gray-900">
