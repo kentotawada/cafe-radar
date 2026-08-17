@@ -461,6 +461,8 @@ function GoogleMapView() {
   const fromStripRef = useRef(false);
   // 並び順を押したか。押した直後だけ、新しい先頭の店を開く
   const sortChangedRef = useRef(false);
+  // 真ん中へ送りたい店。カードが出来た回に送る
+  const pendingScrollRef = useRef<string | null>(null);
   // カードに並べる一覧。店を選んでいる間は入れ替えない。
   // 地図が動くと listed の中身が変わり、送っている途中で並びが差し替わって
   // 「選択が変わるときと変わらないときがある」状態になっていた
@@ -630,12 +632,18 @@ function GoogleMapView() {
 
   const focusCafe = useCallback(
     (cafe: Cafe, zoomIn = true) => {
-      // 選び始めたときの並びを取っておく。以降はこの並びを送る。
+      // 横スライドで選ばれたときは、並びをそのまま保つ。送っている途中に
+      // 足元が入れ替わると、真ん中の判定が別の店を指してしまう。
       //
-      // 「選んでいなければ取る」ではなく「取っていなければ取る」で判定する。
-      // 並び替えたときは選択を残したまま並びだけ捨てるので、前者だと
-      // 取り直されず、送っている途中に地図の動きで並びが入れ替わってしまう
-      setFrozenStrip((prev) => (prev.length > 0 ? prev : ranked));
+      // ピンをタップした / リストや検索から選んだときは、その店を先頭にして
+      // 並べ直す。並びは地図の中心からの近さなので、中心が古いままだと
+      // タップした店が並びのずっと後ろにいることがある。カードは先頭から
+      // 20枚ずつしか描いていないので、その場合カードが1枚も無く、
+      // 「ピンを押しても横リストが変わらない」ように見えていた
+      if (!fromStripRef.current) {
+        setFrozenStrip([cafe, ...ranked.filter((c) => c.id !== cafe.id)]);
+        setStripCount(20);
+      }
       selectedIdRef.current = cafe.id;
       setSelected(cafe);
       hasMovedRef.current = true;
@@ -803,11 +811,23 @@ function GoogleMapView() {
       fromStripRef.current = false;
       return;
     }
-    const el = stripRef.current?.querySelector<HTMLElement>(
-      `[data-cafe-id="${CSS.escape(selected.id)}"]`
-    );
-    el?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+    // ここで送ろうとしても、並べ直したカードがまだ画面に出来ていないことが
+    // ある。予約だけしておいて、実際に出来た回に送る
+    pendingScrollRef.current = selected.id;
   }, [selected]);
+
+  // 予約された店のカードが画面に出来ていたら、真ん中へ送る。
+  // 毎回の描画のあとに見るが、予約が無ければ何もしない
+  useEffect(() => {
+    const id = pendingScrollRef.current;
+    if (!id) return;
+    const el = stripRef.current?.querySelector<HTMLElement>(
+      `[data-cafe-id="${CSS.escape(id)}"]`
+    );
+    if (!el) return;
+    pendingScrollRef.current = null;
+    el.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  });
 
   // 並び順を押した直後に、新しい先頭の店を開く。
   //
