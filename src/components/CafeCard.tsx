@@ -26,6 +26,7 @@ import { nearestStationWalkMinutes } from "@/lib/lookupCafe";
 import BookmarkIcon from "@/components/BookmarkIcon";
 import StarRating from "@/components/StarRating";
 import { distanceMeters, formatDistance } from "@/lib/geoDistance";
+import { useCafeHours, closedDaysOf, todayHoursOf } from "@/lib/useCafeHours";
 import type { CafeFact } from "@/lib/types";
 
 // 店舗情報。横スライドのカードの中身。
@@ -45,6 +46,8 @@ type Props = {
   stats: CafeStats | null;
   facts: CafeFact[];
   isUserAdded: boolean;
+  /** このカードが選ばれているか。営業時間を取りに行くのはこの1枚だけ */
+  active: boolean;
   /** 現在地。分かっているときだけ距離を出す */
   userPosition: [number, number] | null;
   /** 評価の平均・件数と、自分が付けた点 */
@@ -114,6 +117,10 @@ export default function CafeCard(props: Props) {
   const [fix, setFix] = useState("");
   const [fixSent, setFixSent] = useState(false);
   const [fixError, setFixError] = useState(false);
+
+  // 公表されている営業時間。報告を待たずに埋められる項目なので、
+  // 編集部調べが無い店はここから補う
+  const gHours = useCafeHours(cafe.id, props.active);
 
   const f = summarise(facts);
   const level = stats ? pickMajority(stats.seatingOccupancyCounts) : null;
@@ -318,13 +325,22 @@ export default function CafeCard(props: Props) {
               value={cafe.seatCountInfo ?? null}
               empty={t("gmap.notYet")}
             />
+            {/* 営業時間。編集部調べがあればそれを、無ければ公表されている
+                ものを出す。どちらから来た値かは末尾で分かるようにする */}
             <InfoRow
               label={t("gmap.hours")}
               value={
                 cafe.hoursInfo
                   ? `${cafe.hoursInfo}${cafe.closedDaysInfo ? ` / ${cafe.closedDaysInfo}` : ""}`
+                  : gHours
+                  ? `${todayHoursOf(gHours) ?? ""}（本日）`
                   : null
               }
+              empty={t("gmap.notYet")}
+            />
+            <InfoRow
+              label={t("gmap.closedDays")}
+              value={cafe.closedDaysInfo ?? (gHours ? closedDaysOf(gHours) ?? "無休" : null)}
               empty={t("gmap.notYet")}
             />
             <InfoRow

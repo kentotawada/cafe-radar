@@ -1296,6 +1296,7 @@ function GoogleMapView() {
                           stats={stats}
                           facts={factsByCafe[cafe.id] ?? []}
                           isUserAdded={userCafeIds.has(cafe.id)}
+                          active={isOpen}
                           userPosition={userPosition}
                           isFavorite={favorites.has(cafe.id)}
                           isFlagged={flaggedByMe.has(cafe.id)}

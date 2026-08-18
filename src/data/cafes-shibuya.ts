@@ -93,5 +93,5 @@ export const cafes: Cafe[] = [
   { id: "shibuya-72", name: "ガスト 渋谷道玄坂店", address: "東京都渋谷区道玄坂2-11-4 ストークビル道玄坂2F", lat: 35.657658, lng: 139.695984, outletInfo: "電源席あり(口コミで好評)", smokingInfo: "敷地内全面禁煙(すかいらーくグループ方針)", wifiInfo: "無料Wi-Fiあり(すかいらーくグループ共通、メール/SNS登録・1回60分)", seatCountInfo: "67席", hoursInfo: "7:00〜23:00", closedDaysInfo: "年中無休", website: "https://www.skylark.co.jp/gusto/" },
   { id: "shibuya-73", name: "デニーズ 渋谷南平台店", address: "東京都渋谷区南平台町16-11 MFPR渋谷南平台ビル1F", lat: 35.653381, lng: 139.694092, smokingInfo: "全店全面禁煙", wifiInfo: "無料Wi-Fiあり(デニーズFree Wi-Fi、1回60分・1日3回まで)", seatCountInfo: "100席", hoursInfo: "6:45〜23:00", closedDaysInfo: "年中無休", website: "https://www.dennys.jp/" },
   { id: "shibuya-74", name: "ブルーボトルコーヒー 渋谷カフェ", address: "東京都渋谷区神南1-7-3 渋谷区立北谷公園内", lat: 35.663971, lng: 139.699509, smokingInfo: "全席禁煙", seatCountInfo: "55席(1F10・2F33・屋外ベンチ12予定)", hoursInfo: "8:00〜20:00" },
-  { id: "shibuya-75", name: "猿田彦珈琲 渋谷道玄坂店", address: "東京都渋谷区道玄坂2-25-12 道玄坂通1F", lat: 35.660221, lng: 139.697479, seatCountInfo: "40席", hoursInfo: "7:30〜22:00", closedDaysInfo: "不定休" },
+  { id: "shibuya-75", name: "猿田彦珈琲 渋谷道玄坂店", address: "東京都渋谷区道玄坂2-25-12 道玄坂通1F", lat: 35.660221, lng: 139.697479, seatCountInfo: "40席", hoursInfo: "7:30〜22:00", closedDaysInfo: "不定休", website: "https://brand.sarutahiko.jp/" },
 ];

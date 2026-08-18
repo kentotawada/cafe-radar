@@ -98,7 +98,7 @@ export const cafes: Cafe[] = [
   { id: "ueno-73", name: "不純喫茶 ドープ 上野御徒町店", address: "東京都台東区上野1-8-3 上野鈴木ビル1F", lat: 35.705868, lng: 139.770538, smokingInfo: "全席禁煙", hoursInfo: "月〜木12:00〜21:00、金12:00〜23:00、土10:00〜23:00、日10:00〜21:00" },
   { id: "ueno-74", name: "西園休憩所", address: "東京都台東区上野公園9-83", lat: 35.715878, lng: 139.772903 },
   { id: "ueno-75", name: "& Here Cafe", address: "東京都台東区上野2-11-18 &Here TOKYO UENO 1F", lat: 35.70937, lng: 139.770905, outletInfo: "電源あり", smokingInfo: "全席禁煙", seatCountInfo: "40席(テーブル席・ソファ席)", hoursInfo: "10:00〜18:00(宿泊者以外の利用は10:00〜18:00のみ)" },
-  { id: "ueno-76", name: "フレッシュネスバーガー 東上野店", address: "東京都台東区東上野1-11-13 Nasic東上野1F", lat: 35.707695, lng: 139.778519, outletInfo: "電源あり", smokingInfo: "全席禁煙", seatCountInfo: "27席", hoursInfo: "8:00〜21:00" },
+  { id: "ueno-76", name: "フレッシュネスバーガー 東上野店", address: "東京都台東区東上野1-11-13 Nasic東上野1F", lat: 35.707695, lng: 139.778519, outletInfo: "電源あり", smokingInfo: "全席禁煙", seatCountInfo: "27席", hoursInfo: "8:00〜21:00", website: "https://www.freshnessburger.co.jp/" },
   { id: "ueno-77", name: "カフェ メイプル", address: "東京都台東区東上野3-1-12", lat: 35.709908, lng: 139.782425, smokingInfo: "全席喫煙可", seatCountInfo: "30席" },
   { id: "ueno-78", name: "上野亀井堂 上野広小路本店", address: "東京都台東区上野4-5-6", lat: 35.70911, lng: 139.77356, smokingInfo: "全席禁煙", hoursInfo: "11:00〜19:00", closedDaysInfo: "月曜日(繁忙期および祝日の場合は営業)" },
   { id: "ueno-79", name: "ソラツナスタンド", address: "東京都台東区上野6-8-2", lat: 35.708969, lng: 139.775543, smokingInfo: "分煙(テラス席は喫煙可)", hoursInfo: "17:00〜23:00" },
