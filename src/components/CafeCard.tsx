@@ -74,16 +74,33 @@ function InfoRow({
   label,
   value,
   empty,
+  href,
 }: {
   label: string;
   value: string | null;
   empty: string;
+  /** 値そのものが行き先になる行(公式サイトなど)。押したらそこへ飛ぶ */
+  href?: string | null;
 }) {
   return (
     <div className="flex items-baseline gap-2 py-1 border-b border-gray-100 last:border-b-0">
       <dt className="shrink-0 w-[104px] text-[11px] text-gray-700">{label}</dt>
       <dd className={`min-w-0 text-[12px] ${value ? "font-bold text-gray-900" : "text-gray-400"}`}>
-        {value ?? empty}
+        {value && href ? (
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            // 押せることが見て分かるように、青の下線にする。
+            // 長いURLは折り返さず端で切る(カードの高さが変わると、
+            // 横に送ったときの見え方が揃わなくなるため)
+            className="block truncate text-blue-700 underline"
+          >
+            {value}
+          </a>
+        ) : (
+          (value ?? empty)
+        )}
       </dd>
     </div>
   );
@@ -346,6 +363,7 @@ export default function CafeCard(props: Props) {
             <InfoRow
               label={t("gmap.official")}
               value={website}
+              href={website}
               empty={t("gmap.notYet")}
             />
           </dl>
