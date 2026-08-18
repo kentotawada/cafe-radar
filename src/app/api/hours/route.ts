@@ -23,6 +23,9 @@ type HoursResponse = {
   googleMapsUri: string | null;
 };
 
+// 直前の問い合わせで何が起きたか。?debug=1 のときだけ返す
+let lastError: string | null = null;
+
 /** 店名と住所で場所を探して place ID を得る。見つからなければ null */
 async function findPlaceId(cafe: {
   name: string;
@@ -51,9 +54,14 @@ async function findPlaceId(cafe: {
       },
     }),
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    lastError = `searchText ${res.status}: ${(await res.text()).slice(0, 300)}`;
+    return null;
+  }
   const json = (await res.json()) as { places?: { id?: string }[] };
-  return json.places?.[0]?.id ?? null;
+  const id = json.places?.[0]?.id ?? null;
+  if (!id) lastError = "searchText: 一致する場所が見つからなかった";
+  return id;
 }
 
 async function fetchHours(placeId: string): Promise<HoursResponse | null> {
@@ -66,26 +74,39 @@ async function fetchHours(placeId: string): Promise<HoursResponse | null> {
       },
     }
   );
-  if (!res.ok) return null;
+  if (!res.ok) {
+    lastError = `placeDetails ${res.status}: ${(await res.text()).slice(0, 300)}`;
+    return null;
+  }
   const json = (await res.json()) as {
     regularOpeningHours?: { weekdayDescriptions?: string[] };
     googleMapsUri?: string;
   };
   const lines = json.regularOpeningHours?.weekdayDescriptions ?? [];
-  if (lines.length === 0) return null;
+  if (lines.length === 0) {
+    lastError = "placeDetails: この場所に営業時間が登録されていない";
+    return null;
+  }
   return { weekdayDescriptions: lines, googleMapsUri: json.googleMapsUri ?? null };
 }
 
 export async function GET(request: NextRequest) {
   const cafeId = request.nextUrl.searchParams.get("cafeId");
+  // ?debug=1 を付けると、どこで止まったかを返す。設定を直すときに、
+  // 「出ない」以外の手がかりが無いと調べようがないため
+  const debug = request.nextUrl.searchParams.get("debug") === "1";
+  const answer = (hours: HoursResponse | null, where: string) =>
+    NextResponse.json(debug ? { hours, where, detail: lastError } : { hours });
+
+  lastError = null;
   if (!cafeId) {
     return NextResponse.json({ error: "cafeId が必要です" }, { status: 400 });
   }
   // 鍵が無い環境(手元など)では、何も出さずに終わる
-  if (!KEY) return NextResponse.json({ hours: null });
+  if (!KEY) return answer(null, "GOOGLE_PLACES_API_KEY が設定されていない");
 
   const cafe = await lookupCafeById(cafeId);
-  if (!cafe) return NextResponse.json({ hours: null });
+  if (!cafe) return answer(null, "その cafeId の店が見つからない");
 
   // 覚えている place ID を先に見る
   let placeId: string | null = null;
@@ -113,8 +134,8 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  if (!placeId) return NextResponse.json({ hours: null });
+  if (!placeId) return answer(null, "Google 側でこの店の場所を特定できなかった");
 
   const hours = await fetchHours(placeId);
-  return NextResponse.json({ hours });
+  return answer(hours, hours ? "ok" : "営業時間を取得できなかった");
 }
