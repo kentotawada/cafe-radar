@@ -144,6 +144,7 @@ function ClusteredCafeMarker({
   register,
   verifiedOutletIds,
   saved,
+  hidden,
 }: {
   cafe: Cafe;
   stats: CafeStats | null;
@@ -151,6 +152,8 @@ function ClusteredCafeMarker({
   register: (id: string, marker: Marker | null) => void;
   verifiedOutletIds: Set<string>;
   saved: boolean;
+  /** 選ばれている店。目立たせたピンを別に重ねるので、こちらは透明にする */
+  hidden: boolean;
 }) {
   const ref = useCallback(
     (marker: Marker | null) => register(cafe.id, marker),
@@ -164,13 +167,15 @@ function ClusteredCafeMarker({
       title={cafe.name}
       anchorPoint={pinAnchorPoint(cafe, verifiedOutletIds)}
     >
-      <PinBody
-        cafe={cafe}
-        statusColor={statusColorForStats(stats)}
-        verifiedOutletIds={verifiedOutletIds}
-        saved={saved}
-        selected={false}
-      />
+      <div style={hidden ? { opacity: 0, pointerEvents: "none" } : undefined}>
+        <PinBody
+          cafe={cafe}
+          statusColor={statusColorForStats(stats)}
+          verifiedOutletIds={verifiedOutletIds}
+          saved={saved}
+          selected={false}
+        />
+      </div>
     </AdvancedMarker>
   );
 }
@@ -183,12 +188,14 @@ function CafeMarkers({
   onSelect,
   verifiedOutletIds,
   favorites,
+  selectedId,
 }: {
   cafes: Cafe[];
   statsByCafe: Record<string, CafeStats>;
   onSelect: (cafe: Cafe) => void;
   verifiedOutletIds: Set<string>;
   favorites: Set<string>;
+  selectedId: string | null;
 }) {
   const map = useMap();
   // 集めたマーカーは ref に持つ。state にすると ref が付くたびに再描画が走る
@@ -226,6 +233,7 @@ function CafeMarkers({
           register={register}
           verifiedOutletIds={verifiedOutletIds}
           saved={favorites.has(cafe.id)}
+          hidden={cafe.id === selectedId}
         />
       ))}
     </>
@@ -467,9 +475,14 @@ function GoogleMapView() {
   // 地図が動くと listed の中身が変わり、送っている途中で並びが差し替わって
   // 「選択が変わるときと変わらないときがある」状態になっていた
   const [frozenStrip, setFrozenStrip] = useState<Cafe[]>([]);
-  // 何件まで並べるか。端まで送ったら20件ずつ足す。最初から全部並べると、
-  // 都心では数百枚のカードを作ることになって重い
-  const [stripCount, setStripCount] = useState(20);
+  // 何件まで並べるか。端まで送ったら8件ずつ足す。最初から全部並べると、
+  // 都心では数百枚のカードを作ることになって重い。
+  //
+  // 20件ずつにしていたが、カードを全部「店舗情報つき」で描くように変えて
+  // から、店を選び直すたびに20枚分を組み直すことになった。その間はほかの
+  // 指の操作が待たされ、ピンを押しても反応しないことがあった。
+  // 見えているのは常に1枚なので、少しずつ足りる
+  const [stripCount, setStripCount] = useState(8);
   // 並び順。地図にピンがたくさんあるとき、どれから見ればよいか決められる
   const [sortOrder, setSortOrder] = useState<"recommended" | "nearest" | "rating">(
     "recommended"
@@ -571,16 +584,18 @@ function GoogleMapView() {
   }, [bounds, filters, statsByCafe, favorites, allCafes, verifiedOutletIds]);
   const capped = visible.length >= MAX_MARKERS;
 
-  // クラスタに載せるピン。選んだ店だけは単独で出すので外す。
+  // クラスタに載せるピンは、見えている店ぜんぶ。選んだ店も外さない。
   //
-  // ここを JSX の中で visible.filter(...) と書いていたら、描画のたびに新しい
-  // 配列になり、クラスタを作り直す effect が毎回走っていた。作り直しは
-  // 「全部消す → 付け直す」なので、付け直しが済む前の一瞬はピンが0個になる。
-  // 「地図にピンが出ない」のはこれだった
-  const clustered = useMemo(
-    () => visible.filter((c) => c.id !== selected?.id),
-    [visible, selected?.id]
-  );
+  // クラスタは「全部消す → 付け直す」でしか作り直せない。付け直しが済む
+  // までの一瞬、ピンは地図に付いていないので、そこを押しても何も起きない。
+  //
+  // 以前はここで選んだ店を配列から外していた。すると店を選ぶたびに配列が
+  // 別物になり、そのたびに数百個のピンを外して付け直していた。
+  // 「歩いているとピンを押しても反応しないことがある」のはこれだった。
+  //
+  // 選んだ店のピンは、目立たせたものを別に重ねて出す。クラスタ側の同じ店は
+  // 二重に見えないよう透明にする(まとまりの数は数えたままにしたいので消さない)
+  const clustered = visible;
 
   // 選んだ並び順で店を並べる。地図の表示範囲で切るかどうかは呼ぶ側が決める
   const rank = useCallback(
@@ -642,7 +657,7 @@ function GoogleMapView() {
       // 「ピンを押しても横リストが変わらない」ように見えていた
       if (!fromStripRef.current) {
         setFrozenStrip([cafe, ...ranked.filter((c) => c.id !== cafe.id)]);
-        setStripCount(20);
+        setStripCount(8);
       }
       selectedIdRef.current = cafe.id;
       setSelected(cafe);
@@ -672,7 +687,7 @@ function GoogleMapView() {
     // そのまま「おすすめ順/近い順/評価順」の続きになる
     const el0 = stripRef.current;
     if (el0 && el0.scrollLeft >= el0.scrollWidth - el0.clientWidth * 2) {
-      setStripCount((n) => (n < strip.length ? n + 20 : n));
+      setStripCount((n) => (n < strip.length ? n + 8 : n));
     }
     window.clearTimeout(stripTimerRef.current);
     stripTimerRef.current = window.setTimeout(() => {
@@ -952,6 +967,10 @@ function GoogleMapView() {
         mapId={MAP_ID}
         defaultCenter={GOTANDA}
         defaultZoom={16}
+        // 指がすべって縮小に化けたときに、世界地図まで引けてしまっていた。
+        // 載っているのは東京だけなので、そこまで引く意味がない。
+        // 11 は関東がひととおり収まるあたり
+        minZoom={11}
         gestureHandling="greedy"
         clickableIcons={false}
         zoomControl={false}
@@ -983,6 +1002,7 @@ function GoogleMapView() {
       >
         <CafeMarkers
           cafes={clustered}
+          selectedId={selected?.id ?? null}
           statsByCafe={statsByCafe}
           onSelect={focusCafe}
           verifiedOutletIds={verifiedOutletIds}
@@ -1107,7 +1127,7 @@ function GoogleMapView() {
                 freezeListRef.current = false;
                 // 探し直したら、カードも先頭の20件からやり直す
                 setFrozenStrip([]);
-                setStripCount(20);
+                setStripCount(8);
                 setDrifted(false);
                 handleIdle();
               }}
@@ -1346,7 +1366,7 @@ function GoogleMapView() {
                 onClick={() => {
                   freezeListRef.current = false;
                   setFrozenStrip([]);
-                  setStripCount(20);
+                  setStripCount(8);
                   // 並べ替えた直後に、新しい先頭の店を開く。
                   //
                   // 選んでいた店はそのまま残るので、順番だけ変わると

@@ -5,7 +5,7 @@ import type { CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { MAP_VIEW_KEY, MAP_UI_KEY, FROM_MAP_KEY } from "@/lib/mapNavigation";
+import { MAP_VIEW_KEY, MAP_UI_KEY, markCameFromMap } from "@/lib/mapNavigation";
 import {
   MapContainer,
   Marker,
@@ -2448,7 +2448,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
   const cardPointerRef = useRef<{ x: number; y: number } | null>(null);
   const openCafeDetail = (cafe: Cafe) => {
     try {
-      window.sessionStorage.setItem(FROM_MAP_KEY, "1");
+      markCameFromMap();
     } catch {
       // 書けなくても遷移自体は成立させる
     }
@@ -3551,7 +3551,7 @@ export default function CafeMap({ legendOpen = false }: { legendOpen?: boolean }
                       // 戻ればよいことを伝える。積んでしまうと地図→詳細→地図
                       // となり、ブラウザの戻るを2回押さないと抜けられない
                       try {
-                        window.sessionStorage.setItem(FROM_MAP_KEY, "1");
+                        markCameFromMap();
                       } catch {
                         // 書けなくても遷移自体は成立させる
                       }

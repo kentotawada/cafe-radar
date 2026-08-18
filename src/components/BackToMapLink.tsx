@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FROM_MAP_KEY } from "@/lib/mapNavigation";
+import { FROM_MAP_KEY, mapPathToReturnTo } from "@/lib/mapNavigation";
 
 // 詳細ページの「地図で見る」。以前は <Link href="/"> で、押すたびに新しい
 // 履歴が積まれていた。地図→詳細→地図 の3件になるため、そこからブラウザの
@@ -47,7 +47,10 @@ export default function BackToMapLink({
       router.back();
       return;
     }
-    router.push("/");
+    // 履歴が使えないときの行き先。/ は古いほうの地図なので、決め打ちで
+    // そこへ送ると「押したら別のカフェレーダーに着く」ことになる。
+    // 見ていた地図を覚えてあるなら、そちらへ帰す
+    router.push(mapPathToReturnTo());
   };
 
   return (

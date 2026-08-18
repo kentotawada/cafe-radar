@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { FROM_MAP_KEY } from "@/lib/mapNavigation";
+import { markCameFromMap } from "@/lib/mapNavigation";
 import type { Cafe } from "@/lib/seedCafes";
 import type { CafeStats, OccupancyLevel, WifiSpeed } from "@/lib/types";
 import { hasOutlet } from "@/lib/cafeAmenities";
@@ -78,7 +78,7 @@ function InfoRow({
 }) {
   return (
     <div className="flex items-baseline gap-2 py-1 border-b border-gray-100 last:border-b-0">
-      <dt className="shrink-0 w-[104px] text-[11px] text-gray-500">{label}</dt>
+      <dt className="shrink-0 w-[104px] text-[11px] text-gray-700">{label}</dt>
       <dd className={`min-w-0 text-[12px] ${value ? "font-bold text-gray-900" : "text-gray-400"}`}>
         {value ?? empty}
       </dd>
@@ -90,7 +90,7 @@ function Block({ title, children }: { title?: string; children: React.ReactNode 
   return (
     <section className="mt-2 first:mt-0">
       {title && (
-        <h3 className="text-[11px] font-bold text-gray-700 mb-1 pl-0.5 border-l-[3px] border-blue-600">
+        <h3 className="text-[11px] font-bold text-gray-900 mb-1 pl-0.5 border-l-[3px] border-blue-600">
           <span className="pl-1.5">{title}</span>
         </h3>
       )}
@@ -165,8 +165,8 @@ export default function CafeCard(props: Props) {
   };
 
   const pill =
-    "flex-1 min-w-0 rounded border border-gray-300 bg-white py-1.5 text-[11px] text-gray-800 disabled:opacity-50 whitespace-nowrap";
-  const fieldLabel = "block text-[11px] font-bold text-gray-700 mb-1";
+    "flex-1 min-w-0 rounded border border-gray-400 bg-white py-1.5 text-[12px] font-bold text-gray-900 disabled:opacity-50 whitespace-nowrap";
+  const fieldLabel = "block text-[12px] font-bold text-gray-900 mb-1";
 
   return (
     <div className="w-full max-h-[22vh] flex flex-col text-gray-900">
@@ -189,7 +189,7 @@ export default function CafeCard(props: Props) {
                 onClick={() => {
                   // 詳細から戻るときに、見ていた地図へ帰れるようにする目印
                   try {
-                    window.sessionStorage.setItem(FROM_MAP_KEY, "1");
+                    markCameFromMap();
                   } catch {
                     // 使えない設定なら、戻り先の判定は referrer に任せる
                   }
@@ -238,6 +238,14 @@ export default function CafeCard(props: Props) {
             <span className="text-[10px] text-amber-700">{t("gmap.userAdded")}</span>
           )}
         </div>
+        {/* 住所。歩いて探しているときは「何丁目か」が分かるだけで
+            だいぶ違う。距離と徒歩分数だけでは、どちらへ歩けばいいのか
+            決められない。長い住所は折り返さず端で切る */}
+        {cafe.address && (
+          <div className="mt-0.5 text-[11px] text-gray-700 truncate">
+            🏠 {cafe.address}
+          </div>
+        )}
       </div>
 
       <div className="overflow-y-auto overscroll-contain pt-1.5">
@@ -372,7 +380,7 @@ export default function CafeCard(props: Props) {
               onClick={() => {
                 // 詳細から戻るときに、見ていた地図へ帰れるようにする目印
                 try {
-                  window.sessionStorage.setItem(FROM_MAP_KEY, "1");
+                  markCameFromMap();
                 } catch {
                   // 使えない設定なら、戻り先の判定は referrer に任せる
                 }
