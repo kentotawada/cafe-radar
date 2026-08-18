@@ -71,11 +71,14 @@ type Props = {
 // 読むところの1行。項目名と値を左右に並べる。値が無い行も消さない。
 // 消すと「情報が無い」ことにすら気づけず、埋める気も起きない
 function InfoRow({
+  icon,
   label,
   value,
   empty,
   href,
 }: {
+  /** 項目の絵記号。文字だけの一覧は、歩きながらだと目で拾えない */
+  icon: string;
   label: string;
   value: string | null;
   empty: string;
@@ -84,7 +87,16 @@ function InfoRow({
 }) {
   return (
     <div className="flex items-baseline gap-2 py-1 border-b border-gray-100 last:border-b-0">
-      <dt className="shrink-0 w-[104px] text-[11px] text-gray-700">{label}</dt>
+      {/* 絵記号の幅は決め打ちにして、項目名の頭を縦に揃える。
+          絵記号ごとに横幅が違うので、揃えないと行がガタつく */}
+      <dt className="shrink-0 w-[104px] text-[11px] text-gray-700 flex items-baseline gap-1">
+        <span className="shrink-0 w-[14px] text-center text-[12px]" aria-hidden>
+          {icon}
+        </span>
+        {/* 長い項目名(英語の "Where the power is" など)は折り返す。
+            端で切ると何の項目か分からなくなる */}
+        <span className="min-w-0 leading-tight">{label}</span>
+      </dt>
       <dd className={`min-w-0 text-[12px] ${value ? "font-bold text-gray-900" : "text-gray-400"}`}>
         {value && href ? (
           <a
@@ -377,21 +389,25 @@ export default function CafeCard(props: Props) {
         <Block title={t("gmap.reported")}>
           <dl>
             <InfoRow
+              icon="🔌"
               label={t("gmap.outletSeatCountLabel")}
               value={f.outletSeatCount != null ? `${f.outletSeatCount}${t("gmap.seats")}` : null}
               empty={t("gmap.notYet")}
             />
             <InfoRow
+              icon="📍"
               label={t("gmap.noteLabel")}
               value={f.notes[0] ?? cafe.outletInfo ?? null}
               empty={t("gmap.notYet")}
             />
             <InfoRow
+              icon="📶"
               label={t("gmap.wifi")}
               value={wifiLine}
               empty={t("gmap.notYet")}
             />
             <InfoRow
+              icon="🎧"
               label={t("gmap.callLabel")}
               value={
                 f.webMeetingOk == null
@@ -403,6 +419,7 @@ export default function CafeCard(props: Props) {
               empty={t("gmap.notYet")}
             />
             <InfoRow
+              icon="🚬"
               label={t("gmap.smokingLabel")}
               value={
                 cafe.smokingInfo
@@ -414,6 +431,7 @@ export default function CafeCard(props: Props) {
               empty={t("gmap.notYet")}
             />
             <InfoRow
+              icon="🪑"
               label={t("gmap.seatLabel")}
               value={cafe.seatCountInfo ?? null}
               empty={t("gmap.notYet")}
@@ -421,6 +439,7 @@ export default function CafeCard(props: Props) {
             {/* 営業時間。編集部調べがあればそれを、無ければ公表されている
                 ものを出す。どちらから来た値かは末尾で分かるようにする */}
             <InfoRow
+              icon="⏰"
               label={t("gmap.hours")}
               value={
                 cafe.hoursInfo
@@ -432,11 +451,13 @@ export default function CafeCard(props: Props) {
               empty={t("gmap.notYet")}
             />
             <InfoRow
+              icon="📅"
               label={t("gmap.closedDays")}
               value={cafe.closedDaysInfo ?? (gHours ? closedDaysOf(gHours) ?? "無休" : null)}
               empty={t("gmap.notYet")}
             />
             <InfoRow
+              icon="🔗"
               label={t("gmap.official")}
               value={website}
               href={website}
