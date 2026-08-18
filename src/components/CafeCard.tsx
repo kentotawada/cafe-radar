@@ -158,6 +158,50 @@ export default function CafeCard(props: Props) {
   // 行った人が教えてくれたものを使う
   const website = cafe.website ?? f.website ?? null;
 
+  // 見出しの下に並べる設備の印。歩きながら一目で判断できるようにする。
+  //
+  // 分かっている項目だけ出す。分からない項目の印を灰色で並べると
+  // 「設備が無い」と読めてしまうが、実際は「まだ分かっていない」だけ
+  const badges: { key: string; mark: string; label: string; cls: string }[] = [];
+  if (hasOutlet(cafe)) {
+    badges.push({
+      key: "outlet",
+      mark: "🔌",
+      label: t("gmap.outlet"),
+      cls: "bg-amber-100 text-amber-900 border-amber-300",
+    });
+  }
+  {
+    // Wi-Fi は編集部調べと、みんなの報告のどちらかで分かればよい
+    const wifiOk =
+      (f.wifiSpeed != null && f.wifiSpeed !== "none") ||
+      (!!cafe.wifiInfo && !/なし|不可/.test(cafe.wifiInfo));
+    if (wifiOk) {
+      badges.push({
+        key: "wifi",
+        mark: "📶",
+        label: "Wi-Fi",
+        cls: "bg-sky-100 text-sky-900 border-sky-300",
+      });
+    }
+  }
+  if (isNonSmoking(cafe)) {
+    badges.push({
+      key: "smoke",
+      mark: "🚭",
+      label: t("gmap.isNonSmoking"),
+      cls: "bg-emerald-100 text-emerald-900 border-emerald-300",
+    });
+  }
+  if (f.webMeetingOk === true) {
+    badges.push({
+      key: "meet",
+      mark: "🎧",
+      label: lang === "en" ? "Calls OK" : "WEB会議",
+      cls: "bg-violet-100 text-violet-900 border-violet-300",
+    });
+  }
+
   const mapsQuery = encodeURIComponent(
     cafe.address ? `${cafe.name} ${cafe.address}` : cafe.name
   );
@@ -193,7 +237,7 @@ export default function CafeCard(props: Props) {
   const fieldLabel = "block text-[12px] font-bold text-gray-900 mb-1";
 
   return (
-    <div className="w-full max-h-[22vh] flex flex-col text-gray-900">
+    <div className="w-full max-h-[30vh] flex flex-col text-gray-900">
       {/* 見出し。店名と、評価・距離。食べログと同じで、まず点数と距離が目に入る */}
       <div className="shrink-0 pb-1.5 border-b-2 border-gray-200">
         <div className="flex items-center gap-1.5">
@@ -262,6 +306,18 @@ export default function CafeCard(props: Props) {
             <span className="text-[10px] text-amber-700">{t("gmap.userAdded")}</span>
           )}
         </div>
+        {badges.length > 0 && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {badges.map((b) => (
+              <span
+                key={b.key}
+                className={`rounded border px-1.5 py-0.5 text-[10px] font-bold whitespace-nowrap ${b.cls}`}
+              >
+                {b.mark} {b.label}
+              </span>
+            ))}
+          </div>
+        )}
         {/* 住所。歩いて探しているときは「何丁目か」が分かるだけで
             だいぶ違う。距離と徒歩分数だけでは、どちらへ歩けばいいのか
             決められない。長い住所は折り返さず端で切る */}
