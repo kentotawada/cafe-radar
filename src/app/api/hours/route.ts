@@ -26,13 +26,19 @@ type HoursResponse = {
 // 直前の問い合わせで何が起きたか。?debug=1 のときだけ返す
 let lastError: string | null = null;
 
-/** 店名と住所で場所を探して place ID を得る。見つからなければ null */
+type FindResult =
+  /** 問い合わせは通った。id が null なら「その場所は無い」ということ */
+  | { ok: true; id: string | null }
+  /** 問い合わせ自体が失敗した。この結果は覚えてはいけない */
+  | { ok: false; id: null };
+
+/** 店名と住所で場所を探して place ID を得る */
 async function findPlaceId(cafe: {
   name: string;
   address?: string | null;
   lat: number;
   lng: number;
-}): Promise<string | null> {
+}): Promise<FindResult> {
   const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
     method: "POST",
     headers: {
@@ -56,12 +62,12 @@ async function findPlaceId(cafe: {
   });
   if (!res.ok) {
     lastError = `searchText ${res.status}: ${(await res.text()).slice(0, 300)}`;
-    return null;
+    return { ok: false, id: null };
   }
   const json = (await res.json()) as { places?: { id?: string }[] };
   const id = json.places?.[0]?.id ?? null;
   if (!id) lastError = "searchText: 一致する場所が見つからなかった";
-  return id;
+  return { ok: true, id };
 }
 
 async function fetchHours(placeId: string): Promise<HoursResponse | null> {
@@ -108,30 +114,50 @@ export async function GET(request: NextRequest) {
   const cafe = await lookupCafeById(cafeId);
   if (!cafe) return answer(null, "その cafeId の店が見つからない");
 
+  // ?refresh=1 で、覚えている結果を無視してもう一度探す
+  const refresh = request.nextUrl.searchParams.get("refresh") === "1";
+
   // 覚えている place ID を先に見る
   let placeId: string | null = null;
   let known = false;
-  if (isSupabaseAdminConfigured && supabaseAdmin) {
+  let rememberedAt: string | null = null;
+  if (isSupabaseAdminConfigured && supabaseAdmin && !refresh) {
     const { data } = await supabaseAdmin
       .from("cafe_places")
-      .select("place_id")
+      .select("place_id, resolved_at")
       .eq("cafe_id", cafeId)
       .maybeSingle();
     if (data) {
-      known = true;
-      placeId = (data as { place_id: string | null }).place_id;
+      const row = data as { place_id: string | null; resolved_at: string };
+      placeId = row.place_id;
+      rememberedAt = row.resolved_at;
+      // 「見つからなかった」という記憶は、ずっと持ち続けない。
+      // 店が新しく登録されることもあるし、こちらの設定ミスで見つからな
+      // かっただけのこともある。1週間で忘れて、もう一度探す
+      const week = 7 * 24 * 60 * 60 * 1000;
+      const stale = Date.now() - new Date(row.resolved_at).getTime() > week;
+      known = placeId != null || !stale;
     }
   }
 
   if (!known) {
-    placeId = await findPlaceId(cafe);
-    // 見つからなかった場合も行を作る。作らないと、開かれるたびに
-    // 探しにいって料金だけかかる
-    if (isSupabaseAdminConfigured && supabaseAdmin) {
-      await supabaseAdmin
-        .from("cafe_places")
-        .upsert({ cafe_id: cafeId, place_id: placeId }, { onConflict: "cafe_id" });
+    const found = await findPlaceId(cafe);
+    placeId = found.id;
+    // 覚えるのは「問い合わせが通ったとき」だけ。通らなかった結果を覚えると、
+    // 鍵の設定ミスのような直せる原因まで覚え込んでしまい、直したあとも
+    // ずっと出ないままになる
+    if (found.ok && isSupabaseAdminConfigured && supabaseAdmin) {
+      await supabaseAdmin.from("cafe_places").upsert(
+        { cafe_id: cafeId, place_id: placeId, resolved_at: new Date().toISOString() },
+        { onConflict: "cafe_id" }
+      );
     }
+  } else if (placeId == null) {
+    return answer(
+      null,
+      `以前「見つからない」と分かった店(${rememberedAt ?? "時期不明"})。` +
+        "&refresh=1 を付けるともう一度探す"
+    );
   }
 
   if (!placeId) return answer(null, "Google 側でこの店の場所を特定できなかった");
