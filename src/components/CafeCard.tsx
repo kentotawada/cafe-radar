@@ -225,6 +225,32 @@ export default function CafeCard(props: Props) {
   };
   const tidySite = tidyUrl(site);
 
+  // Wi-Fi の1行。「あるかどうか」と「速さ」を続けて出す。
+  //
+  // 速さだけを出していたので、誰も速さを報告していない店は
+  // 「まだ情報がありません」になり、Wi-Fi がある店なのかどうかすら
+  // 伝わらなかった。
+  //
+  // 分かっている材料:
+  //   f.wifiSpeed  … みんなの報告。"none" は「つながらない」
+  //   cafe.wifiInfo … 編集部調べ。「なし」「不可」と書いてあれば無い
+  const wifiLine = (() => {
+    const yes = lang === "en" ? "Yes" : "あり";
+    const no = lang === "en" ? "No" : "なし";
+    const unknownSpeed = lang === "en" ? "speed unknown" : "速さは未確認";
+
+    // 報告で「つながらない」が多数派なら、そこで決まり。
+    // 「なし（つながらない）」は同じことを二度言っているので、片方だけ出す
+    if (f.wifiSpeed === "none") return wifiLabel.none;
+    if (f.wifiSpeed) return `${yes} / ${wifiLabel[f.wifiSpeed]}`;
+
+    if (cafe.wifiInfo) {
+      if (/なし|不可/.test(cafe.wifiInfo)) return no;
+      return `${yes}（${unknownSpeed}）`;
+    }
+    return null;
+  })();
+
   const submitSeats = () => {
     const n = Number(seats.trim());
     if (!seats.trim() || !Number.isInteger(n) || n <= 0) return;
@@ -361,14 +387,8 @@ export default function CafeCard(props: Props) {
               empty={t("gmap.notYet")}
             />
             <InfoRow
-              label={t("gmap.wifiSpeedLabel")}
-              value={
-                f.wifiSpeed
-                  ? wifiLabel[f.wifiSpeed]
-                  : cafe.wifiInfo
-                    ? t("gmap.hasWifi")
-                    : null
-              }
+              label={t("gmap.wifi")}
+              value={wifiLine}
               empty={t("gmap.notYet")}
             />
             <InfoRow
