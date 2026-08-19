@@ -1292,7 +1292,7 @@ function GoogleMapView() {
               // overscroll-x-contain: 端まで送りきった勢いを画面へ渡さない。
               // これが無いと、行き止まりで指を動かしたぶんが画面ごとの
               // 横移動(iOSでは「前の画面へ戻る」)に化けることがある
-              className="overflow-x-auto overscroll-x-contain flex gap-2 px-[calc(50%-43vw)] pb-2 snap-x snap-mandatory [scrollbar-width:none]"
+              className="overflow-x-auto overscroll-x-contain flex gap-2 px-[max(calc(50%-43vw),calc(50%-220px))] pb-2 snap-x snap-mandatory [scrollbar-width:none]"
             >
               {strip.slice(0, stripCount).map((cafe) => {
                 const stats = statsByCafe[cafe.id] ?? null;
@@ -1307,7 +1307,7 @@ function GoogleMapView() {
                       onClick={() => {
                         if (!isOpen) focusCafe(cafe, false);
                       }}
-                      className={`snap-center shrink-0 w-[86vw] rounded-xl border bg-white px-3 py-2 ${
+                      className={`snap-center shrink-0 w-[86vw] max-w-[440px] rounded-xl border bg-white px-3 py-2 ${
                         isOpen
                           ? "border-2 border-blue-600 shadow-xl"
                           : "border-gray-200 shadow"

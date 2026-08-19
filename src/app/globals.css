@@ -44,7 +44,9 @@ body {
    リスト欄を指で動かそうとした時にこれが誘発され、リストではなく画面全体が
    上下に動いてしまっていた。地図の画面でだけ切る(記事ページでは残す) */
 html:has(.cf-shell),
-body:has(.cf-shell) {
+body:has(.cf-shell),
+html:has(.cf-map-page),
+body:has(.cf-map-page) {
   overscroll-behavior-y: none;
   /* 横カード列を送ったときに、その勢いが画面そのものへ伝わって
      画面ごと横に動いてしまうことがあった。地図の画面は横に動く必要が

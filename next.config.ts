@@ -16,6 +16,11 @@ const supabaseHost = (() => {
 })();
 
 const nextConfig: NextConfig = {
+  // 地図をトップに移した。/map-google のまま覚えている人がいるので、
+  // 恒久リダイレクトで新しい場所へ送る(308)
+  async redirects() {
+    return [{ source: "/map-google", destination: "/", permanent: true }];
+  },
   images: {
     remotePatterns: supabaseHost
       ? [
