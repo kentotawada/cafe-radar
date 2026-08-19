@@ -331,3 +331,16 @@ input,
 textarea {
   font-size: 16px;
 }
+
+/* 横カード列の左右の矢印。マウスのある画面にだけ出す。
+   指で送れる端末では要らないうえ、カードの端に重なって邪魔になる。
+   幅ではなく入力方法で出し分けるのは、スマホを横向きにしたときに
+   幅だけ見ると誤って出てしまうため */
+.cf-strip-arrow {
+  display: none;
+}
+@media (pointer: fine) {
+  .cf-strip-arrow {
+    display: flex;
+  }
+}

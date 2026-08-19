@@ -471,6 +471,8 @@ function GoogleMapView() {
   const sortChangedRef = useRef(false);
   // 真ん中へ送りたい店。カードが出来た回に送る
   const pendingScrollRef = useRef<string | null>(null);
+  // 左右の矢印で選び直したか。そのときは並びを組み直さない
+  const keepOrderRef = useRef(false);
   // カードに並べる一覧。店を選んでいる間は入れ替えない。
   // 地図が動くと listed の中身が変わり、送っている途中で並びが差し替わって
   // 「選択が変わるときと変わらないときがある」状態になっていた
@@ -666,7 +668,11 @@ function GoogleMapView() {
       // タップした店が並びのずっと後ろにいることがある。カードは先頭から
       // 20枚ずつしか描いていないので、その場合カードが1枚も無く、
       // 「ピンを押しても横リストが変わらない」ように見えていた
-      if (!fromStripRef.current) {
+      // 横スライドと左右の矢印は「今の並びの中で隣へ移る」操作なので、
+      // 並べ直すと行き先が変わってしまう。そのときだけ据え置く
+      const keepOrder = fromStripRef.current || keepOrderRef.current;
+      keepOrderRef.current = false;
+      if (!keepOrder) {
         setFrozenStrip([cafe, ...rankedRef.current.filter((c) => c.id !== cafe.id)]);
         setStripCount(8);
       }
@@ -726,6 +732,28 @@ function GoogleMapView() {
       }
     }, 80);
   }, [strip, focusCafe]);
+
+  // 左右の矢印。PCには指のスワイプが無いので、1枚ずつ送る手段を用意する。
+  //
+  // 並びは今のまま。端まで来たら描く枚数を足してから進むので、
+  // スライドと同じように次の20件へ続いていく
+  const stepStrip = useCallback(
+    (dir: 1 | -1) => {
+      if (strip.length === 0) return;
+      const at = selected ? strip.findIndex((c) => c.id === selected.id) : -1;
+      const nextAt = at < 0 ? 0 : at + dir;
+      if (nextAt < 0 || nextAt >= strip.length) return;
+      // まだ描いていない位置なら、そこまで伸ばしてから送る。
+      // カードが出来た回に真ん中へ寄せる仕組みに任せる
+      if (nextAt >= stripCount) setStripCount(nextAt + 8);
+      // まだ何も選んでいないときは、いつもどおり並びを決めさせる。
+      // ここで据え置くと並びが固定されないまま歩き始め、押すたびに
+      // 足元が入れ替わってしまう
+      if (at >= 0) keepOrderRef.current = true;
+      focusCafe(strip[nextAt], false);
+    },
+    [strip, stripCount, selected, focusCafe]
+  );
 
   const handleToggleFavorite = useCallback((cafeId: string) => {
     setFavorites(toggleFavorite(cafeId));
@@ -1286,6 +1314,25 @@ function GoogleMapView() {
               また幅が変わる、で選択が止まらなくなる。高さが変わるぶんには
               真ん中の判定は動かない */}
           {strip.length > 0 && (
+            <div className="relative">
+            {/* 左右の矢印。マウスのある画面にだけ出す(cf-strip-arrow)。
+                スマホは指で送れるので要らないうえ、カードに重なって邪魔になる */}
+            <button
+              type="button"
+              aria-label="前の店"
+              onClick={() => stepStrip(-1)}
+              className="cf-strip-arrow cf-map-btn absolute left-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full items-center justify-center text-gray-800 text-xl leading-none"
+            >
+              ‹
+            </button>
+            <button
+              type="button"
+              aria-label="次の店"
+              onClick={() => stepStrip(1)}
+              className="cf-strip-arrow cf-map-btn absolute right-2 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full items-center justify-center text-gray-800 text-xl leading-none"
+            >
+              ›
+            </button>
             <div
               ref={stripRef}
               onScroll={handleStripScroll}
@@ -1349,6 +1396,7 @@ function GoogleMapView() {
                     </div>
                   );
               })}
+            </div>
             </div>
           )}
 
