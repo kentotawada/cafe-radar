@@ -9,7 +9,7 @@
 // このファイルは Googleマップのライブラリと1,989軒のデータを持つ。最初のHTMLに
 // 混ぜると、そのぶん描き始めが遅れる。
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   APIProvider,
@@ -182,7 +182,7 @@ function ClusteredCafeMarker({
 
 // AdvancedMarker と MarkerClusterer をつなぐ。クラスタリングは都心で要る。
 // 表示範囲だけでも数百件が同時に出て、ピンが重なって地図が読めなくなる
-function CafeMarkers({
+const CafeMarkers = memo(function CafeMarkers({
   cafes,
   statsByCafe,
   onSelect,
@@ -238,7 +238,7 @@ function CafeMarkers({
       ))}
     </>
   );
-}
+});
 
 // 現在地。向きが分かると「どっちへ歩けばいいか」がその場で決まる
 function UserLocationMarker({
@@ -645,6 +645,17 @@ function GoogleMapView() {
   // 送っている途中で並びが差し替わると、真ん中の判定が別の店を指してしまう
   const strip = selected && frozenStrip.length > 0 ? frozenStrip : ranked;
 
+  // 並びの中身は ref でも持っておく。
+  //
+  // focusCafe が ranked に依存していると、現在地が動くたびに関数が作り直され、
+  // それを受け取っている地図のピンも全部作り直しになる。歩いている間ずっと
+  // それが続くので、ピンを押しても反応しないことがあった。
+  // 中身は ref から読み、関数自体は作り直さない
+  const rankedRef = useRef<Cafe[]>([]);
+  useEffect(() => {
+    rankedRef.current = ranked;
+  }, [ranked]);
+
   const focusCafe = useCallback(
     (cafe: Cafe, zoomIn = true) => {
       // 横スライドで選ばれたときは、並びをそのまま保つ。送っている途中に
@@ -656,7 +667,7 @@ function GoogleMapView() {
       // 20枚ずつしか描いていないので、その場合カードが1枚も無く、
       // 「ピンを押しても横リストが変わらない」ように見えていた
       if (!fromStripRef.current) {
-        setFrozenStrip([cafe, ...ranked.filter((c) => c.id !== cafe.id)]);
+        setFrozenStrip([cafe, ...rankedRef.current.filter((c) => c.id !== cafe.id)]);
         setStripCount(8);
       }
       selectedIdRef.current = cafe.id;
@@ -677,7 +688,7 @@ function GoogleMapView() {
       const shift = Math.round((el?.clientHeight ?? 0) * 0.22);
       if (shift > 0) window.setTimeout(() => map.panBy(0, shift), 0);
     },
-    [map, ranked]
+    [map]
   );
 
   // 指が止まってから、いちばん真ん中に近いカードの店を選ぶ
@@ -766,7 +777,18 @@ function GoogleMapView() {
         if (watchIdRef.current === null) {
           watchIdRef.current = navigator.geolocation.watchPosition(
             (w) => {
-              setUserPosition([w.coords.latitude, w.coords.longitude]);
+              // 少し動いただけでは更新しない。
+              //
+              // 歩いていると1秒ごとに位置が届く。そのたびに並び順・カード・
+              // ピンへの受け渡しが作り直され、画面全体が組み直しになる。
+              // その間は指の操作が落ちるので、歩きながらピンを押しても
+              // 反応しないことがあった。
+              // 8m は「表示が実用上ずれない」程度の粗さ
+              setUserPosition((prev) => {
+                const next: [number, number] = [w.coords.latitude, w.coords.longitude];
+                if (prev && distanceMeters(prev, next) < 8) return prev;
+                return next;
+              });
               // 歩いている間は進行方向が取れることがある。取れたら向きに使う
               if (w.coords.heading != null && !Number.isNaN(w.coords.heading)) {
                 setHeading(w.coords.heading);
