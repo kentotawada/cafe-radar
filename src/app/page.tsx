@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { LangProvider, useLang } from "@/lib/i18n";
+import { areas } from "@/data/areas";
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -75,7 +77,41 @@ function MapContent() {
     // リストが折り返しの外に出る。dvh は今見えている高さを指す
     <div className="cf-map-page flex flex-col h-[100dvh]">
       {painted ? <GoogleMapPane /> : <MapSkeleton />}
+      <AreaLinks />
     </div>
+  );
+}
+
+// エリアページへのリンク。地図の下に細い帯で敷く。
+//
+// 見た目のためだけではない。Search Console で見ると、用意した約2,000枚の
+// うち検索結果に載っているのは219枚で、残り1,797枚は「検出 - インデックス
+// 未登録」= URLは知られているが、まだ見に来られていない状態だった。
+//
+// 原因のひとつがここ。地図は読み込んだ後に描かれるので、最初に返している
+// HTMLにはリンクが1本も無く、サイトで一番強いこのページがどこへも
+// つながっていなかった。エリアページ側は担当する店を全部リンクしていて
+// 問題がないので、入口だけを開ける。
+//
+// 大事なのは、この帯が GoogleMapPane の外にあること。あちらは
+// ssr:false で読み込んでいるので、中に置いても最初のHTMLには入らない。
+function AreaLinks() {
+  return (
+    <nav
+      aria-label="エリアから探す"
+      className="shrink-0 bg-white border-t border-gray-200 px-2 py-1.5 overflow-x-auto whitespace-nowrap text-[11px] [scrollbar-width:none]"
+    >
+      <span className="text-gray-500 mr-1.5">エリアから探す</span>
+      {areas.map((a) => (
+        <Link
+          key={a.id}
+          href={`/area/${a.id}`}
+          className="inline-block text-blue-700 underline mx-1"
+        >
+          {a.name.replace("駅", "")}
+        </Link>
+      ))}
+    </nav>
   );
 }
 
