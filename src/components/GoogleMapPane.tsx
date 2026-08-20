@@ -41,6 +41,7 @@ import {
 } from "@/lib/cafeFilters";
 import { getFavorites, toggleFavorite } from "@/lib/favorites";
 import { areas } from "@/data/areas";
+import { spreadPositions } from "@/lib/pinSpread";
 import { nearestStationWalkMinutes } from "@/lib/lookupCafe";
 import { useCafeFacts } from "@/lib/useCafeFacts";
 import { useUserCafes } from "@/lib/useUserCafes";
@@ -145,6 +146,7 @@ function ClusteredCafeMarker({
   verifiedOutletIds,
   saved,
   hidden,
+  at,
 }: {
   cafe: Cafe;
   stats: CafeStats | null;
@@ -154,6 +156,8 @@ function ClusteredCafeMarker({
   saved: boolean;
   /** 選ばれている店。目立たせたピンを別に重ねるので、こちらは透明にする */
   hidden: boolean;
+  /** 描く位置。同じ場所に重なっている店は少しずらしてある */
+  at: [number, number];
 }) {
   const ref = useCallback(
     (marker: Marker | null) => register(cafe.id, marker),
@@ -161,7 +165,7 @@ function ClusteredCafeMarker({
   );
   return (
     <AdvancedMarker
-      position={{ lat: cafe.lat, lng: cafe.lng }}
+      position={{ lat: at[0], lng: at[1] }}
       ref={ref}
       onClick={() => onSelect(cafe)}
       title={cafe.name}
@@ -189,6 +193,7 @@ const CafeMarkers = memo(function CafeMarkers({
   verifiedOutletIds,
   favorites,
   selectedId,
+  spread,
 }: {
   cafes: Cafe[];
   statsByCafe: Record<string, CafeStats>;
@@ -196,6 +201,8 @@ const CafeMarkers = memo(function CafeMarkers({
   verifiedOutletIds: Set<string>;
   favorites: Set<string>;
   selectedId: string | null;
+  /** 重なっている店の、ずらした描画位置 */
+  spread: Map<string, [number, number]>;
 }) {
   const map = useMap();
   // 集めたマーカーは ref に持つ。state にすると ref が付くたびに再描画が走る
@@ -288,6 +295,7 @@ const CafeMarkers = memo(function CafeMarkers({
           verifiedOutletIds={verifiedOutletIds}
           saved={favorites.has(cafe.id)}
           hidden={cafe.id === selectedId}
+          at={spread.get(cafe.id) ?? [cafe.lat, cafe.lng]}
         />
       ))}
     </>
@@ -577,6 +585,18 @@ function GoogleMapView() {
 
   const allCafes = useMemo(() => [...seedCafes, ...userCafes], [userCafes]);
 
+  // 同じ場所に重なっている店の、ずらした描画位置。
+  //
+  // 同じビルの店はどれも建物の座標を持っているので、そのままだとピンが
+  // 真上に重なり、いちばん上の1軒しか押せない。実測で1,985軒中723軒が
+  // 重なっていて、うち479軒はタップでは選べなかった。
+  // ずらすのは描く位置だけ。距離も並び順も本物の座標のまま
+  const spread = useMemo(() => spreadPositions(allCafes), [allCafes]);
+  const posOf = useCallback(
+    (cafe: Cafe): [number, number] => spread.get(cafe.id) ?? [cafe.lat, cafe.lng],
+    [spread]
+  );
+
   // 下の帯の高さを測る。開閉や件数で変わるので、変化を監視する
   useEffect(() => {
     const el = bottomRef.current;
@@ -735,7 +755,8 @@ function GoogleMapView() {
       hasMovedRef.current = true;
       freezeListRef.current = true;
       if (!map) return;
-      map.panTo({ lat: cafe.lat, lng: cafe.lng });
+      const [pLat, pLng] = posOf(cafe);
+      map.panTo({ lat: pLat, lng: pLng });
       // クラスタに埋もれたままだと、選んだ店のピンが見えない。
       // まとまりがほどける寄りまで一段寄せる
       // 横カード列を送っているときは寄せない。勝手に拡大されると、
@@ -748,7 +769,7 @@ function GoogleMapView() {
       const shift = Math.round((el?.clientHeight ?? 0) * 0.22);
       if (shift > 0) window.setTimeout(() => map.panBy(0, shift), 0);
     },
-    [map]
+    [map, posOf]
   );
 
   // 指が止まってから、いちばん真ん中に近いカードの店を選ぶ
@@ -1107,6 +1128,7 @@ function GoogleMapView() {
         <CafeMarkers
           cafes={clustered}
           selectedId={selected?.id ?? null}
+          spread={spread}
           statsByCafe={statsByCafe}
           onSelect={focusCafe}
           verifiedOutletIds={verifiedOutletIds}
@@ -1117,7 +1139,7 @@ function GoogleMapView() {
         {selected && (
           <>
             <AdvancedMarker
-              position={{ lat: selected.lat, lng: selected.lng }}
+              position={{ lat: posOf(selected)[0], lng: posOf(selected)[1] }}
               title={selected.name}
               zIndex={999}
               anchorPoint={pinAnchorPoint(selected, verifiedOutletIds)}
