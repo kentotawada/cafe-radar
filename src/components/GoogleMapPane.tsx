@@ -30,7 +30,7 @@ import { getCafeUsageStyle } from "@/lib/cafeUsageStyle";
 import { cupPinSvgMarkup } from "@/lib/cupPinIcon";
 import { MapBounds } from "@/lib/mapBounds";
 import { useLiveReports, statusColorForStats, OCCUPANCY_EMOJI } from "@/lib/useLiveReports";
-import { pickMajority, isNonSmoking } from "@/lib/cafeStats";
+import { pickMajority, isNonSmoking, hasWifi } from "@/lib/cafeStats";
 import {
   EMPTY_FILTERS,
   FILTER_LABELS,
@@ -1703,7 +1703,7 @@ function GoogleMapView() {
                             {hasOutlet(cafe, verifiedOutletIds) && (
                               <span className="bg-amber-100 text-amber-900 rounded px-1">🔌</span>
                             )}
-                            {cafe.wifiInfo && (
+                            {hasWifi(cafe) && (
                               <span className="bg-sky-100 text-sky-900 rounded px-1">📶</span>
                             )}
                             {isNonSmoking(cafe) && (
