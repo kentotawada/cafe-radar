@@ -16,8 +16,8 @@ import type { Cafe } from "./cafes";
 // 矛盾があり(公式サイト・食べログ・他媒体でそれぞれ異なる)、確定できなかった
 // ため新規項目を追加していない。来店前に電話確認を推奨。
 export const cafes: Cafe[] = [
-  { id: "kichijoji-01", name: "マクドナルド 吉祥寺店", address: "東京都武蔵野市吉祥寺本町1-9-12", lat: 35.703892, lng: 139.579834, outletInfo: "地下カウンター席に電源あり", hoursInfo: "6:00〜24:00", closedDaysInfo: "年中無休", website: "https://www.mcdonalds.co.jp/" },
-  { id: "kichijoji-02", name: "マクドナルド 吉祥寺南口店", address: "東京都武蔵野市吉祥寺南町1-1-1", lat: 35.702724, lng: 139.579529, outletInfo: "2階イートインに電源コンセート席あり", hoursInfo: "24時間営業", seatCountInfo: "全153席(1F・2F、2Fに電源席多数)", website: "https://www.mcdonalds.co.jp/" },
+  { id: "kichijoji-01", name: "マクドナルド 吉祥寺店", address: "東京都武蔵野市吉祥寺本町1-9-12", lat: 35.703892, lng: 139.579834, outletInfo: "地下カウンター席に電源あり", hoursInfo: "6:00〜24:00", closedDaysInfo: "年中無休", website: "https://www.mcdonalds.co.jp/", smokingInfo: "全店舗禁煙。2014年8月から屋内禁煙(公式サイトの記載、2026-08確認)" },
+  { id: "kichijoji-02", name: "マクドナルド 吉祥寺南口店", address: "東京都武蔵野市吉祥寺南町1-1-1", lat: 35.702724, lng: 139.579529, outletInfo: "2階イートインに電源コンセート席あり", hoursInfo: "24時間営業", seatCountInfo: "全153席(1F・2F、2Fに電源席多数)", website: "https://www.mcdonalds.co.jp/", smokingInfo: "全店舗禁煙。2014年8月から屋内禁煙(公式サイトの記載、2026-08確認)" },
   { id: "kichijoji-03", name: "ガスト 吉祥寺店", address: "東京都武蔵野市吉祥寺本町1-18-3", lat: 35.704422, lng: 139.581085, outletInfo: "一人用ボックス席3席に電源・Wi-Fi・空調完備", smokingInfo: "全面禁煙", hoursInfo: "7:00〜23:30", website: "https://www.skylark.co.jp/gusto/" },
   { id: "kichijoji-04", name: "ガスト 吉祥寺元町通店", address: "東京都武蔵野市吉祥寺本町1-8-5 チェリービル・レンガ館B1", lat: 35.704243, lng: 139.578583, hoursInfo: "7:00〜23:30", website: "https://www.skylark.co.jp/gusto/" },
   { id: "kichijoji-05", name: "サイゼリヤ 吉祥寺駅南口店", address: "東京都武蔵野市吉祥寺南町1-4-3 ニューセンタービル5F", lat: 35.702389, lng: 139.579483, hoursInfo: "10:00〜23:00", website: "https://www.saizeriya.co.jp/" },

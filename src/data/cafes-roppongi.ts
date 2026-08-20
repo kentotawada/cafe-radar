@@ -7,8 +7,8 @@ import type { Cafe } from "./cafes";
 // いました。経路・写真検索は店名+住所のテキストでGoogleマップに渡して
 // いるため、座標が多少ずれていても案内自体は正確です。
 export const cafes: Cafe[] = [
-  { id: "roppongi-01", name: "マクドナルド 六本木駅店", address: "東京都港区六本木6-1-24 ラピロス六本木ビル B1F", lat: 35.66259395, lng: 139.73191256, outletInfo: "カウンター12席で充電用コンセント利用可", website: "https://www.mcdonalds.co.jp/" },
-  { id: "roppongi-02", name: "マクドナルド 六本木ヒルズ店", address: "東京都港区六本木6-10-1 六本木ヒルズ ウェストウォーク1F・2F", lat: 35.660206, lng: 139.729202, outletInfo: "1階カウンター10席に8口、2階14席に14口の電源", website: "https://www.mcdonalds.co.jp/" },
+  { id: "roppongi-01", name: "マクドナルド 六本木駅店", address: "東京都港区六本木6-1-24 ラピロス六本木ビル B1F", lat: 35.66259395, lng: 139.73191256, outletInfo: "カウンター12席で充電用コンセント利用可", website: "https://www.mcdonalds.co.jp/", smokingInfo: "全店舗禁煙。2014年8月から屋内禁煙(公式サイトの記載、2026-08確認)" },
+  { id: "roppongi-02", name: "マクドナルド 六本木ヒルズ店", address: "東京都港区六本木6-10-1 六本木ヒルズ ウェストウォーク1F・2F", lat: 35.660206, lng: 139.729202, outletInfo: "1階カウンター10席に8口、2階14席に14口の電源", website: "https://www.mcdonalds.co.jp/", smokingInfo: "全店舗禁煙。2014年8月から屋内禁煙(公式サイトの記載、2026-08確認)" },
   { id: "roppongi-03", name: "スターバックス コーヒー 六本木7丁目店", address: "東京都港区六本木7-14-1 東李閣ビル 1F", lat: 35.6640495, lng: 139.7311089, outletInfo: "電源なし、コンセント使用不可との情報", website: "https://www.starbucks.co.jp/" },
   { id: "roppongi-04", name: "スターバックス ティー&カフェ 六本木ヒルズ店", address: "東京都港区六本木6-4-1 メトロハット/ハリウッドプラザ", lat: 35.661423, lng: 139.729691, website: "https://www.starbucks.co.jp/" },
   { id: "roppongi-05", name: "スターバックス コーヒー 六本木ヒルズ ウエストウォーク店", address: "東京都港区六本木6-10-1 森タワー 2F", lat: 35.660206, lng: 139.729202, outletInfo: "窓際カウンター席のみ電源コンセントあり", website: "https://www.starbucks.co.jp/" },

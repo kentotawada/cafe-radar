@@ -34,7 +34,7 @@ import type { Cafe } from "./cafes";
 // 解消を検討ください)。
 export const cafes: Cafe[] = [
   { id: "yurakucho-01", name: "マクドナルド 銀座インズ店", address: "東京都中央区銀座西1-2 銀座インズ3内", lat: 35.673634, lng: 139.770294, outletInfo: "禁煙・喫煙カウンター各所にコンセントあり", smokingInfo: "全席禁煙(マクドナルド全店舗方針)", wifiInfo: "無料Wi-Fiあり(00_MCD-FREE-WIFI、初回のみ会員登録)", seatCountInfo: "189席", hoursInfo: "6:30〜23:00", closedDaysInfo: "施設(銀座インズ)の休業日に準ずる(実質年中無休)", website: "https://www.mcdonalds.co.jp/" },
-  { id: "yurakucho-03", name: "マクドナルド 銀座二丁目ビル店", address: "東京都中央区銀座2-9-4", lat: 35.672428910954, lng: 139.76814923677, outletInfo: "2階席にコンセントあり、長居作業も可", website: "https://www.mcdonalds.co.jp/" },
+  { id: "yurakucho-03", name: "マクドナルド 銀座二丁目ビル店", address: "東京都中央区銀座2-9-4", lat: 35.672428910954, lng: 139.76814923677, outletInfo: "2階席にコンセントあり、長居作業も可", website: "https://www.mcdonalds.co.jp/", smokingInfo: "全店舗禁煙。2014年8月から屋内禁煙(公式サイトの記載、2026-08確認)" },
   { id: "yurakucho-04", name: "マクドナルド 東京駅一番街店", address: "東京都千代田区丸の内1-9-1 東京駅一番街", lat: 35.681252, lng: 139.767242, outletInfo: "改装でカウンター撤去、電源席は現在なし", smokingInfo: "全席禁煙(マクドナルド全店舗方針)", wifiInfo: "無料Wi-Fiあり(00_MCD-FREE-WIFI、初回のみ会員登録)", hoursInfo: "5:30〜24:00", website: "https://www.mcdonalds.co.jp/" },
   { id: "yurakucho-05", name: "ガスト 銀座インズ店", address: "東京都中央区銀座西3丁目1番地 銀座インズ1 2F", lat: 35.673634, lng: 139.770294, outletInfo: "電源コンセント完備、Wi-Fiも利用可", smokingInfo: "敷地内全面禁煙(すかいらーくグループ方針)", wifiInfo: "無料Wi-Fiあり", hoursInfo: "11:00〜23:00", website: "https://www.skylark.co.jp/gusto/" },
   { id: "yurakucho-06", name: "サイゼリヤ 銀座インズ店", address: "東京都中央区銀座西3-1 銀座インズ2F", lat: 35.67537962, lng: 139.76539714, smokingInfo: "全席禁煙", hoursInfo: "10:00〜23:00", website: "https://www.saizeriya.co.jp/" },

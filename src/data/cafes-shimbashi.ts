@@ -30,7 +30,7 @@ import type { Cafe } from "./cafes";
 // 食べログで「掲載保留」(休業期間未確定、移転・閉店の事実確認ができない)
 // の注記あり。閉店の確証はないため追加情報は残したが、確度は低め。
 export const cafes: Cafe[] = [
-  { id: "shimbashi-01", name: "マクドナルド 新橋日比谷口店", address: "東京都港区新橋2-6-7", lat: 35.66769, lng: 139.756927, outletInfo: "4階に電源席多数、2階にも数席あり", website: "https://www.mcdonalds.co.jp/" },
+  { id: "shimbashi-01", name: "マクドナルド 新橋日比谷口店", address: "東京都港区新橋2-6-7", lat: 35.66769, lng: 139.756927, outletInfo: "4階に電源席多数、2階にも数席あり", website: "https://www.mcdonalds.co.jp/", smokingInfo: "全店舗禁煙。2014年8月から屋内禁煙(公式サイトの記載、2026-08確認)" },
   { id: "shimbashi-02", name: "フレッシュネスバーガー 汐留シティセンター店", address: "東京都港区東新橋1-5-2 汐留シティセンター1F", lat: 35.665634, lng: 139.761398, outletInfo: "コンセントあり、Wi-Fiも完備", smokingInfo: "全席禁煙", wifiInfo: "無料Wi-Fiあり(FREE-WiFi)", hoursInfo: "月〜金10:00〜21:00", closedDaysInfo: "土曜日、日曜日、祝日", website: "https://www.freshnessburger.co.jp/" },
   { id: "shimbashi-03", name: "モスバーガー MOSH Burger&Bar 銀座ナイン店", address: "東京都中央区銀座8-7 銀座ナイン2号館1F", lat: 35.668415, lng: 139.761017, seatCountInfo: "75席", hoursInfo: "月〜木・土10:00〜22:00、金10:00〜23:00、日祝10:00〜21:00", closedDaysInfo: "定休日なし(銀座ナインの営業に準ずる)", website: "https://www.mos.jp/" },
   { id: "shimbashi-04", name: "スターバックス コーヒー JR新橋駅 銀座口店", address: "東京都港区新橋2-17", lat: 35.667126, lng: 139.758163, outletInfo: "電源なしとの評判、PC作業には不向き", smokingInfo: "全店舗禁煙方針、喫煙所なし", wifiInfo: "無料Wi-Fiあり(at_STARBUCKS_Wi2、登録不要で利用規約に同意するだけ)", hoursInfo: "平日6:30〜22:00、土日祝8:00〜21:00", closedDaysInfo: "年中無休", website: "https://www.starbucks.co.jp/" },

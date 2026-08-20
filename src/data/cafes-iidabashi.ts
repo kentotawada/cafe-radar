@@ -25,7 +25,7 @@ export const cafes: Cafe[] = [
   { id: "iidabashi-17", name: "サンマルクカフェ 飯田橋東口店", address: "東京都千代田区飯田橋4-6-10", lat: 35.700924, lng: 139.74707, outletInfo: "電源・Wi-Fi完備、全88席", website: "https://www.saint-marc-hd.com/saintmarccafe/" },
   { id: "iidabashi-18", name: "カフェ・ド・クリエ 飯田橋東口店", address: "東京都千代田区飯田橋4-7-1 ロックビレイビル1F", lat: 35.700996, lng: 139.74678, outletInfo: "窓側カウンター約10ヶ所に電源あり", website: "https://c-united.co.jp/crie/" },
   { id: "iidabashi-19", name: "モスバーガー 飯田橋東店", address: "東京都千代田区飯田橋3-6-9", lat: 35.70187, lng: 139.746109, outletInfo: "2階カウンター14席に電源・USB完備", website: "https://www.mos.jp/" },
-  { id: "iidabashi-20", name: "マクドナルド 九段下店", address: "東京都千代田区九段北1-2-2 グランドメゾン九段", lat: 35.695759, lng: 139.752075, outletInfo: "喫煙・禁煙カウンター双方に電源あり", website: "https://www.mcdonalds.co.jp/" },
+  { id: "iidabashi-20", name: "マクドナルド 九段下店", address: "東京都千代田区九段北1-2-2 グランドメゾン九段", lat: 35.695759, lng: 139.752075, outletInfo: "喫煙・禁煙カウンター双方に電源あり", website: "https://www.mcdonalds.co.jp/", smokingInfo: "全店舗禁煙。2014年8月から屋内禁煙(公式サイトの記載、2026-08確認)" },
   { id: "iidabashi-22", name: "ガスト 九段下店", address: "東京都千代田区九段北1-9-5 朝日九段マンションB", lat: 35.697628, lng: 139.750626, outletInfo: "客席にお客様用コンセントあり", website: "https://www.skylark.co.jp/gusto/" },
   { id: "iidabashi-23", name: "サイゼリヤ 神楽坂下店", address: "東京都新宿区神楽坂2-6-1 PORTA神楽坂B1F", lat: 35.700745, lng: 139.741287, website: "https://www.saizeriya.co.jp/" },
   { id: "iidabashi-24", name: "サイゼリヤ 飯田橋PLANO店", address: "東京都千代田区富士見2-7-2 プラーノモール2F", lat: 35.700809, lng: 139.744965, website: "https://www.saizeriya.co.jp/" },

@@ -7,8 +7,8 @@ import type { Cafe } from "./cafes";
 // いました。経路・写真検索は店名+住所のテキストでGoogleマップに渡して
 // いるため、座標が多少ずれていても案内自体は正確です。
 export const cafes: Cafe[] = [
-  { id: "akasaka-01", name: "マクドナルド 赤坂駅前店", address: "東京都港区赤坂5-4-5", lat: 35.67229333, lng: 139.73610279, outletInfo: "3階カウンター席に電源コンセントあり", website: "https://www.mcdonalds.co.jp/" },
-  { id: "akasaka-02", name: "マクドナルド 赤坂見附店", address: "東京都港区赤坂3-9-4", lat: 35.677113, lng: 139.736267, website: "https://www.mcdonalds.co.jp/" },
+  { id: "akasaka-01", name: "マクドナルド 赤坂駅前店", address: "東京都港区赤坂5-4-5", lat: 35.67229333, lng: 139.73610279, outletInfo: "3階カウンター席に電源コンセントあり", website: "https://www.mcdonalds.co.jp/", smokingInfo: "全店舗禁煙。2014年8月から屋内禁煙(公式サイトの記載、2026-08確認)" },
+  { id: "akasaka-02", name: "マクドナルド 赤坂見附店", address: "東京都港区赤坂3-9-4", lat: 35.677113, lng: 139.736267, website: "https://www.mcdonalds.co.jp/", smokingInfo: "全店舗禁煙。2014年8月から屋内禁煙(公式サイトの記載、2026-08確認)" },
   { id: "akasaka-03", name: "スターバックス コーヒー 赤坂溜池タワー店", address: "東京都港区赤坂2-17-1 赤坂溜池タワー", lat: 35.6711739, lng: 139.7392551, outletInfo: "コンセント付きの席なし、静かで学習向き", website: "https://www.starbucks.co.jp/" },
   { id: "akasaka-04", name: "スターバックス コーヒー 赤坂インターシティAIR店", address: "東京都港区赤坂1-8-1", lat: 35.669594, lng: 139.742661, outletInfo: "電源席は店内3席のみ、混雑しやすい", website: "https://www.starbucks.co.jp/" },
   { id: "akasaka-05", name: "スターバックス コーヒー 赤坂プルデンシャルタワー店", address: "東京都千代田区永田町2-13-10 プルデンシャルタワー", lat: 35.675842, lng: 139.738007, outletInfo: "電源の取れる席が多く、ビジネス利用向き", website: "https://www.starbucks.co.jp/" },

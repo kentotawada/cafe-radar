@@ -26,7 +26,7 @@ import type { Cafe } from "./cafes";
 // 4軒中2軒という割合は、他エリアにも同程度の閉店が混ざっている可能性を
 // 示す。特にチェーン以外の個人店は入れ替わりが速い。
 export const cafes: Cafe[] = [
-  { id: "gotanda-01", name: "マクドナルド アトレ五反田店", address: "東京都品川区東五反田1-26-14 アトレ五反田 2F・3F", lat: 35.626205, lng: 139.723297, outletInfo: "3F窓際カウンター26席、各席に電源コンセントあり", website: "https://www.mcdonalds.co.jp/" },
+  { id: "gotanda-01", name: "マクドナルド アトレ五反田店", address: "東京都品川区東五反田1-26-14 アトレ五反田 2F・3F", lat: 35.626205, lng: 139.723297, outletInfo: "3F窓際カウンター26席、各席に電源コンセントあり", website: "https://www.mcdonalds.co.jp/", smokingInfo: "全店舗禁煙。2014年8月から屋内禁煙(公式サイトの記載、2026-08確認)" },
   { id: "gotanda-02", name: "スターバックス コーヒー 五反田東急スクエア店", address: "東京都品川区東五反田2-1-2 五反田東急スクエア 5F", lat: 35.625713, lng: 139.724411, outletInfo: "レジ前カウンター席に電源、混雑時は取りにくい", website: "https://www.starbucks.co.jp/" },
   { id: "gotanda-03", name: "スターバックス コーヒー 西五反田店", address: "東京都品川区西五反田1-18-1 ゴタンダ エクス 1F", lat: 35.623718, lng: 139.722961, outletInfo: "1F窓側カウンター席に充電用コンセントあり", website: "https://www.starbucks.co.jp/" },
   { id: "gotanda-04", name: "ドトールコーヒーショップ 都営五反田店", address: "東京都品川区東五反田1-26-2", lat: 35.626339, lng: 139.723907, outletInfo: "電源コンセントは使えない店舗", website: "https://www.doutor.co.jp/dcs/" },

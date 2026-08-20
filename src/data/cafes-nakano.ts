@@ -7,9 +7,9 @@ import type { Cafe } from "./cafes";
 // いました。経路・写真検索は店名+住所のテキストでGoogleマップに渡して
 // いるため、座標が多少ずれていても案内自体は正確です。
 export const cafes: Cafe[] = [
-  { id: "nakano-01", name: "マクドナルド 中野北口サンモール店", address: "東京都中野区中野5-66-1", lat: 35.707516, lng: 139.665543, outletInfo: "3F商店街側&窓際カウンター計18席に電源あり", website: "https://www.mcdonalds.co.jp/" },
-  { id: "nakano-02", name: "マクドナルド 中野セントラルパーク店", address: "東京都中野区中野4-10-2 中野セントラルパークサウス1F", lat: 35.70734, lng: 139.661957, outletInfo: "コンセント付きカウンター席が24席程度あり", website: "https://www.mcdonalds.co.jp/" },
-  { id: "nakano-03", name: "マクドナルド 中野南口店", address: "東京都中野区中野2-30-7", lat: 35.704769, lng: 139.665543, outletInfo: "2階カウンター7席・3階10席に電源コンセントあり", website: "https://www.mcdonalds.co.jp/" },
+  { id: "nakano-01", name: "マクドナルド 中野北口サンモール店", address: "東京都中野区中野5-66-1", lat: 35.707516, lng: 139.665543, outletInfo: "3F商店街側&窓際カウンター計18席に電源あり", website: "https://www.mcdonalds.co.jp/", smokingInfo: "全店舗禁煙。2014年8月から屋内禁煙(公式サイトの記載、2026-08確認)" },
+  { id: "nakano-02", name: "マクドナルド 中野セントラルパーク店", address: "東京都中野区中野4-10-2 中野セントラルパークサウス1F", lat: 35.70734, lng: 139.661957, outletInfo: "コンセント付きカウンター席が24席程度あり", website: "https://www.mcdonalds.co.jp/", smokingInfo: "全店舗禁煙。2014年8月から屋内禁煙(公式サイトの記載、2026-08確認)" },
+  { id: "nakano-03", name: "マクドナルド 中野南口店", address: "東京都中野区中野2-30-7", lat: 35.704769, lng: 139.665543, outletInfo: "2階カウンター7席・3階10席に電源コンセントあり", website: "https://www.mcdonalds.co.jp/", smokingInfo: "全店舗禁煙。2014年8月から屋内禁煙(公式サイトの記載、2026-08確認)" },
   { id: "nakano-04", name: "ガスト 中野駅南口店", address: "東京都中野区中野3-36-15 ニュークリアービル2F", lat: 35.705322, lng: 139.665298, website: "https://www.skylark.co.jp/gusto/" },
   { id: "nakano-05", name: "スターバックス コーヒー 中野通り店", address: "東京都中野区中野5-64-5 中野サンピオーネビル1F", lat: 35.706882, lng: 139.665359, outletInfo: "2階の大きいテーブル席に電源コンセントあり", website: "https://www.starbucks.co.jp/" },
   { id: "nakano-06", name: "スターバックス コーヒー 中野セントラルパーク店", address: "東京都中野区中野4-10-2 中野セントラルパークサウス", lat: 35.7069234, lng: 139.661691, outletInfo: "大きなテーブル席で充電用コンセント利用可", website: "https://www.starbucks.co.jp/" },
@@ -68,7 +68,7 @@ export const cafes: Cafe[] = [
   { id: "nakano-58", name: "ドトールコーヒーショップ 新中野店", address: "東京都中野区中央4-1-1", lat: 35.697639, lng: 139.670731, hoursInfo: "平日7:30-20:30、土日祝8:00-20:30", website: "https://www.doutor.co.jp/dcs/" },
   { id: "nakano-59", name: "サンマルクカフェ 中野坂上店", address: "東京都中野区中央2-5-4", lat: 35.697495, lng: 139.679504, website: "https://www.saint-marc-hd.com/saintmarccafe/" },
   { id: "nakano-60", name: "カフェ・ベローチェ 新中野店", address: "東京都中野区本町4-48-17 新中野駅上プラザ1F", lat: 35.697121, lng: 139.667877, website: "https://c-united.co.jp/veloce/" },
-  { id: "nakano-61", name: "マクドナルド 中野坂上店", address: "東京都中野区本町1-32-4 ハーモニーウィング1F", lat: 35.6966835, lng: 139.6834257, hoursInfo: "6:00-24:00", website: "https://www.mcdonalds.co.jp/" },
+  { id: "nakano-61", name: "マクドナルド 中野坂上店", address: "東京都中野区本町1-32-4 ハーモニーウィング1F", lat: 35.6966835, lng: 139.6834257, hoursInfo: "6:00-24:00", website: "https://www.mcdonalds.co.jp/", smokingInfo: "全店舗禁煙。2014年8月から屋内禁煙(公式サイトの記載、2026-08確認)" },
   { id: "nakano-62", name: "モスバーガー 中野坂上店", address: "東京都中野区中央2-2-31", lat: 35.697567, lng: 139.682816, hoursInfo: "9:30-20:45", website: "https://www.mos.jp/" },
   { id: "nakano-63", name: "ジョナサン 中野坂上店", address: "東京都中野区本町1-32-5", lat: 35.6965447, lng: 139.6838895, website: "https://www.skylark.co.jp/jonathan/" },
   { id: "nakano-64", name: "On Flowers", address: "東京都中野区東中野1-32-6 大瀧ビル1F", lat: 35.704994, lng: 139.682755, hoursInfo: "火〜土11:00-17:00", closedDaysInfo: "日・月曜" },

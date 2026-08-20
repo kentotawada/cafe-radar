@@ -7,8 +7,8 @@ import type { Cafe } from "./cafes";
 // いました。経路・写真検索は店名+住所のテキストでGoogleマップに渡して
 // いるため、座標が多少ずれていても案内自体は正確です。
 export const cafes: Cafe[] = [
-  { id: "tachikawa-01", name: "マクドナルド 立川駅南口店", address: "東京都立川市柴崎町3-7-1", lat: 35.696945, lng: 139.412842, outletInfo: "各階のカウンター席に電源あり、席により差", website: "https://www.mcdonalds.co.jp/" },
-  { id: "tachikawa-02", name: "マクドナルド 立川伊勢丹前店", address: "東京都立川市曙町2-6-4", lat: 35.699295, lng: 139.413498, outletInfo: "2階・3階のカウンター席に電源あり", website: "https://www.mcdonalds.co.jp/" },
+  { id: "tachikawa-01", name: "マクドナルド 立川駅南口店", address: "東京都立川市柴崎町3-7-1", lat: 35.696945, lng: 139.412842, outletInfo: "各階のカウンター席に電源あり、席により差", website: "https://www.mcdonalds.co.jp/", smokingInfo: "全店舗禁煙。2014年8月から屋内禁煙(公式サイトの記載、2026-08確認)" },
+  { id: "tachikawa-02", name: "マクドナルド 立川伊勢丹前店", address: "東京都立川市曙町2-6-4", lat: 35.699295, lng: 139.413498, outletInfo: "2階・3階のカウンター席に電源あり", website: "https://www.mcdonalds.co.jp/", smokingInfo: "全店舗禁煙。2014年8月から屋内禁煙(公式サイトの記載、2026-08確認)" },
   { id: "tachikawa-03", name: "スターバックス コーヒー エキュート立川店", address: "東京都立川市柴崎町3-1-1 エキュート立川 3階", lat: 35.697231, lng: 139.413162, outletInfo: "電源席は無いとの情報あり(要現地確認)", website: "https://www.starbucks.co.jp/" },
   { id: "tachikawa-04", name: "スターバックス コーヒー 立川伊勢丹店", address: "東京都立川市曙町2-5-1 伊勢丹立川店 1F", lat: 35.6995179, lng: 139.4128958, outletInfo: "カウンター10席+長机8席、計18席に電源", website: "https://www.starbucks.co.jp/" },
   { id: "tachikawa-05", name: "スターバックス コーヒー ルミネ立川店", address: "東京都立川市曙町2-1-1 ルミネ立川店 1階", lat: 35.698551, lng: 139.413223, outletInfo: "入口右の長机10席に電源、反対側はなし", website: "https://www.starbucks.co.jp/" },
