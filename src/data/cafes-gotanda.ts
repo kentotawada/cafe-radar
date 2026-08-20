@@ -50,7 +50,7 @@ export const cafes: Cafe[] = [
   { id: "gotanda-23", name: "ウェンディーズ・ファーストキッチン 五反田東口店", address: "東京都品川区東五反田1-13-12 営和五反田ビル", lat: 35.626823, lng: 139.724442, outletInfo: "窓際カウンターに電源とUSB、21口設置", website: "https://wendys-firstkitchen.co.jp/" },
   { id: "gotanda-24", name: "WIRED CAFE Dining Lounge アトレヴィ五反田店", address: "東京都品川区東五反田1-26-14 アトレヴィ五反田 2F", lat: 35.626205, lng: 139.723297, outletInfo: "無料電源・無料Wi-Fi完備" },
   { id: "gotanda-25", name: "カフェオレトーキョーヨル", address: "東京都品川区東五反田1-13-3 加藤ビル 3F", lat: 35.626648, lng: 139.724808 },
-  { id: "gotanda-26", name: "MOBaCAFE", address: "東京都品川区東五反田2-3-2 タイセイビル 1F", lat: 35.62561, lng: 139.725922, outletInfo: "全席に電源、コンセント+USBポートも", webMeetingInfo: "有料のWEB会議スペースがあるとの口コミが複数あり(Googleマップ、2026年8月時点)" },
+  { id: "gotanda-26", name: "MOBaCAFE", address: "東京都品川区東五反田2-3-2 タイセイビル 1F", lat: 35.62561, lng: 139.725922, outletInfo: "全席にコンセントあり(2026-08 現地で確認)", wifiInfo: "無料Wi-Fiあり(SSID・パスワードは店内に掲示)(2026-08 現地で確認)", smokingInfo: "全席禁煙。別に喫煙ルームあり(室内での通話は不可)(2026-08 現地で確認)", seatCountInfo: "40席(うちWEB会議用の個席7席)(2026-08 現地で確認)", webMeetingInfo: "通話できるオンラインミーティングスペースあり(7席、55円/10分、飲食可)(2026-08 現地で確認)" },
   { id: "gotanda-27", name: "TONER", address: "東京都品川区西五反田3-8-3 町原ビル 1F", lat: 35.626705, lng: 139.717773, outletInfo: "カウンター周りのみ電源コンセントあり" },
   { id: "gotanda-28", name: "Times CAFÉ", address: "東京都品川区西五反田2-20-4 パーク24グループ本社ビル 2F", lat: 35.625961, lng: 139.722061, outletInfo: "電源とUSBポート付きの席あり" },
   { id: "gotanda-29", name: "カフェ ビアンコ", address: "東京都品川区西五反田2-9-7 ドルミ五反田アンメゾン 1F", lat: 35.626808, lng: 139.721085 },
