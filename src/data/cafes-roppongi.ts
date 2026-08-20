@@ -53,7 +53,6 @@ export const cafes: Cafe[] = [
   { id: "roppongi-44", name: "フィオレンティーナ（グランドハイアット東京）", address: "東京都港区六本木6-10-3 グランドハイアット東京 1F", lat: 35.660206, lng: 139.729202 },
   { id: "roppongi-45", name: "アトリウムラウンジ（ANAインターコンチネンタルホテル東京）", address: "東京都港区赤坂1-12-33 ANAインターコンチネンタルホテル東京 2F", lat: 35.667343, lng: 139.741302 },
   { id: "roppongi-46", name: "アマンド 六本木店", address: "東京都港区六本木6-1-26", lat: 35.66292728, lng: 139.7321709, outletInfo: "2階窓際席にコンセントあり" },
-  { id: "roppongi-47", name: "MARBLE GALLERY CAFE", address: "東京都港区赤坂6-19-46 1F", lat: 35.667645, lng: 139.734299 },
   { id: "roppongi-48", name: "アムカフェ（Um cafe）", address: "東京都港区六本木4-10-11 八巻ビル1F", lat: 35.663967, lng: 139.732117 },
   { id: "roppongi-49", name: "タリーズコーヒー ＆TEA 六本木一丁目店", address: "東京都港区六本木1-6-1 泉ガーデンタワー1F", lat: 35.664543, lng: 139.739487, outletInfo: "窓際カウンター席に電源あり、57席", website: "https://www.tullys.co.jp/" },
   { id: "roppongi-50", name: "テレ東BIZカフェ店", address: "東京都港区六本木3-2-1 住友不動産六本木グランドタワー1F", lat: 35.66449, lng: 139.737473 },

@@ -163,15 +163,59 @@ function ClusteredCafeMarker({
     (marker: Marker | null) => register(cafe.id, marker),
     [cafe.id, register]
   );
+
+  // 歩きながらのタップを拾う。
+  //
+  // 歩いていると、指を置いてから離すまでに手が数px動く。ブラウザも地図も
+  // それを「押した」ではなく「動かした」と受け取るので、click が飛ばない。
+  // 立ち止まれば押せるのに歩くと押せない、というのはこれだった。
+  //
+  // 押し始めの位置を覚えておき、離した時に少ししか動いていなければ
+  // 押したものとして扱う。16px は歩きながらの手ぶれは通し、
+  // 地図を動かすつもりの操作は通さない幅。
+  //
+  // 指を掴んで離さない(setPointerCapture)ことはしない。掴むと、ピンの上から
+  // 地図を動かし始めたときに地図が動かなくなる
+  const pressRef = useRef<{ x: number; y: number; t: number } | null>(null);
+  const tappedRef = useRef(false);
+
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    pressRef.current = { x: e.clientX, y: e.clientY, t: Date.now() };
+  }, []);
+
+  const onPointerUp = useCallback(
+    (e: React.PointerEvent) => {
+      const start = pressRef.current;
+      pressRef.current = null;
+      if (!start) return;
+      const moved = Math.hypot(e.clientX - start.x, e.clientY - start.y);
+      if (moved > 16 || Date.now() - start.t > 800) return;
+      // 続けて click も飛んでくることがある。二重に選ばないよう覚えておく
+      tappedRef.current = true;
+      window.setTimeout(() => {
+        tappedRef.current = false;
+      }, 400);
+      onSelect(cafe);
+    },
+    [cafe, onSelect]
+  );
+
   return (
     <AdvancedMarker
       position={{ lat: at[0], lng: at[1] }}
       ref={ref}
-      onClick={() => onSelect(cafe)}
+      onClick={() => {
+        if (tappedRef.current) return;
+        onSelect(cafe);
+      }}
       title={cafe.name}
       anchorPoint={pinAnchorPoint(cafe, verifiedOutletIds)}
     >
-      <div style={hidden ? { opacity: 0, pointerEvents: "none" } : undefined}>
+      <div
+        onPointerDown={onPointerDown}
+        onPointerUp={onPointerUp}
+        style={hidden ? { opacity: 0, pointerEvents: "none" } : undefined}
+      >
         <PinBody
           cafe={cafe}
           statusColor={statusColorForStats(stats)}
