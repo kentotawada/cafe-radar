@@ -215,12 +215,66 @@ const CafeMarkers = memo(function CafeMarkers({
     };
   }, [map]);
 
-  useEffect(() => {
+  // いま地図に載せてあるピン。差分だけを足し引きするために持っておく
+  const attachedRef = useRef<Map<string, Marker>>(new Map());
+
+  // 地図を動かすと表示範囲が変わり、載せる店の顔ぶれも変わる。
+  //
+  // ここで「全部外して付け直す」をやっていた。付け直しが済むまでの一瞬は
+  // ピンが地図に付いていないので、その間に押しても何も起きない。
+  // 地図を動かした直後にピンが反応しなかったのはこれ。
+  //
+  // 出入りしたぶんだけ足し引きする。動かしても大半の店は残るので、
+  // 残る店のピンは外れず、押せる状態が途切れない
+  const sync = useCallback((wantIds: string[]) => {
     const c = clusterer.current;
-    if (!c) return;
-    c.clearMarkers(true);
-    c.addMarkers(Object.values(markersRef.current));
-  }, [cafes, map]);
+    if (!c) return true;
+
+    const want = new Set(wantIds);
+    const attached = attachedRef.current;
+
+    const add: Marker[] = [];
+    let missing = 0;
+    for (const id of want) {
+      if (attached.has(id)) continue;
+      const m = markersRef.current[id];
+      // ピンの実体がまだ出来ていない。取りこぼさないよう、あとでやり直す
+      if (!m) {
+        missing++;
+        continue;
+      }
+      add.push(m);
+    }
+
+    const remove: Marker[] = [];
+    for (const [id, m] of attached) {
+      if (!want.has(id)) remove.push(m);
+    }
+
+    if (remove.length > 0 || add.length > 0) {
+      // noDraw を立てて、描き直しは最後の1回にまとめる
+      if (remove.length > 0) c.removeMarkers(remove, true);
+      if (add.length > 0) c.addMarkers(add, true);
+      c.render();
+
+      for (const [id, m] of [...attached]) {
+        if (remove.includes(m)) attached.delete(id);
+      }
+      for (const id of want) {
+        const m = markersRef.current[id];
+        if (m) attached.set(id, m);
+      }
+    }
+    return missing === 0;
+  }, []);
+
+  useEffect(() => {
+    const ids = cafes.map((cafe) => cafe.id);
+    if (sync(ids)) return;
+    // 出来ていなかったピンがあれば、次の描画のあとにもう一度だけ拾う
+    const timer = window.setTimeout(() => sync(ids), 0);
+    return () => window.clearTimeout(timer);
+  }, [cafes, map, sync]);
 
   return (
     <>
@@ -1166,6 +1220,20 @@ function GoogleMapView() {
           <LegendButton />
           <LangButton />
           <AboutButton />
+        </div>
+
+        {/* エリアから探す。検索欄のすぐ下に置く。
+            下端に敷いていたときは、地図とリストに隠れて気づかれなかった */}
+        <div className="w-full overflow-x-auto whitespace-nowrap pointer-events-auto [scrollbar-width:none]">
+          {areas.map((a) => (
+            <Link
+              key={a.id}
+              href={`/area/${a.id}`}
+              className="cf-map-btn inline-block rounded-full px-2.5 py-1 mr-1.5 text-[11px] font-bold text-gray-800 border"
+            >
+              {a.name.replace("駅", "")}
+            </Link>
+          ))}
         </div>
 
         {/* この範囲で再検索。地図を動かした後だけ出す。行ごと中央に置いて、

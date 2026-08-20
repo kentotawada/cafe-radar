@@ -21,6 +21,7 @@ function MapSkeleton() {
       <p className="text-xs text-gray-700 leading-relaxed max-w-xs">
         東京23エリアのカフェを、電源・Wi-Fi・喫煙可否・席数から探せます。空き状況は利用者の報告で更新されます。
       </p>
+      <AreaLinks />
     </div>
   );
 }
@@ -77,12 +78,11 @@ function MapContent() {
     // リストが折り返しの外に出る。dvh は今見えている高さを指す
     <div className="cf-map-page flex flex-col h-[100dvh]">
       {painted ? <GoogleMapPane /> : <MapSkeleton />}
-      <AreaLinks />
     </div>
   );
 }
 
-// エリアページへのリンク。地図の下に細い帯で敷く。
+// エリアページへのリンク。読み込み中の表示の中に置く。
 //
 // 見た目のためだけではない。Search Console で見ると、用意した約2,000枚の
 // うち検索結果に載っているのは219枚で、残り1,797枚は「検出 - インデックス
@@ -93,15 +93,19 @@ function MapContent() {
 // つながっていなかった。エリアページ側は担当する店を全部リンクしていて
 // 問題がないので、入口だけを開ける。
 //
-// 大事なのは、この帯が GoogleMapPane の外にあること。あちらは
-// ssr:false で読み込んでいるので、中に置いても最初のHTMLには入らない。
+// 置き場所がここなのには理由がある。地図(GoogleMapPane)は ssr:false で
+// 読み込むので、中に置いたものは最初のHTMLに入らない。読み込み中の表示は
+// このファイルの中にあるので、最初のHTMLに入る。
+//
+// 地図が出たあとは、同じリンクが検索欄のすぐ下に並ぶ。どちらの状態でも
+// 同じ行き先が並んでいるので、見せているものと読ませているものは一致する。
 function AreaLinks() {
   return (
     <nav
       aria-label="エリアから探す"
-      className="shrink-0 bg-white border-t border-gray-200 px-2 py-1.5 overflow-x-auto whitespace-nowrap text-[11px] [scrollbar-width:none]"
+      className="max-w-xs text-[11px] leading-relaxed text-center"
     >
-      <span className="text-gray-500 mr-1.5">エリアから探す</span>
+      <span className="text-gray-600">エリアから探す：</span>
       {areas.map((a) => (
         <Link
           key={a.id}
