@@ -9,26 +9,21 @@ import { SURVEY_FIELDS, type SurveyApi } from "@/lib/useSurveyMode";
 
 export function SurveyPanel({ cafe, survey }: { cafe: Cafe; survey: SurveyApi }) {
   const entry = survey.entries[cafe.id] ?? {};
-  const missing = SURVEY_FIELDS.filter((f) => !f.filled(cafe));
-
-  if (missing.length === 0) {
-    return (
-      <div className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-[12px] text-emerald-900">
-        ✅ この店は4項目そろっています
-      </div>
-    );
-  }
+  const blank = SURVEY_FIELDS.filter((f) => !f.filled(cafe)).length;
 
   return (
     <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2">
       <p className="text-[11px] font-bold text-amber-900 mb-1.5">
-        現地調査 — 空いている{missing.length}項目
+        現地調査 — {blank > 0 ? `空き${blank}項目` : "5項目とも記載あり"}
+        <span className="font-normal">（薄い印の項目は記載済み。違っていたら押して直せます）</span>
       </p>
       <div className="flex flex-wrap gap-1.5">
-        {missing.map((f) =>
-          f.key === "seats" ? (
+        {SURVEY_FIELDS.map((f) => {
+          const known = f.filled(cafe);
+          return f.key === "seats" ? (
             <SeatButton
               key={f.key}
+              known={known}
               seats={typeof entry.seats === "number" ? entry.seats : null}
               onSet={(v) => survey.setSeats(cafe.id, v)}
             />
@@ -38,24 +33,29 @@ export function SurveyPanel({ cafe, survey }: { cafe: Cafe; survey: SurveyApi })
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                survey.cycle(cafe.id, f.key as "outlet" | "wifi" | "smoking");
+                survey.cycle(cafe.id, f.key as "outlet" | "wifi" | "smoking" | "webMeeting");
               }}
               className={`rounded-md border px-2.5 py-1.5 text-[12px] font-bold ${
                 entry[f.key] === "yes"
                   ? "border-emerald-600 bg-emerald-100 text-emerald-900"
                   : entry[f.key] === "no"
                     ? "border-rose-500 bg-rose-100 text-rose-900"
-                    : "border-gray-300 bg-white text-gray-800"
+                    : known
+                      ? "border-gray-200 bg-gray-50 text-gray-500"
+                      : "border-gray-300 bg-white text-gray-800"
               }`}
             >
-              {entry[f.key] === "yes" ? "●" : entry[f.key] === "no" ? "✕" : "□"} {f.emoji}
+              {entry[f.key] === "yes" ? "●" : entry[f.key] === "no" ? "✕" : known ? "済" : "□"}{" "}
+              {f.emoji}
               {f.label}
             </button>
-          )
-        )}
+          );
+        })}
       </div>
       <p className="text-[10px] text-amber-900 mt-1.5">
-        🚬は ●が全席禁煙、✕が喫煙できる場所あり。分からなければ押さずに置いてください。
+        🚬は ●が全席禁煙、✕が喫煙できる場所あり。🎧は ●ができる、✕が禁止。
+        <br />
+        分からなければ押さずに置いてください。
       </p>
     </div>
   );
@@ -63,9 +63,12 @@ export function SurveyPanel({ cafe, survey }: { cafe: Cafe; survey: SurveyApi })
 
 function SeatButton({
   seats,
+  known,
   onSet,
 }: {
   seats: number | null;
+  /** 編集部調べで既に席数が入っている */
+  known: boolean;
   onSet: (v: number | null) => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -111,12 +114,14 @@ function SeatButton({
         setEditing(true);
       }}
       className={`rounded-md border px-2.5 py-1.5 text-[12px] font-bold ${
-        seats === null
-          ? "border-gray-300 bg-white text-gray-800"
-          : "border-emerald-600 bg-emerald-100 text-emerald-900"
+        seats !== null
+          ? "border-emerald-600 bg-emerald-100 text-emerald-900"
+          : known
+            ? "border-gray-200 bg-gray-50 text-gray-500"
+            : "border-gray-300 bg-white text-gray-800"
       }`}
     >
-      {seats === null ? "□ 🪑席数" : `● 🪑${seats}席`}
+      {seats !== null ? `● 🪑${seats}席` : known ? "済 🪑席数" : "□ 🪑席数"}
     </button>
   );
 }

@@ -17,7 +17,7 @@ import type { Cafe } from "@/lib/seedCafes";
 const KEY = "cafe-radar-survey-v1";
 const FLAG = "cafe-radar-survey-on";
 
-export type SurveyField = "outlet" | "wifi" | "smoking" | "seats";
+export type SurveyField = "outlet" | "wifi" | "smoking" | "seats" | "webMeeting";
 /** あり/なし の3項目は "yes" | "no"、席数は席数の数字 */
 export type SurveyValue = "yes" | "no" | number;
 export type SurveyEntry = Partial<Record<SurveyField, SurveyValue>>;
@@ -59,6 +59,13 @@ export const SURVEY_FIELDS: {
     filled: (c) => Boolean(c.seatCountInfo),
     say: (v) => `${v}席`,
   },
+  {
+    key: "webMeeting",
+    emoji: "🎧",
+    label: "WEB会議",
+    filled: (c) => Boolean(c.webMeetingInfo),
+    say: (v) => (v === "yes" ? "WEB会議・通話ができる" : "WEB会議・通話は禁止"),
+  },
 ];
 
 const LABEL: Record<SurveyField, string> = {
@@ -66,6 +73,7 @@ const LABEL: Record<SurveyField, string> = {
   wifi: "Wi-Fi",
   smoking: "喫煙",
   seats: "席数",
+  webMeeting: "WEB会議",
 };
 
 function read(): Record<string, SurveyEntry> {
@@ -173,9 +181,12 @@ export function useSurveyMode(): SurveyApi {
       for (const [cafeId, entry] of Object.entries(entries)) {
         const cafe = byId.get(cafeId);
         if (!cafe) continue;
-        const said = SURVEY_FIELDS.filter((f) => entry[f.key] !== undefined).map(
-          (f) => `  ${LABEL[f.key]}：${f.say(entry[f.key]!)}`
-        );
+        const said = SURVEY_FIELDS.filter((f) => entry[f.key] !== undefined).map((f) => {
+          // 既に編集部調べが入っている項目は印を付ける。現地の方が正しいが、
+          // 黙って差し替えると出所と日付の記録が消えるので、目で見てから直す
+          const mark = f.filled(cafe) ? "  ※既存の記載あり" : "";
+          return `  ${LABEL[f.key]}：${f.say(entry[f.key]!)}${mark}`;
+        });
         if (said.length === 0) continue;
         n++;
         lines.push(cafe.name, ...said, "");
