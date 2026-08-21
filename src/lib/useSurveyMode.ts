@@ -189,7 +189,8 @@ export function useSurveyMode(): SurveyApi {
         });
         if (said.length === 0) continue;
         n++;
-        lines.push(cafe.name, ...said, "");
+        // 店名だけだと同名の店で取り違える。idを添えて、どの行かを一意にする
+        lines.push(`${cafe.name}  [${cafe.id}]`, ...said, "");
       }
       if (n === 0) return "まだ何も入力されていません。";
       lines.push(`上記 ${n} 軒。すべて現地で確認。`);
