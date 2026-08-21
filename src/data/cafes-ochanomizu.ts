@@ -79,7 +79,6 @@ export const cafes: Cafe[] = [
   // 営業時間/定休日)は空欄のまま(推測では埋めていない)。チェーン店のWi-Fi・
   // 喫煙方針など全店共通の公表情報のみ、個別未確認でも記載している。
   { id: "ochanomizu-54", name: "ドトールコーヒーショップ 御茶ノ水北店", address: "東京都千代田区外神田2-19-3 お茶の水木村ビル", lat: 35.702492, lng: 139.76651, wifiInfo: "無料Wi-Fiあり(DOUTOR_FREE_Wi-Fi、1回1時間まで繰り返し利用可)", website: "https://www.doutor.co.jp/dcs/", smokingInfo: "喫煙専用室あり(ドトールコーヒー公式の店舗検索、2026年8月)", seatCountInfo: "54席(ドトールコーヒー公式の店舗検索、2026年8月)" },
-  { id: "ochanomizu-55", name: "ドトールコーヒーショップ 神田小川町店", address: "東京都千代田区神田小川町2-2", lat: 35.694706, lng: 139.764847, wifiInfo: "無料Wi-Fiあり(DOUTOR_FREE_Wi-Fi、1回1時間まで繰り返し利用可)", website: "https://www.doutor.co.jp/dcs/", outletInfo: "一部の席にコンセントあり(メディア記事、2025年9月)", smokingInfo: "喫煙専用室あり(ドトールコーヒー公式の店舗検索、2026年8月)", seatCountInfo: "68席(ドトールコーヒー公式の店舗検索、2026年8月)" },
   { id: "ochanomizu-56", name: "エクセルシオール カフェ お茶の水日本大学店", address: "東京都千代田区神田駿河台1-6 日本大学お茶の水校舎1F", lat: 35.697113, lng: 139.762665, outletInfo: "全席に電源あり", smokingInfo: "全席禁煙(74席)", wifiInfo: "無料Wi-Fiあり(DOUTOR_FREE_Wi-Fi、1回1時間まで繰り返し利用可)", seatCountInfo: "74席(全席禁煙)", hoursInfo: "平日7:00〜21:00、土・祝8:00〜19:00", website: "https://www.doutor.co.jp/exc/" },
   { id: "ochanomizu-57", name: "スターバックス コーヒー 都営神保町駅店", address: "東京都千代田区神田神保町2-7 都営三田線・新宿線神保町駅構内", lat: 35.695702, lng: 139.755798, smokingInfo: "全店舗禁煙方針、屋内客席は全店禁煙(喫煙所なし)", wifiInfo: "無料Wi-Fiあり(at_STARBUCKS_Wi2、docomo Wi-Fi・SoftBank Wi-Fiスポットにも対応)", hoursInfo: "7:00〜22:30", website: "https://www.starbucks.co.jp/" },
   { id: "ochanomizu-58", name: "星乃珈琲店 御茶ノ水店", address: "東京都千代田区神田駿河台2-4 ウィーンビル2F", lat: 35.699505, lng: 139.76358, website: "https://www.hoshinocoffee.com/", wifiInfo: "Wi-Fiなし(星乃珈琲店公式の店舗情報、2026年時点)" },
@@ -103,8 +102,6 @@ export const cafes: Cafe[] = [
   { id: "ochanomizu-77", name: "カフェ&ベーカリー MIYABI 神保町", address: "東京都千代田区西神田2-1-13", lat: 35.698727, lng: 139.7565, outletInfo: "一部の席にコンセントあり(メディア記事、2025年9月)", wifiInfo: "無料Wi-Fiあり(メディア記事、2025年9月)", smokingInfo: "加熱式たばこ専用喫煙室と紙巻きたばこ専用の喫煙ブースあり(CAFE&BAKERY MIYABI公式サイト、2026年8月)" },
   { id: "ochanomizu-78", name: "サクラカフェ神保町", address: "東京都千代田区神田神保町2-21-4", lat: 35.695072, lng: 139.756744, outletInfo: "一部の席にコンセントあり(メディア記事、2025年9月)", wifiInfo: "無料Wi-Fiあり(メディア記事、2025年9月)", smokingInfo: "全席禁煙。屋外テラスに喫煙エリアあり(サクラカフェ神保町公式サイト、2026年8月)" },
   { id: "ochanomizu-79", name: "BURGERS CAFE GRILL FUKUYOSHI", address: "東京都千代田区神田猿楽町1-3-4 島崎ビル1F", lat: 35.697914, lng: 139.759445 },
-  { id: "ochanomizu-80", name: "ONCA COFFEE 神田店", address: "東京都千代田区神田錦町3-1 安田シーケンスタワー", lat: 35.692589, lng: 139.761765, wifiInfo: "無料Wi-Fiあり(ONCA COFFEE公式サイト、2026年8月)" },
-  { id: "ochanomizu-81", name: "Social Good Roasters", address: "東京都千代田区神田錦町1-14-13 LANDPOOL KANDA TERRACE 2F", lat: 35.693806, lng: 139.764252, outletInfo: "一部の席にコンセントあり(メディア記事、2025年9月)", wifiInfo: "無料Wi-Fiあり(メディア記事、2025年9月)", smokingInfo: "全席禁煙(LANDPOOL KANDA TERRACE公式の施設案内、2025年9月)", seatCountInfo: "20席(LANDPOOL KANDA TERRACE公式の施設案内、2025年9月)" },
   { id: "ochanomizu-82", name: "cafe,Dining&Bar 104.5", address: "東京都千代田区神田淡路町2-101 ワテラスタワー2F", lat: 35.697632, lng: 139.766876 },
   { id: "ochanomizu-83", name: "COTTI COFFEE 神保町店", address: "東京都千代田区神田神保町1-5-4", lat: 35.695469, lng: 139.759216 },
   { id: "ochanomizu-84", name: "カンダコーヒー", address: "東京都千代田区神田神保町2-38-10 多幸ビル1F", lat: 35.697594, lng: 139.754822 },
