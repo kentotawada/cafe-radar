@@ -31,6 +31,8 @@ import { cupPinSvgMarkup } from "@/lib/cupPinIcon";
 import { MapBounds } from "@/lib/mapBounds";
 import { useLiveReports, statusColorForStats, OCCUPANCY_EMOJI } from "@/lib/useLiveReports";
 import { pickMajority, isNonSmoking, hasWifi } from "@/lib/cafeStats";
+import { useSurveyMode } from "@/lib/useSurveyMode";
+import { SurveyPanel, SurveyBar } from "@/components/SurveyPanel";
 import {
   EMPTY_FILTERS,
   FILTER_LABELS,
@@ -538,6 +540,8 @@ function GoogleMapView() {
   // リストを並べる基準の点。地図の中心と別に持つ
   const [sortCenter, setSortCenter] = useState<[number, number] | null>(null);
   const [selected, setSelected] = useState<Cafe | null>(null);
+  // 現地調査モード。?survey=1 で入る。普段の利用者には出ない
+  const survey = useSurveyMode();
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
   const [heading, setHeading] = useState<number | null>(null);
   const [filters, setFilters] = useState<CafeFilters>(EMPTY_FILTERS);
@@ -1342,6 +1346,7 @@ function GoogleMapView() {
         style={{ bottom: bottomHeight + 8 }}
         className="absolute left-2 z-20 flex flex-col items-start gap-1 max-w-[74%]"
       >
+        {survey.on && <SurveyBar survey={survey} cafes={allCafes} />}
         <button
           onClick={() => (addingCafe ? cancelAdding() : setAddingCafe(true))}
           className={`rounded-full shadow px-2.5 py-1 text-[11px] font-semibold border ${
@@ -1527,6 +1532,9 @@ function GoogleMapView() {
                           onFlag={() => flagCafe(cafe.id)}
                           onSubmitCorrection={(m) => submitCorrection(cafe.id, m)}
                         />
+                        {survey.on && isOpen && (
+                          <SurveyPanel cafe={cafe} survey={survey} />
+                        )}
                     </div>
                   );
               })}
