@@ -31,7 +31,7 @@ import { cupPinSvgMarkup } from "@/lib/cupPinIcon";
 import { MapBounds } from "@/lib/mapBounds";
 import { useLiveReports, statusColorForStats, OCCUPANCY_EMOJI } from "@/lib/useLiveReports";
 import { pickMajority, isNonSmoking, hasWifi } from "@/lib/cafeStats";
-import { useSurveyMode } from "@/lib/useSurveyMode";
+import { useSurveyMode, needsSurvey } from "@/lib/useSurveyMode";
 import { SurveyPanel, SurveyBar } from "@/components/SurveyPanel";
 import {
   EMPTY_FILTERS,
@@ -542,6 +542,7 @@ function GoogleMapView() {
   const [selected, setSelected] = useState<Cafe | null>(null);
   // 現地調査モード。?survey=1 で入る。普段の利用者には出ない
   const survey = useSurveyMode();
+  const surveyOn = survey.on;
   const [userPosition, setUserPosition] = useState<[number, number] | null>(null);
   const [heading, setHeading] = useState<number | null>(null);
   const [filters, setFilters] = useState<CafeFilters>(EMPTY_FILTERS);
@@ -694,6 +695,8 @@ function GoogleMapView() {
     const padded = bounds.pad(0.15);
     const inView = allCafes.filter((c) => {
       if (!padded.contains([c.lat, c.lng])) return false;
+      // 現地調査モードでは、5項目そろっている店は用がないので出さない
+      if (surveyOn && !needsSurvey(c)) return false;
       return passesFilters(c, filters, statsByCafe[c.id] ?? null, favorites, verifiedOutletIds);
     });
     if (inView.length <= MAX_MARKERS) return inView;
@@ -705,7 +708,7 @@ function GoogleMapView() {
           ((b.lat - cLat) ** 2 + (b.lng - cLng) ** 2)
       )
       .slice(0, MAX_MARKERS);
-  }, [bounds, filters, statsByCafe, favorites, allCafes, verifiedOutletIds]);
+  }, [bounds, filters, statsByCafe, favorites, allCafes, verifiedOutletIds, surveyOn]);
   const capped = visible.length >= MAX_MARKERS;
 
   // クラスタに載せるピンは、見えている店ぜんぶ。選んだ店も外さない。
@@ -757,12 +760,14 @@ function GoogleMapView() {
   const ranked = useMemo(
     () =>
       rank(
-        allCafes.filter((c) =>
-          passesFilters(c, filters, statsByCafe[c.id] ?? null, favorites, verifiedOutletIds)
+        allCafes.filter(
+          (c) =>
+            (!surveyOn || needsSurvey(c)) &&
+            passesFilters(c, filters, statsByCafe[c.id] ?? null, favorites, verifiedOutletIds)
         ),
         Infinity
       ),
-    [rank, allCafes, filters, statsByCafe, favorites, verifiedOutletIds]
+    [rank, allCafes, filters, statsByCafe, favorites, verifiedOutletIds, surveyOn]
   );
 
   // カードに並べる一覧。店を選んでいる間は、選び始めたときの並びのまま。

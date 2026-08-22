@@ -15,7 +15,6 @@ import type { Cafe } from "@/lib/seedCafes";
 // 載せる今のやり方を崩さないため。
 
 const KEY = "cafe-radar-survey-v1";
-const FLAG = "cafe-radar-survey-on";
 
 export type SurveyField = "outlet" | "wifi" | "smoking" | "seats" | "webMeeting";
 /** あり/なし の3項目は "yes" | "no"、席数は席数の数字 */
@@ -102,16 +101,17 @@ export type SurveyApi = {
   clear: () => void;
 };
 
-// URL に ?survey=1 が付いていたら入る。一度入ればこの端末では覚える。
-// ?survey=0 で抜ける。
+// URL に ?survey=1 が付いている間だけ入る。
+//
+// 最初は「一度入ったらこの端末で覚える」にしていたが、それだと
+// cafe-radar.com を普通に開いたときにも調査の欄が出てしまう。
+// 人にサイトを見せる場面で邪魔になるので、URL に付いている時だけにした。
+//
 // この関数を呼ぶ GoogleMapPane は ssr:false で読み込まれるため、
-// 最初の描画から localStorage を見てよい（サーバー側では動かない）
+// 最初の描画から window を見てよい（サーバー側では動かない）
 function initialOn(): boolean {
   if (typeof window === "undefined") return false;
-  const param = new URLSearchParams(window.location.search).get("survey");
-  if (param === "1") window.localStorage.setItem(FLAG, "1");
-  else if (param === "0") window.localStorage.removeItem(FLAG);
-  return window.localStorage.getItem(FLAG) === "1";
+  return new URLSearchParams(window.location.search).get("survey") === "1";
 }
 
 export function useSurveyMode(): SurveyApi {
@@ -127,10 +127,13 @@ export function useSurveyMode(): SurveyApi {
     }
   }, []);
 
+  // ✕ で抜けたときは URL からも外す。付いたままだと、再読み込みで戻ってくる
   const setOn = useCallback((v: boolean) => {
     setOnState(v);
-    if (v) window.localStorage.setItem(FLAG, "1");
-    else window.localStorage.removeItem(FLAG);
+    const url = new URL(window.location.href);
+    if (v) url.searchParams.set("survey", "1");
+    else url.searchParams.delete("survey");
+    window.history.replaceState(null, "", url.toString());
   }, []);
 
   const cycle = useCallback<SurveyApi["cycle"]>(
@@ -204,4 +207,12 @@ export function useSurveyMode(): SurveyApi {
   const count = useMemo(() => Object.keys(entries).length, [entries]);
 
   return { on, setOn, entries, count, cycle, setSeats, exportText, clear };
+}
+
+/**
+ * 現地で見るものが残っているか。5項目そろっていれば用がない。
+ * 調査モードのときだけ、これが false の店を地図から外す
+ */
+export function needsSurvey(cafe: Cafe): boolean {
+  return SURVEY_FIELDS.some((f) => !f.filled(cafe));
 }
