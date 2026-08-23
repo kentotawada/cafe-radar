@@ -1566,8 +1566,13 @@ function GoogleMapView() {
                           onFlag={() => flagCafe(cafe.id)}
                           onSubmitCorrection={(m) => submitCorrection(cafe.id, m)}
                         />
+                        {/* 調査の欄はカード(30vh)の外側に付くので、こちらも高さを
+                            抑えて中でスクロールさせる。抑えないと画面が埋まって
+                            地図が見えなくなった */}
                         {survey.on && isOpen && (
-                          <SurveyPanel cafe={cafe} survey={survey} />
+                          <div className="max-h-[24vh] overflow-y-auto overscroll-y-contain">
+                            <SurveyPanel cafe={cafe} survey={survey} />
+                          </div>
                         )}
                     </div>
                   );

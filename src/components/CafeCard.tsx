@@ -254,11 +254,17 @@ export default function CafeCard(props: Props) {
     // 報告で「つながらない」が多数派なら、そこで決まり。
     // 「なし（つながらない）」は同じことを二度言っているので、片方だけ出す
     if (f.wifiSpeed === "none") return wifiLabel.none;
-    if (f.wifiSpeed) return `${yes} / ${wifiLabel[f.wifiSpeed]}`;
-
+    // 編集部調べの本文があればそのまま出す。「パスワード式」「docomo契約者のみ」
+    // のような中身を「あり」に丸めていたら、現地で確認したことが画面に
+    // 出てこなかった
+    if (f.wifiSpeed) {
+      return cafe.wifiInfo
+        ? `${yes} / ${wifiLabel[f.wifiSpeed]} ・ ${cafe.wifiInfo}`
+        : `${yes} / ${wifiLabel[f.wifiSpeed]}`;
+    }
     if (cafe.wifiInfo) {
-      if (/なし|不可/.test(cafe.wifiInfo)) return no;
-      return `${yes}（${unknownSpeed}）`;
+      if (lang === "en") return /なし|不可/.test(cafe.wifiInfo) ? no : `${yes} (${unknownSpeed})`;
+      return cafe.wifiInfo;
     }
     return null;
   })();
@@ -409,9 +415,11 @@ export default function CafeCard(props: Props) {
             <InfoRow
               icon="🎧"
               label={t("gmap.callLabel")}
+              // 利用者の報告が無ければ編集部調べの本文。以前は報告しか
+              // 見ておらず、現地で確認した「WEB会議できる」が出なかった
               value={
                 f.webMeetingOk == null
-                  ? null
+                  ? (cafe.webMeetingInfo ?? null)
                   : f.webMeetingOk
                     ? t("gmap.callYes")
                     : t("gmap.callNo")
@@ -421,11 +429,15 @@ export default function CafeCard(props: Props) {
             <InfoRow
               icon="🚬"
               label={t("gmap.smokingLabel")}
+              // 本文をそのまま出す。「禁煙／喫煙可」の2択に丸めると、
+              // 分煙・喫煙ブース・加熱式のみ、の違いが消える
               value={
                 cafe.smokingInfo
-                  ? isNonSmoking(cafe)
-                    ? t("gmap.isNonSmoking")
-                    : "喫煙可"
+                  ? lang === "en"
+                    ? isNonSmoking(cafe)
+                      ? t("gmap.isNonSmoking")
+                      : "Smoking area"
+                    : cafe.smokingInfo
                   : null
               }
               empty={t("gmap.notYet")}

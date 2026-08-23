@@ -36,9 +36,9 @@ export function SurveyPanel({ cafe, survey }: { cafe: Cafe; survey: SurveyApi })
 
   return (
     <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2" onClick={(e) => e.stopPropagation()}>
-      <p className="text-[11px] font-bold text-amber-900 mb-1.5">
+      <p className="text-[11px] font-bold text-amber-900 mb-1">
         現地調査 — {blank > 0 ? `空き${blank}項目` : "5項目とも記載あり"}
-        <span className="font-normal">（薄い「済」は記載済み。違っていたら押して直せます）</span>
+        <span className="font-normal">（「済」は記載済み。違えば押して直す。🎧 ●できる ✕禁止）</span>
       </p>
 
       <div className="flex flex-wrap gap-1.5">
@@ -85,10 +85,6 @@ export function SurveyPanel({ cafe, survey }: { cafe: Cafe; survey: SurveyApi })
       </div>
 
       <PosButton pos={entry.pos} onSet={(p) => survey.setPos(cafe.id, p)} />
-
-      <p className="text-[10px] text-amber-900 mt-1.5">
-        🎧は ●ができる、✕が禁止。分からなければ押さずに置いてください。
-      </p>
     </div>
   );
 }
