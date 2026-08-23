@@ -1331,8 +1331,12 @@ function GoogleMapView() {
               key={a.id}
               type="button"
               onClick={() => goToArea(a.id)}
-              className={`cf-map-btn inline-block rounded-full px-2.5 py-1 mr-1.5 text-[11px] font-bold border ${
-                areaId === a.id ? "bg-gray-900 text-white border-gray-900" : "text-gray-800"
+              // 選択中は cf-map-btn を付けない。あちらが背景を白に固定していて、
+              // 白い文字と重なって真っ白に見えていた
+              className={`inline-block rounded-full px-2.5 py-1 mr-1.5 text-[11px] font-bold border ${
+                areaId === a.id
+                  ? "bg-gray-900 text-white border-gray-900 shadow"
+                  : "cf-map-btn text-gray-800"
               }`}
             >
               {a.name.replace("駅", "")}
