@@ -94,4 +94,7 @@ export const SURVEYED: Record<string, string> = {
   "ochanomizu-67": "2026-08-23",
   "ochanomizu-90": "2026-08-23",
   "ochanomizu-92": "2026-08-23",
+  "iidabashi-83": "2026-08-23",
+  "iidabashi-84": "2026-08-23",
+  "ochanomizu-97": "2026-08-23",
 };
