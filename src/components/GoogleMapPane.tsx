@@ -22,7 +22,7 @@ import {
   useApiLoadingStatus,
   useMap,
 } from "@vis.gl/react-google-maps";
-import { MarkerClusterer } from "@googlemaps/markerclusterer";
+import { MarkerClusterer, SuperClusterAlgorithm } from "@googlemaps/markerclusterer";
 import type { Marker } from "@googlemaps/markerclusterer";
 import { seedCafes, type Cafe } from "@/lib/seedCafes";
 import { hasOutlet } from "@/lib/cafeAmenities";
@@ -262,7 +262,14 @@ const CafeMarkers = memo(function CafeMarkers({
 
   useEffect(() => {
     if (!map) return;
-    if (!clusterer.current) clusterer.current = new MarkerClusterer({ map });
+    // 既定(maxZoom 16)だと、少し引いただけでピンが数字の丸にまとまって
+    // 店が見えなくなる。ズーム15より寄っている間はまとめない。
+    // 4軒未満の集まりもまとめない。2〜3軒なら重ならずに見分けられる
+    if (!clusterer.current)
+      clusterer.current = new MarkerClusterer({
+        map,
+        algorithm: new SuperClusterAlgorithm({ radius: 50, maxZoom: 14, minPoints: 4 }),
+      });
     return () => {
       clusterer.current?.clearMarkers();
     };
@@ -539,6 +546,9 @@ function GoogleMapView() {
   const [bounds, setBounds] = useState<MapBounds | null>(null);
   // リストを並べる基準の点。地図の中心と別に持つ
   const [sortCenter, setSortCenter] = useState<[number, number] | null>(null);
+  // 選んだエリア。ドロップダウンの表示に使う。以前は value が空固定で、
+  // 選んでも「エリア」に戻っていた。地図を手で動かしたら外す
+  const [areaId, setAreaId] = useState("");
   const [selected, setSelected] = useState<Cafe | null>(null);
   // 現地調査モード。?survey=1 で入る。普段の利用者には出ない
   const survey = useSurveyMode();
@@ -1139,6 +1149,20 @@ function GoogleMapView() {
 
   const activeCount = countActive(filters);
 
+  // エリアの中心へ寄せる。ドロップダウンと、検索欄の下のチップの両方から呼ぶ
+  const goToArea = useCallback(
+    (id: string) => {
+      const area = areas.find((a) => a.id === id);
+      if (!area || !map) return;
+      hasMovedRef.current = true;
+      freezeListRef.current = false;
+      setAreaId(area.id);
+      map.panTo({ lat: area.lat, lng: area.lng });
+      map.setZoom(16);
+    },
+    [map]
+  );
+
   return (
     <div className="relative flex-1 min-h-0">
       <GMap
@@ -1147,8 +1171,9 @@ function GoogleMapView() {
         defaultZoom={16}
         // 指がすべって縮小に化けたときに、世界地図まで引けてしまっていた。
         // 載っているのは東京だけなので、そこまで引く意味がない。
-        // 11 は関東がひととおり収まるあたり
-        minZoom={11}
+        // 11 だと関東全体が出て「日本地図まで引けてしまう」と感じられた。
+        // 12 で23区がひととおり収まる
+        minZoom={12}
         gestureHandling="greedy"
         clickableIcons={false}
         zoomControl={false}
@@ -1162,6 +1187,7 @@ function GoogleMapView() {
         onIdle={handleIdle}
         onDragstart={() => {
           hasMovedRef.current = true;
+          setAreaId("");
           setSuggestOpen(false);
           setDrifted(true);
         }}
@@ -1301,13 +1327,16 @@ function GoogleMapView() {
             下端に敷いていたときは、地図とリストに隠れて気づかれなかった */}
         <div className="w-full overflow-x-auto whitespace-nowrap pointer-events-auto [scrollbar-width:none]">
           {areas.map((a) => (
-            <Link
+            <button
               key={a.id}
-              href={`/area/${a.id}`}
-              className="cf-map-btn inline-block rounded-full px-2.5 py-1 mr-1.5 text-[11px] font-bold text-gray-800 border"
+              type="button"
+              onClick={() => goToArea(a.id)}
+              className={`cf-map-btn inline-block rounded-full px-2.5 py-1 mr-1.5 text-[11px] font-bold border ${
+                areaId === a.id ? "bg-gray-900 text-white border-gray-900" : "text-gray-800"
+              }`}
             >
               {a.name.replace("駅", "")}
-            </Link>
+            </button>
           ))}
         </div>
 
@@ -1552,15 +1581,8 @@ function GoogleMapView() {
                 探した結果(リスト)と同じ場所にあるほうが行き来しなくて済む */}
             <div className="flex items-center gap-1.5 px-2 pt-1.5 overflow-x-auto [scrollbar-width:none]">
             <select
-              value=""
-              onChange={(e) => {
-                const area = areas.find((a) => a.id === e.target.value);
-                if (!area || !map) return;
-                hasMovedRef.current = true;
-                freezeListRef.current = false;
-                map.panTo({ lat: area.lat, lng: area.lng });
-                map.setZoom(16);
-              }}
+              value={areaId}
+              onChange={(e) => goToArea(e.target.value)}
               className="rounded-full px-2.5 py-1 text-[11px] bg-white text-gray-800 border border-gray-300 max-w-[112px]"
             >
               <option value="">{t("gmap.area")}</option>

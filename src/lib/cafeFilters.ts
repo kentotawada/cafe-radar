@@ -16,6 +16,12 @@ import {
 // 微妙に食い違う。今日 Leaflet 版で直した「電源席フィルタが常に0件」も
 // この判定の中にあった問題だった。
 export type CafeFilters = {
+  /**
+   * 作業向き。電源とWi-Fiが両方あり、WEB会議が禁止されていない店。
+   * コワーキングは高いので、同じことができる安いカフェをパッと探したい、
+   * という現地調査での実感から
+   */
+  workReady: boolean;
   /** 編集部調べで電源がある店だけ */
   outlet: boolean;
   /** 電源席に空きがある(利用者の報告が必要) */
@@ -31,6 +37,7 @@ export type CafeFilters = {
 };
 
 export const EMPTY_FILTERS: CafeFilters = {
+  workReady: false,
   outlet: false,
   outletFree: false,
   wifi: false,
@@ -40,6 +47,13 @@ export const EMPTY_FILTERS: CafeFilters = {
   outletAllSeats: false,
   favoritesOnly: false,
 };
+
+// WEB会議が明示的に禁止されている店。記載が無い店は「禁止とは書かれていない」
+// として通す。現地調査では、張り紙が無い店は WEB会議できると判断している
+export function webMeetingForbidden(cafe: Cafe): boolean {
+  if (!cafe.webMeetingInfo) return false;
+  return /禁止|できない|不可|NG|ご遠慮/.test(cafe.webMeetingInfo);
+}
 
 export function isFiltering(f: CafeFilters): boolean {
   return Object.values(f).some(Boolean);
@@ -58,6 +72,11 @@ export function passesFilters(
   verifiedOutletIds?: Set<string>
 ): boolean {
   if (f.favoritesOnly && !favorites.has(cafe.id)) return false;
+  if (
+    f.workReady &&
+    !(hasOutlet(cafe, verifiedOutletIds) && hasWifi(cafe) && !webMeetingForbidden(cafe))
+  )
+    return false;
   if (f.outlet && !hasOutlet(cafe, verifiedOutletIds)) return false;
   if (f.wifi && !hasWifi(cafe)) return false;
   if (f.nonSmoking && !isNonSmoking(cafe)) return false;
@@ -88,6 +107,7 @@ export type FilterLabel = { key: keyof CafeFilters; label: string; note?: string
 //
 // 「全席に電源」は店名からの推測でしかなく、使わないので消した。
 export const FILTER_LABELS_EN: FilterLabel[] = [
+  { key: "workReady", label: "💻 Work-ready" },
   { key: "outlet", label: "🔌 Power" },
   { key: "wifi", label: "📶 Wi-Fi" },
   { key: "nonSmoking", label: "🚭 No smoking" },
@@ -98,6 +118,7 @@ export const FILTER_LABELS_EN: FilterLabel[] = [
 ];
 
 export const FILTER_LABELS: FilterLabel[] = [
+  { key: "workReady", label: "💻 作業向き", note: "電源+Wi-Fi" },
   { key: "outlet", label: "🔌 電源" },
   { key: "wifi", label: "📶 Wi-Fi" },
   { key: "nonSmoking", label: "🚭 禁煙" },

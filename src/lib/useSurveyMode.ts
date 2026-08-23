@@ -17,19 +17,38 @@ import { SURVEYED } from "@/data/surveyed";
 
 const KEY = "cafe-radar-survey-v1";
 
-export type SurveyField = "outlet" | "wifi" | "smoking" | "seats" | "webMeeting";
-/** あり/なし の3項目は "yes" | "no"、席数は席数の数字 */
-export type SurveyValue = "yes" | "no" | number;
-export type SurveyEntry = Partial<Record<SurveyField, SurveyValue>>;
+/** 喫煙の4択。あり/なしでは「分煙」「喫煙室」の違いが伝わらなかった */
+export type SmokeKind = "nosmoke" | "separated" | "booth" | "seat";
+export const SMOKE_OPTIONS: { value: SmokeKind; label: string; say: string }[] = [
+  { value: "nosmoke", label: "全席禁煙", say: "全席禁煙" },
+  { value: "separated", label: "分煙", say: "分煙(禁煙席と喫煙席がある)" },
+  { value: "booth", label: "喫煙ブース", say: "全席禁煙で、喫煙ブース・喫煙室あり" },
+  { value: "seat", label: "席で吸える", say: "席で吸える(全席喫煙可)" },
+];
 
-export const SURVEY_FIELDS: {
-  key: SurveyField;
+export type SurveyEntry = {
+  outlet?: "yes" | "no";
+  wifi?: "yes" | "no";
+  webMeeting?: "yes" | "no";
+  /** 旧データの "yes"/"no" も読めるようにしておく */
+  smoking?: SmokeKind | "yes" | "no";
+  seats?: number;
+  /** 営業時間・定休日はSNSや公式で調べたものを書く。出所も本文に */
+  hours?: string;
+  closed?: string;
+  /** 店の前で取った現在地。ピンがずれている店を直すのに使う */
+  pos?: { lat: number; lng: number; acc: number };
+};
+
+export type TriField = "outlet" | "wifi" | "webMeeting";
+export type TextField = "hours" | "closed";
+
+export const TRI_FIELDS: {
+  key: TriField;
   emoji: string;
   label: string;
-  /** 編集部調べで既に埋まっているか。埋まっていれば聞く必要がない */
   filled: (cafe: Cafe) => boolean;
-  /** 書き出す文章 */
-  say: (v: SurveyValue) => string;
+  say: (v: "yes" | "no") => string;
 }[] = [
   {
     key: "outlet",
@@ -46,20 +65,6 @@ export const SURVEY_FIELDS: {
     say: (v) => (v === "yes" ? "Wi-Fiあり" : "Wi-Fiなし"),
   },
   {
-    key: "smoking",
-    emoji: "🚬",
-    label: "喫煙",
-    filled: (c) => Boolean(c.smokingInfo),
-    say: (v) => (v === "yes" ? "全席禁煙" : "喫煙できる席または喫煙室あり"),
-  },
-  {
-    key: "seats",
-    emoji: "🪑",
-    label: "席数",
-    filled: (c) => Boolean(c.seatCountInfo),
-    say: (v) => `${v}席`,
-  },
-  {
     key: "webMeeting",
     emoji: "🎧",
     label: "WEB会議",
@@ -68,13 +73,31 @@ export const SURVEY_FIELDS: {
   },
 ];
 
-const LABEL: Record<SurveyField, string> = {
-  outlet: "電源",
-  wifi: "Wi-Fi",
-  smoking: "喫煙",
-  seats: "席数",
-  webMeeting: "WEB会議",
-};
+export const TEXT_FIELDS: { key: TextField; emoji: string; label: string; filled: (cafe: Cafe) => boolean; hint: string }[] = [
+  {
+    key: "hours",
+    emoji: "⏰",
+    label: "営業時間",
+    filled: (c) => Boolean(c.hoursInfo),
+    hint: "例: 平日9:00〜20:00 土日10:00〜18:00（公式Instagram 2026-08）",
+  },
+  {
+    key: "closed",
+    emoji: "📅",
+    label: "定休日",
+    filled: (c) => Boolean(c.closedDaysInfo),
+    hint: "例: 日曜・祝日（公式サイト 2026-08）",
+  },
+];
+
+export const seatsFilled = (c: Cafe) => Boolean(c.seatCountInfo);
+export const smokingFilled = (c: Cafe) => Boolean(c.smokingInfo);
+
+function smokeSay(v: SurveyEntry["smoking"]): string {
+  if (v === "yes") return "全席禁煙";
+  if (v === "no") return "喫煙できる席または喫煙室あり";
+  return SMOKE_OPTIONS.find((o) => o.value === v)?.say ?? "";
+}
 
 function read(): Record<string, SurveyEntry> {
   if (typeof window === "undefined") return {};
@@ -86,6 +109,14 @@ function read(): Record<string, SurveyEntry> {
   }
 }
 
+function persist(next: Record<string, SurveyEntry>) {
+  try {
+    window.localStorage.setItem(KEY, JSON.stringify(next));
+  } catch {
+    // 容量切れなど。入力を止めるほどのことではないので黙って続ける
+  }
+}
+
 export type SurveyApi = {
   /** 調査モードに入っているか */
   on: boolean;
@@ -94,9 +125,12 @@ export type SurveyApi = {
   /** 入力済みの店舗数 */
   count: number;
   /** あり/なし を順に切り替える。3回目で取り消し */
-  cycle: (cafeId: string, field: Exclude<SurveyField, "seats">) => void;
+  cycle: (cafeId: string, field: TriField) => void;
+  setSmoking: (cafeId: string, v: SmokeKind | null) => void;
   /** 席数を入れる。null で取り消し */
   setSeats: (cafeId: string, seats: number | null) => void;
+  setText: (cafeId: string, field: TextField, v: string) => void;
+  setPos: (cafeId: string, pos: SurveyEntry["pos"] | null) => void;
   /** 送れる文章にする。店名が要るので店の一覧を渡す */
   exportText: (cafes: Cafe[]) => string;
   clear: () => void;
@@ -119,13 +153,17 @@ export function useSurveyMode(): SurveyApi {
   const [on, setOnState] = useState(initialOn);
   const [entries, setEntries] = useState<Record<string, SurveyEntry>>(read);
 
-  const save = useCallback((next: Record<string, SurveyEntry>) => {
-    setEntries(next);
-    try {
-      window.localStorage.setItem(KEY, JSON.stringify(next));
-    } catch {
-      // 容量切れなど。入力を止めるほどのことではないので黙って続ける
-    }
+  // 1店ぶんを書き換える共通処理。空になった店は丸ごと消す
+  const update = useCallback((cafeId: string, fn: (e: SurveyEntry) => void) => {
+    setEntries((prev) => {
+      const entry: SurveyEntry = { ...prev[cafeId] };
+      fn(entry);
+      const next = { ...prev };
+      if (Object.keys(entry).length === 0) delete next[cafeId];
+      else next[cafeId] = entry;
+      persist(next);
+      return next;
+    });
   }, []);
 
   // ✕ で抜けたときは URL からも外す。付いたままだと、再読み込みで戻ってくる
@@ -138,43 +176,52 @@ export function useSurveyMode(): SurveyApi {
   }, []);
 
   const cycle = useCallback<SurveyApi["cycle"]>(
-    (cafeId, field) => {
-      setEntries((prev) => {
-        const cur = prev[cafeId]?.[field];
-        const nextVal = cur === undefined ? "yes" : cur === "yes" ? "no" : undefined;
-        const entry: SurveyEntry = { ...prev[cafeId] };
-        if (nextVal === undefined) delete entry[field];
-        else entry[field] = nextVal;
-        const next = { ...prev };
-        if (Object.keys(entry).length === 0) delete next[cafeId];
-        else next[cafeId] = entry;
-        try {
-          window.localStorage.setItem(KEY, JSON.stringify(next));
-        } catch {
-          // 同上
-        }
-        return next;
-      });
-    },
-    []
+    (cafeId, field) =>
+      update(cafeId, (e) => {
+        const cur = e[field];
+        if (cur === undefined) e[field] = "yes";
+        else if (cur === "yes") e[field] = "no";
+        else delete e[field];
+      }),
+    [update]
   );
 
-  const setSeats = useCallback<SurveyApi["setSeats"]>((cafeId, seats) => {
-    setEntries((prev) => {
-      const entry: SurveyEntry = { ...prev[cafeId] };
-      if (seats === null) delete entry.seats;
-      else entry.seats = seats;
-      const next = { ...prev };
-      if (Object.keys(entry).length === 0) delete next[cafeId];
-      else next[cafeId] = entry;
-      try {
-        window.localStorage.setItem(KEY, JSON.stringify(next));
-      } catch {
-        // 同上
-      }
-      return next;
-    });
-  }, []);
+  const setSmoking = useCallback<SurveyApi["setSmoking"]>(
+    (cafeId, v) =>
+      update(cafeId, (e) => {
+        if (v === null) delete e.smoking;
+        else e.smoking = v;
+      }),
+    [update]
+  );
+
+  const setSeats = useCallback<SurveyApi["setSeats"]>(
+    (cafeId, seats) =>
+      update(cafeId, (e) => {
+        if (seats === null) delete e.seats;
+        else e.seats = seats;
+      }),
+    [update]
+  );
+
+  const setText = useCallback<SurveyApi["setText"]>(
+    (cafeId, field, v) =>
+      update(cafeId, (e) => {
+        const t = v.trim();
+        if (t) e[field] = t;
+        else delete e[field];
+      }),
+    [update]
+  );
+
+  const setPos = useCallback<SurveyApi["setPos"]>(
+    (cafeId, pos) =>
+      update(cafeId, (e) => {
+        if (pos) e.pos = pos;
+        else delete e.pos;
+      }),
+    [update]
+  );
 
   const exportText = useCallback<SurveyApi["exportText"]>(
     (cafes) => {
@@ -185,12 +232,23 @@ export function useSurveyMode(): SurveyApi {
       for (const [cafeId, entry] of Object.entries(entries)) {
         const cafe = byId.get(cafeId);
         if (!cafe) continue;
-        const said = SURVEY_FIELDS.filter((f) => entry[f.key] !== undefined).map((f) => {
-          // 既に編集部調べが入っている項目は印を付ける。現地の方が正しいが、
-          // 黙って差し替えると出所と日付の記録が消えるので、目で見てから直す
-          const mark = f.filled(cafe) ? "  ※既存の記載あり" : "";
-          return `  ${LABEL[f.key]}：${f.say(entry[f.key]!)}${mark}`;
-        });
+        // 既に編集部調べが入っている項目は印を付ける。現地の方が正しいが、
+        // 黙って差し替えると出所と日付の記録が消えるので、目で見てから直す
+        const mark = (filled: boolean) => (filled ? "  ※既存の記載あり" : "");
+        const said: string[] = [];
+        for (const f of TRI_FIELDS) {
+          const v = entry[f.key];
+          if (v) said.push(`  ${f.label}：${f.say(v)}${mark(f.filled(cafe))}`);
+        }
+        if (entry.smoking) said.push(`  喫煙：${smokeSay(entry.smoking)}${mark(smokingFilled(cafe))}`);
+        if (entry.seats !== undefined) said.push(`  席数：${entry.seats}席${mark(seatsFilled(cafe))}`);
+        for (const f of TEXT_FIELDS) {
+          const v = entry[f.key];
+          if (v) said.push(`  ${f.label}：${v}${mark(f.filled(cafe))}`);
+        }
+        if (entry.pos) {
+          said.push(`  位置：${entry.pos.lat},${entry.pos.lng}（現在地で取得、誤差±${Math.round(entry.pos.acc)}m）`);
+        }
         if (said.length === 0) continue;
         n++;
         // 店名だけだと同名の店で取り違える。idを添えて、どの行かを一意にする
@@ -203,19 +261,23 @@ export function useSurveyMode(): SurveyApi {
     [entries]
   );
 
-  const clear = useCallback(() => save({}), [save]);
+  const clear = useCallback(() => {
+    setEntries({});
+    persist({});
+  }, []);
 
   const count = useMemo(() => Object.keys(entries).length, [entries]);
 
-  return { on, setOn, entries, count, cycle, setSeats, exportText, clear };
+  return { on, setOn, entries, count, cycle, setSmoking, setSeats, setText, setPos, exportText, clear };
 }
 
 /**
  * 現地で見るものが残っているか。
  * 一度調査した店と、5項目そろっている店は用がない。
- * 調査モードのときだけ、これが false の店を地図から外す
+ * 調査モードのときだけ、これが false の店を地図から外す。
+ * 営業時間・定休日はネットで調べる項目なので、ここでは数えない
  */
 export function needsSurvey(cafe: Cafe): boolean {
   if (SURVEYED[cafe.id]) return false;
-  return SURVEY_FIELDS.some((f) => !f.filled(cafe));
+  return TRI_FIELDS.some((f) => !f.filled(cafe)) || !smokingFilled(cafe) || !seatsFilled(cafe);
 }
