@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import type { Cafe } from "@/lib/seedCafes";
+import { SURVEYED } from "@/data/surveyed";
 
 // 現地調査モード。
 //
@@ -210,9 +211,11 @@ export function useSurveyMode(): SurveyApi {
 }
 
 /**
- * 現地で見るものが残っているか。5項目そろっていれば用がない。
+ * 現地で見るものが残っているか。
+ * 一度調査した店と、5項目そろっている店は用がない。
  * 調査モードのときだけ、これが false の店を地図から外す
  */
 export function needsSurvey(cafe: Cafe): boolean {
+  if (SURVEYED[cafe.id]) return false;
   return SURVEY_FIELDS.some((f) => !f.filled(cafe));
 }
