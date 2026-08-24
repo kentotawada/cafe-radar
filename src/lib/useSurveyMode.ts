@@ -117,6 +117,14 @@ function persist(next: Record<string, SurveyEntry>) {
   }
 }
 
+/** 「情報が違う」でユーザーから届いた報告。管理画面で消すまで残る＝未処理 */
+export type Correction = {
+  id: string;
+  cafe_id: string;
+  message: string;
+  created_at: string;
+};
+
 export type SurveyApi = {
   /** 調査モードに入っているか */
   on: boolean;
@@ -131,8 +139,12 @@ export type SurveyApi = {
   setSeats: (cafeId: string, seats: number | null) => void;
   setText: (cafeId: string, field: TextField, v: string) => void;
   setPos: (cafeId: string, pos: SurveyEntry["pos"] | null) => void;
-  /** 送れる文章にする。店名が要るので店の一覧を渡す */
-  exportText: (cafes: Cafe[]) => string;
+  /**
+   * 送れる文章にする。店名が要るので店の一覧を渡す。
+   * corrections には未処理の「情報が違う」報告を渡す。歩いた記録と一緒に
+   * 送れるようにして、報告を見落とさないようにする
+   */
+  exportText: (cafes: Cafe[], corrections?: Correction[], note?: string | null) => string;
   clear: () => void;
 };
 
@@ -224,7 +236,7 @@ export function useSurveyMode(): SurveyApi {
   );
 
   const exportText = useCallback<SurveyApi["exportText"]>(
-    (cafes) => {
+    (cafes, corrections, note) => {
       const byId = new Map(cafes.map((c) => [c.id, c]));
       const today = new Date().toISOString().slice(0, 10);
       const lines: string[] = [`現地確認 ${today}`, ""];
@@ -254,8 +266,25 @@ export function useSurveyMode(): SurveyApi {
         // 店名だけだと同名の店で取り違える。idを添えて、どの行かを一意にする
         lines.push(`${cafe.name}  [${cafe.id}]`, ...said, "");
       }
-      if (n === 0) return "まだ何も入力されていません。";
-      lines.push(`上記 ${n} 軒。すべて現地で確認。`);
+      if (n > 0) lines.push(`上記 ${n} 軒。すべて現地で確認。`);
+      else lines.push("現地入力はありません。");
+
+      // 未処理の「情報が違う」報告。歩いた記録と一緒に送れば見落とさない
+      if (note) {
+        lines.push("", `【未処理の報告】${note}`);
+      } else if (corrections && corrections.length > 0) {
+        lines.push("", `【未処理の「情報が違う」報告 ${corrections.length}件】`);
+        for (const c of corrections) {
+          const cafe = byId.get(c.cafe_id);
+          lines.push(
+            `  ${c.created_at.slice(0, 10)}  ${cafe ? cafe.name : "(データに無い店)"}  [${c.cafe_id}]  ${c.message.replace(/\s+/g, " ")}`
+          );
+        }
+      } else if (corrections) {
+        lines.push("", "【未処理の報告】なし");
+      }
+
+      if (n === 0 && !corrections?.length && !note) return "まだ何も入力されていません。";
       return lines.join("\n");
     },
     [entries]

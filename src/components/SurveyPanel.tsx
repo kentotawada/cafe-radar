@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import type { Cafe } from "@/lib/seedCafes";
+import { supabase } from "@/lib/supabaseClient";
+import type { Correction } from "@/lib/useSurveyMode";
 import {
   SMOKE_OPTIONS,
   TRI_FIELDS,
@@ -300,6 +302,42 @@ function PosButton({
 // 画面の隅に出す、件数と書き出しのバー
 export function SurveyBar({ survey, cafes }: { survey: SurveyApi; cafes: Cafe[] }) {
   const [text, setText] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  // 未処理の「情報が違う」報告を一緒に書き出す。
+  //
+  // info_corrections は管理者しか読めないRLSになっている(報告の中身は
+  // 人の指摘なので公開しない)。読むには管理画面と同じログインが要る。
+  // ログインしていない時は、その旨を文章に入れて分かるようにする
+  const build = async () => {
+    setBusy(true);
+    try {
+      // Supabaseの設定が無いビルドでは null になる
+      if (!supabase) {
+        setText(survey.exportText(cafes, undefined, "Supabaseに接続できません"));
+        return;
+      }
+      const { data: sess } = await supabase.auth.getSession();
+      if (!sess.session) {
+        setText(survey.exportText(cafes, undefined, "読むには /admin でログインしてください"));
+        return;
+      }
+      const { data, error } = await supabase
+        .from("info_corrections")
+        .select("id,cafe_id,message,created_at")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) {
+        setText(survey.exportText(cafes, undefined, `読めませんでした（${error.message}）`));
+        return;
+      }
+      setText(survey.exportText(cafes, (data ?? []) as Correction[]));
+    } catch {
+      setText(survey.exportText(cafes, undefined, "読めませんでした（通信エラー）"));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <>
@@ -308,10 +346,11 @@ export function SurveyBar({ survey, cafes }: { survey: SurveyApi; cafes: Cafe[] 
         <span className="font-bold">調査 {survey.count}軒</span>
         <button
           type="button"
-          onClick={() => setText(survey.exportText(cafes))}
-          className="rounded-full bg-white px-2.5 py-0.5 text-[11px] font-bold text-gray-900"
+          onClick={build}
+          disabled={busy}
+          className="rounded-full bg-white px-2.5 py-0.5 text-[11px] font-bold text-gray-900 disabled:opacity-60"
         >
-          書き出す
+          {busy ? "…" : "書き出す"}
         </button>
         <button
           type="button"
