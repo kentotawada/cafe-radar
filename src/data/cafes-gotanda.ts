@@ -66,7 +66,6 @@ export const cafes: Cafe[] = [
   { id: "gotanda-40", name: "東京豆漿生活", address: "東京都品川区西五反田1-20-3 MKYビル 1F", lat: 35.623093, lng: 139.723755 },
   { id: "gotanda-41", name: "Bread&Coffee IKEDAYAMA 五反田駅前店", address: "東京都品川区西五反田1-2-10 CIRCLES五反田 1F", lat: 35.625889, lng: 139.722748, seatCountInfo: "28席(公式サイト、2026年時点)" },
   { id: "gotanda-43", name: "デスタン", address: "東京都品川区西五反田2-11-11", lat: 35.627022, lng: 139.720474 },
-  { id: "gotanda-44", name: "EL TRES", address: "東京都品川区東五反田2-9-11 さくらてらす五反田", lat: 35.624344, lng: 139.726685 },
   { id: "gotanda-45", name: "フォレスト", address: "東京都品川区西五反田1-32-3 DAIビル 2F", lat: 35.624222, lng: 139.721848 },
   { id: "gotanda-46", name: "アクセアカフェ五反田店", address: "東京都品川区西五反田1-24-4 タキゲンビル 1F/2F", lat: 35.6236, lng: 139.722443, outletInfo: "全席電源あり、24時間営業のコワーキング", wifiInfo: "無料Wi-Fiあり(アクセアカフェ公式サイト、2026年時点)", smokingInfo: "全席禁煙(アクセアカフェ公式サイト、2026年時点)", seatCountInfo: "42席(アクセアカフェ公式サイト、2026年時点)", webMeetingInfo: "通話・WEB会議ができるエリアと、テレワーク用の個室ブースあり(アクセアカフェ公式サイト、2026年時点)" },
   { id: "gotanda-47", name: "HONEYCOMB COFFEE", address: "東京都品川区大崎3-15-23 鈴木ビル 1F", lat: 35.618809, lng: 139.722473, outletInfo: "ほぼ全席とベンチ席にコンセントあり" },
