@@ -772,6 +772,8 @@ export default function AdminPage() {
             </h2>
             <p className="text-xs text-gray-600 mb-3">
               電源情報が未確認のお店に「電源席はどこですか？」の報告があったものです。承認すると、地図のピンにも電源プラグのマークが表示されるようになります。
+              <br />
+              間違った報告だと思ったら、押さずに置いてください。承認しなければ地図には出ません。
             </p>
             {outletReports.length === 0 ? (
               <p className="text-sm text-gray-500">承認待ちの報告はありません</p>
@@ -813,7 +815,15 @@ export default function AdminPage() {
               店舗情報の間違いの報告（{infoCorrections.length}件）
             </h2>
             <p className="text-xs text-gray-600 mb-3">
-              喫煙・電源・Wi-Fi等の編集部調べ情報が実際と違うという指摘です。内容を確認し、該当する店舗データを修正したら「対応済みにする」を押してください。
+              閉店・移転・設備の間違いなど、文章で届いた指摘です。
+              <br />
+              <b>ここに載る店は、このページからは消せません。</b>
+              編集部調べの店舗データはアプリのコードの中にあるため、直すのも消すのも開発側の作業になります。
+              <br />
+              「対応済みにする」は<b>この報告を一覧から消すだけ</b>のボタンです。店舗データは変わりません。
+              直し終わったものを押して、未処理のものだけが残るようにしてください。
+              <br />
+              未処理の報告は、地図の調査モード（?survey=1）の「書き出す」にも一緒に出ます。
             </p>
             {infoCorrections.length === 0 ? (
               <p className="text-sm text-gray-500">報告はありません</p>
@@ -947,6 +957,7 @@ export default function AdminPage() {
             </h2>
             <p className="text-xs text-gray-600 mb-3">
               店舗に紐づかない、アプリ全体へのお問い合わせです。
+              「対応済みにする」は一覧から消すだけのボタンです（返信機能はありません）。
             </p>
             {inquiries.length === 0 ? (
               <p className="text-sm text-gray-500">お問い合わせはありません</p>
@@ -1122,7 +1133,10 @@ export default function AdminPage() {
                 対応が必要な店舗（{needsAction.length}件）
               </h2>
               <p className="text-xs text-gray-600 mb-3">
+                <b>「お店を追加」で利用者が登録した店だけ</b>がここに並びます（編集部調べの店は出ません）。
                 まだ他の人に確認されていない店舗、または「存在しない・場所が違う」と報告された店舗です。実在を確認できたら「問題なし」を、実在しない・間違っていると判断したら「削除」を選んでください。
+                <br />
+                ボタンは1件ごとに付きます。0件のときは何も出ません。
               </p>
               {needsAction.length === 0 ? (
                 <p className="text-sm text-gray-500">
