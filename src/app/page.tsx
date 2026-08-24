@@ -115,6 +115,11 @@ function AreaLinks() {
           {a.name.replace("駅", "")}
         </Link>
       ))}
+      <span className="mt-1 block">
+        <Link href="/guide/iidabashi-jimbocho-90cafes" className="text-blue-700 underline">
+          現地調査レポート: 飯田橋・神保町のカフェ90軒を歩いて調べた
+        </Link>
+      </span>
     </nav>
   );
 }

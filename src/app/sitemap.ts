@@ -16,6 +16,12 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticPages: MetadataRoute.Sitemap = [
     { url: SITE_URL, changeFrequency: "daily", priority: 1 },
+    // 現地調査レポート。エリア横断の話題(Wi-Fiの方式・WEB会議)の受け皿
+    {
+      url: `${SITE_URL}/guide/iidabashi-jimbocho-90cafes`,
+      changeFrequency: "monthly",
+      priority: 0.9,
+    },
     { url: `${SITE_URL}/business`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${SITE_URL}/contact`, changeFrequency: "monthly", priority: 0.3 },
     { url: `${SITE_URL}/privacy`, changeFrequency: "yearly", priority: 0.3 },
