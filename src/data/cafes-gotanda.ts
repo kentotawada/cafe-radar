@@ -54,7 +54,7 @@ export const cafes: Cafe[] = [
   { id: "gotanda-27", name: "TONER", address: "東京都品川区西五反田3-8-3 町原ビル 1F", lat: 35.626705, lng: 139.717773, outletInfo: "カウンター周りのみ電源コンセントあり" },
   { id: "gotanda-28", name: "Times CAFÉ", address: "東京都品川区西五反田2-20-4 パーク24グループ本社ビル 2F", lat: 35.625961, lng: 139.722061, outletInfo: "電源とUSBポート付きの席あり", wifiInfo: "無料Wi-Fiあり(パーク24グループ公式サイト、2026年時点)", smokingInfo: "全席禁煙(パーク24グループ公式サイト、2026年時点)" },
   { id: "gotanda-29", name: "カフェ ビアンコ", address: "東京都品川区西五反田2-9-7 ドルミ五反田アンメゾン 1F", lat: 35.626808, lng: 139.721085 },
-  { id: "gotanda-31", name: "星乃珈琲店 五反田店", address: "東京都品川区東五反田1-21-5 2F", lat: 35.626003, lng: 139.726471, outletInfo: "コンセント・Wi-Fiともになしとの情報", website: "https://www.hoshinocoffee.com/", wifiInfo: "Wi-Fiなし(星乃珈琲店公式の店舗情報、2026年時点)" },
+  { id: "gotanda-31", name: "星乃珈琲店 五反田店", address: "東京都品川区東五反田1-21-10 2F", lat: 35.625823562902, lng: 139.726244252452, outletInfo: "電源あり(利用者の現地確認 2026-08-17)", website: "https://www.hoshinocoffee.com/", wifiInfo: "Wi-Fiなし(星乃珈琲店公式の店舗情報、2026年時点)" },
   { id: "gotanda-32", name: "カフェ トゥジュール デビュテ", address: "東京都品川区東五反田5-27-12 扇寿ビル B1", lat: 35.627064, lng: 139.72374 },
   { id: "gotanda-33", name: "gicca 池田山", address: "東京都品川区東五反田5-1-1 OURA BLDG", lat: 35.632252, lng: 139.720932 },
   { id: "gotanda-34", name: "OMOカフェ&バル(OMO5東京五反田 by 星野リゾート)", address: "東京都品川区西五反田8-4-13 14F", lat: 35.623024, lng: 139.722321, outletInfo: "OMOベースにコンセント付きテーブル席", wifiInfo: "無料Wi-Fiあり(星野リゾートOMO5東京五反田公式サイト、2026年時点)", smokingInfo: "全席禁煙。館内に喫煙室あり(星野リゾートOMO5東京五反田公式サイト、2026年時点)", seatCountInfo: "約120席(星野リゾートOMO5東京五反田公式サイト、2026年時点)" },

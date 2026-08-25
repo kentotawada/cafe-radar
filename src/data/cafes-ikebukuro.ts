@@ -108,4 +108,5 @@ export const cafes: Cafe[] = [
   { id: "ikebukuro-85", name: "ぽんでCOFFEE", address: "東京都豊島区南池袋3-13-13 村中ビル1F", lat: 35.726551, lng: 139.712067, hoursInfo: "10:00〜20:00", closedDaysInfo: "月曜定休(祝日の場合は営業)" },
   { id: "ikebukuro-86", name: "珈琲亭", address: "東京都豊島区東池袋1-7-2 東駒ビル1F", lat: 35.731247, lng: 139.713837, outletInfo: "電源あり", smokingInfo: "分煙(喫煙席は奥の個室で加熱式タバコのみ)" },
   { id: "ikebukuro-87", name: "HIS The room of journey CAFE", address: "東京都豊島区南池袋1-28-2 池袋PARCO 2F", lat: 35.727123, lng: 139.710342, outletInfo: "電源あり", smokingInfo: "全席禁煙", wifiInfo: "Wi-Fiあり" },
+  { id: "ikebukuro-88", name: "Cafe＆Bar RAGE ST 池袋東口", address: "東京都豊島区南池袋1-28-2", lat: 35.730558446028, lng: 139.712346866727, wifiInfo: "無料Wi-Fiあり(RAGE ST公式サイト、2026年8月)", smokingInfo: "全席禁煙。喫煙ブースあり(RAGE ST公式サイト、2026年8月)", hoursInfo: "月〜木 7:00〜22:00、金 7:00〜23:00、土 9:00〜23:00、日祝 9:00〜22:00(RAGE ST公式サイト、2026年8月)", website: "https://www.cafebar-rage-st.com/" },
 ];
