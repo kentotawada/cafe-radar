@@ -46,3 +46,4 @@ next-env.d.ts
 
 .vercel
 lh.json
+.corrections.json
