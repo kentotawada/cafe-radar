@@ -84,7 +84,6 @@ export const cafes: Cafe[] = [
   { id: "gotanda-61", name: "ChocoLapin", address: "東京都品川区西五反田4-28-14", lat: 35.625038, lng: 139.712204, smokingInfo: "禁煙", hoursInfo: "水〜日12:00〜18:00", closedDaysInfo: "月・火定休" },
   { id: "gotanda-62", name: "SpecialtyCoffee AMAMERIA 五反田食堂店", address: "東京都品川区西五反田8-4-13 五反田JPビルディング 1F", lat: 35.623024, lng: 139.722321 },
   { id: "gotanda-63", name: "it's so you coffee", address: "東京都品川区西五反田2-14-13 1F", lat: 35.626354, lng: 139.71965, hoursInfo: "火〜金8:30〜16:00、土・祝8:30〜17:00", closedDaysInfo: "日・月定休" },
-  { id: "gotanda-64", name: "Koti", address: "東京都品川区東五反田2-3-2 IM五反田ビル 3F", lat: 35.62561, lng: 139.725922, hoursInfo: "10:00〜17:00", closedDaysInfo: "水・土・日定休" },
   { id: "gotanda-65", name: "Kua Aina 五反田店", address: "東京都品川区西五反田1-26-7 カノウビル 1F", lat: 35.624012, lng: 139.722687, smokingInfo: "全席禁煙(クア・アイナ公式サイト、2026年時点)", seatCountInfo: "51席(クア・アイナ公式サイト、2026年時点)" },
   { id: "gotanda-66", name: "メゾンカイザー 五反田店", address: "東京都品川区東五反田2-10-1 パークタワーグランスカイ 1F", lat: 35.62422088, lng: 139.72726955, seatCountInfo: "イートインの座席なし(2026年8月、現地で確認)", hoursInfo: "7:00〜20:00" },
   { id: "gotanda-67", name: "ゲンロンカフェ", address: "東京都品川区西五反田1-11-9 司ビル 6F", lat: 35.62439, lng: 139.723282, hoursInfo: "イベント開催日のみ営業。飲食だけの利用はできない(公式サイト、2026-08確認)" },

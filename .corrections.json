@@ -1,0 +1,62 @@
+[
+ {
+  "id": "1f80caa5-7c8c-4ed8-a610-26fc506aa522",
+  "cafe_id": "gotanda-64",
+  "message": "違うお店が入っていた。周囲を探したがそれらしいお店がなかったので閉業扱い",
+  "created_at": "2026-08-24T23:50:03.114439+00:00"
+ },
+ {
+  "id": "f3edbc6f-0968-4dc3-b2e2-8e51cd2e680a",
+  "cafe_id": "gotanda-64",
+  "message": "見当たらない",
+  "created_at": "2026-08-24T05:02:24.651683+00:00"
+ },
+ {
+  "id": "7f58fa74-5888-4051-a8b2-7de924bd4072",
+  "cafe_id": "ochanomizu-02",
+  "message": "7/27〜8/27まで工事中",
+  "created_at": "2026-08-23T08:41:38.902364+00:00"
+ },
+ {
+  "id": "66076e0d-2b43-484f-a2fe-ddc1bf5868c8",
+  "cafe_id": "iidabashi-17",
+  "message": "閉店",
+  "created_at": "2026-08-23T06:04:47.64609+00:00"
+ },
+ {
+  "id": "5071e34f-58bb-404b-be18-e0956d95f3dc",
+  "cafe_id": "gotanda-31",
+  "message": "場所が違う",
+  "created_at": "2026-08-17T12:29:48.279158+00:00"
+ },
+ {
+  "id": "c92c703a-cd38-4b14-8475-a7309ad33ce7",
+  "cafe_id": "gotanda-30",
+  "message": "閉店",
+  "created_at": "2026-08-14T03:49:19.511259+00:00"
+ },
+ {
+  "id": "f36ae326-d498-49ec-ad0a-b6d29347a1ce",
+  "cafe_id": "osaki-27",
+  "message": "閉店",
+  "created_at": "2026-08-14T03:48:18.929431+00:00"
+ },
+ {
+  "id": "bfe6172d-5dc6-42a5-a9f4-a7cb4f41d0ea",
+  "cafe_id": "gotanda-44",
+  "message": "閉店",
+  "created_at": "2026-08-14T03:48:01.705591+00:00"
+ },
+ {
+  "id": "1cbd5358-d3f5-4363-884b-dff126bdc1a4",
+  "cafe_id": "gotanda-42",
+  "message": "閉業",
+  "created_at": "2026-08-13T13:37:17.546888+00:00"
+ },
+ {
+  "id": "95b8c255-469d-43ba-965f-6c828a829e76",
+  "cafe_id": "gotanda-50",
+  "message": "閉業",
+  "created_at": "2026-08-13T13:36:56.154518+00:00"
+ }
+]
