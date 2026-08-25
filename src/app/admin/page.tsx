@@ -304,6 +304,8 @@ export default function AdminPage() {
       ).size;
       const addedBy = cafe.reporter_id;
       const isConfirmed =
+        // 管理者が自分で実在を確かめた(025で追加した列)
+        Boolean((cafe as Cafe & { confirmed_at?: string | null }).confirmed_at) ||
         reports.some(
           (r) => r.cafe_id === cafe.id && r.reporter_id !== addedBy
         ) ||
@@ -688,6 +690,28 @@ export default function AdminPage() {
     if (error) {
       console.error(error);
       setActionError("削除に失敗しました");
+      return;
+    }
+    loadRows();
+  };
+
+  // 実在を自分で確かめた店に印を付ける。
+  // これが無いと、誰も報告していない店は一覧に残り続け、
+  // 押せるボタンが「削除する」だけになっていた
+  const confirmCafe = async (cafeId: string) => {
+    if (!supabase) return;
+    setBusyCafeId(cafeId);
+    setActionError(null);
+    const { error } = await supabase
+      .from("cafes")
+      .update({ confirmed_at: new Date().toISOString() })
+      .eq("id", cafeId);
+    setBusyCafeId(null);
+    if (error) {
+      console.error(error);
+      setActionError(
+        "確認済みにできませんでした。supabase/025_add_confirmed_at_to_cafes.sql を実行してください"
+      );
       return;
     }
     loadRows();
@@ -1134,7 +1158,10 @@ export default function AdminPage() {
               </h2>
               <p className="text-xs text-gray-600 mb-3">
                 <b>「お店を追加」で利用者が登録した店だけ</b>がここに並びます（編集部調べの店は出ません）。
-                まだ他の人に確認されていない店舗、または「存在しない・場所が違う」と報告された店舗です。実在を確認できたら「問題なし」を、実在しない・間違っていると判断したら「削除」を選んでください。
+                まだ誰にも確認されていない店舗、または「存在しない・場所が違う」と報告された店舗です。
+                <br />
+                実在したら<b>「確認済みにする」</b>、通報が付いていて問題なければ<b>「問題なし」</b>、
+                実在しない・間違っていると判断したら<b>「削除する」</b>を押してください。
                 <br />
                 ボタンは1件ごとに付きます。0件のときは何も出ません。
               </p>
@@ -1171,7 +1198,16 @@ export default function AdminPage() {
                         追加日時: {formatDateTime(cafe.created_at)}　／　ID:{" "}
                         {cafe.id}
                       </div>
-                      <div className="flex gap-2 mt-1">
+                      <div className="flex gap-2 mt-1 flex-wrap">
+                        {!isConfirmed && (
+                          <button
+                            disabled={busyCafeId === cafe.id}
+                            onClick={() => confirmCafe(cafe.id)}
+                            className="text-xs bg-green-50 text-green-800 border border-green-300 rounded px-2 py-1 hover:bg-green-100 disabled:opacity-50"
+                          >
+                            ✓ 確認済みにする（実在した）
+                          </button>
+                        )}
                         {flagCount > 0 && (
                           <button
                             disabled={busyCafeId === cafe.id}
